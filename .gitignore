@@ -1,0 +1,15 @@
+﻿﻿################################################################################
+
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+
+################################################################################
+
+
+
+/.vs
+/.vscode
+*.ipynb_checkpoints
+*.egg-info
+*/__pycache__
+*.pyc
+.coverage
