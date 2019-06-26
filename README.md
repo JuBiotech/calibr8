@@ -1,5 +1,5 @@
-[![pipeline status](https://gitlab.com/diginbio-fzj/murefi/badges/master/pipeline.svg)](https://gitlab.com/diginbio-fzj/murefi/commits/master)
-[![coverage report](https://gitlab.com/diginbio-fzj/murefi/badges/master/coverage.svg)](https://gitlab.com/diginbio-fzj/murefi/commits/master)
+[![pipeline status](https://gitlab.com/diginbio-fzj/calibr8/badges/master/pipeline.svg)](https://gitlab.com/diginbio-fzj/calibr8/commits/master)
+[![coverage report](https://gitlab.com/diginbio-fzj/calibr8/badges/master/coverage.svg)](https://gitlab.com/diginbio-fzj/calibr8/commits/master)
 
-# murefi
+# calibr8
 
