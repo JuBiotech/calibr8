@@ -108,7 +108,7 @@ class LogisticTest(unittest.TestCase):
         self.assertTrue(numpy.array_equal(true, expected))
         return
 
-    def test_inverse_xlog_logistic(self):
+    def test_inverse_ylog_logistic(self):
         y_hat = numpy.array([1.,2.,4.])
         theta = [2,2,4,1]
         forward = calibr8.ylog_logistic(y_hat, theta)

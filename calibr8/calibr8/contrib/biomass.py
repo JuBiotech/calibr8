@@ -172,4 +172,3 @@ class BiomassErrorModel(ErrorModel):
         self.theta_fitted = fit.x
         return fit
     
-    

@@ -2,4 +2,4 @@ from . core import ErrorModel, inverse_logistic, inverse_log_log_logistic, inver
 from . contrib import BiomassErrorModel, GlucoseErrorModel
 
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
