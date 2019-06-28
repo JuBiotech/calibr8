@@ -128,7 +128,7 @@ def inverse_logistic(y_obs, theta):
     return y_hat
 
 
-def extended_logistic(y_hat, theta):
+def asymmetric_logistic(y_hat, theta):
     """5-parameter logistic model of the expected measurement outcome, given a true independent variable.
     
     Args:
@@ -148,7 +148,7 @@ def extended_logistic(y_hat, theta):
     return y_val
 
 
-def inverse_extended_logistic(y_obs, theta):
+def inverse_asymmetric_logistic(y_obs, theta):
     """Inverse logistic model returning the predicted independent variable given the measurement.
         
     Args:

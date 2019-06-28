@@ -44,7 +44,7 @@ except ModuleNotFoundError:  # theano is optional, throw exception when used
     
     theano = _Theano()
 
-from .. core import ErrorModel, extended_logistic, inverse_extended_logistic, polynomial
+from .. core import ErrorModel, asymmetric_logistic, inverse_asymmetric_logistic, polynomial
 
 
 class BaseGlucoseErrorModel(ErrorModel):
@@ -188,7 +188,7 @@ class LogisticGlucoseErrorModel(BaseGlucoseErrorModel):
         """
         if theta is None:
             theta = self.theta_fitted
-        mu = extended_logistic(y_hat, theta[:5])
+        mu = asymmetric_logistic(y_hat, theta[:5])
         sigma = polynomial(mu, theta[5:])
         df = self.student_df
         return mu, sigma, df
@@ -202,10 +202,10 @@ class LogisticGlucoseErrorModel(BaseGlucoseErrorModel):
         Returns:
             y_hat (array): most likely glucose values (independent variable)
         """
-        y_hat = inverse_extended_logistic(y_obs, self.theta_fitted)
+        y_hat = inverse_asymmetric_logistic(y_obs, self.theta_fitted)
         return y_hat
     
-    def theano_extended_logistic(self, y_hat, theta):
+    def theano_asymmetric_logistic(self, y_hat, theta):
         """5-parameter logistic model of the expected measurement outcome, given a true independent variable.
     
         Args:
@@ -240,7 +240,7 @@ class LogisticGlucoseErrorModel(BaseGlucoseErrorModel):
         theta = self.theta_fitted
         with pm.Model() as model:
             glc = pm.Uniform('Glucose', lower=glc_lower, upper=glc_upper, shape=(1,))
-            mu = self.theano_extended_logistic(glc, theta[:5])
+            mu = self.theano_asymmetric_logistic(glc, theta[:5])
             sd = polynomial(glc, theta[5:])
             ll = pm.StudentT('likelihood', nu=self.student_df, mu=mu, sd=sd, observed=y_obs, shape=(1,))
             trace = pm.sample(draws)

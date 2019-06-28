@@ -43,7 +43,7 @@ except ModuleNotFoundError:  # theano is optional, throw exception when used
     
     theano = _Theano()
 
-from .. core import ErrorModel, log_log_logistic, polynomial, inverse_log_log_logistic
+from .. core import ErrorModel,  asymmetric_logistic, inverse_asymmetric_logistic, polynomial
 
 
 class BiomassErrorModel(ErrorModel):
@@ -70,9 +70,9 @@ class BiomassErrorModel(ErrorModel):
         """
         if theta is None:
             theta = self.theta_fitted
-        mu = log_log_logistic(y_hat, theta[:4])
-        sigma = polynomial(y_hat,theta[4:])
-        df=self.student_df
+        mu = asymmetric_logistic(y_hat, theta[:5])
+        sigma = polynomial(mu, theta[5:])
+        df = self.student_df
         return mu, sigma, df
 
     def predict_independent(self, y_obs):
@@ -84,41 +84,37 @@ class BiomassErrorModel(ErrorModel):
         Returns:
             biomass (array): most likely biomass values (independent variable)
         """
-        y_hat = inverse_log_log_logistic(y_obs, self.theta_fitted)
+        y_hat = inverse_asymmetric_logistic(y_obs, self.theta_fitted)
         return y_hat
         
-    def theano_logistic(self, y_hat, theta_log):
-        """Log-log logistic model of the expected measurement outcomes, given a true independent variable.
-        
-        Arguments:
+    def theano_asymmetric_logistic(self, y_hat, theta):
+        """5-parameter logistic model of the expected measurement outcome, given a true independent variable.
+    
+        Args:
             y_hat (array): realizations of the independent variable
-            theta_log (array): parameters of the log-log logistic model
-            I_x: inflection point (ln(x))
-            I_y: inflection point (ln(y))
-            Lmax: maximum value in log sapce
-            s: log-log slope
+            theta (array): parameters of the logistic model
+            L_L: lower asymptote
+            L_U: upper asymptote
+            k: growth rate
+            I_x: x-value at inflection point
+            v: parameter affecting the position of the inflection point (symmetry)
+        
+        Returns:
+            y_val(array): expected measurement outcome
         """
-        # IMPORTANT: Outside of this function, it is irrelevant that the correlation is modeled in log-log space.
-        # Since the logistic function is assumed for logarithmic backscatter in dependency of logarithmic NTU,
-        # the interpretation of (I_x, I_y, Lmax and s) is in terms of log-space.
-        I_x, I_y, Lmax = theta_log[:3]
-        s = theta_log[3:]
+        L_L, L_U, I_x, k, v = theta[:5]
+        y_val = L_L + (L_U-L_L)/(theano.tensor.power((1+theano.tensor.exp(-k*(y_hat-I_x))),1/v))
 
-        # For the same reason, y_hat (the x-axis) must be transformed into log-space.
-        y_hat = theano.tensor.log(y_hat)
-        y_val = 2.0 * I_y - Lmax + (2.0 * (Lmax - I_y)) / (1.0 + theano.tensor.exp(-4.0*s * (y_hat - I_x)))
+        return y_val
 
-        # The logistic model predicts a log-transformed y_val, but outside of this
-        # function, the non-log value is expected.
-        return theano.tensor.exp(y_val)
 
-    def infer_independent(self, y_obs, *, btm_lower=0, btm_upper=17, draws=1000):
+    def infer_independent(self, y_obs, *, cdw_lower=0, cdw_upper=17, draws=1000):
         """Infer the posterior distribution of the independent variable given the observations of one point of the dependent variable.
         
         Args:
-            y_obs (array): observed OD measurements
-            btm_lower (int): lower limit for uniform distribution of cdw prior
-            btm_upper (int): upper limit for uniform distribution of cdw prior
+            y_obs (array): observed backscatter measurements
+            cdw_lower (int): lower limit for uniform distribution of cdw prior
+            cdw_upper (int): upper limit for uniform distribution of cdw prior
             student_df (int): df of student-t-likelihood (default: 1)
             draws (int): number of samples to draw (handed to pymc3.sample)
         
@@ -127,9 +123,9 @@ class BiomassErrorModel(ErrorModel):
         """ 
         theta = self.theta_fitted
         with pm.Model() as model:
-            btm = pm.Uniform('BTM', lower=btm_lower, upper=btm_upper, shape=(1,))
-            mu = self.theano_logistic(btm, theta[:4])
-            sd = polynomial(btm, theta[4:])
+            cdw = pm.Uniform('CDW', lower=cdw_lower, upper=cdw_upper, shape=(1,))
+            mu = self.theano_asymmetric_logistic(cdw, theta[:5])
+            sd = polynomial(cdw, theta[5:])
             ll = pm.StudentT('likelihood', nu=self.student_df, mu=mu, sd=sd, observed=y_obs, shape=(1,))
             trace = pm.sample(draws)
         return trace
