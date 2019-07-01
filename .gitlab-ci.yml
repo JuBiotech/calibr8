@@ -28,7 +28,7 @@ release-calibr8:
       - ./*.whl
     expire_in: 30 yrs
   only:
-    # only run on refs that are named like calibr8_v1.2 or calibr8_v1.2.3
-    - /^calibr8_v(\d+\.)?(\d+\.)?(\*|\d+)$/
+    # only run on refs that are named like v1.2 or v1.2.3
+    - /^v(\d+\.)?(\d+\.)?(\*|\d+)$/
   except:
     - branches
