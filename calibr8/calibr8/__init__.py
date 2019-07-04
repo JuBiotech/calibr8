@@ -2,4 +2,4 @@ from . core import ErrorModel, asymmetric_logistic, inverse_asymmetric_logistic,
 from . contrib import BiomassErrorModel, BaseGlucoseErrorModel, LinearGlucoseErrorModel, LogisticGlucoseErrorModel
 
 
-__version__ = '1.1.0'
+__version__ = '2.0.0'

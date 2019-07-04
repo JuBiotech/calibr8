@@ -57,12 +57,13 @@ class BiomassErrorModel(ErrorModel):
         super().__init__(independent_key, dependent_key)
         self.student_df=1
           
-    def predict_dependent(self, y_hat, *, theta=None):
-        """Predicts the parameters mu and sigma of a student-t-distribution which characterises the dependent variable (backscatter) given values of the independent variable (CDW).
+    def predict_dependent(self, x, *, theta=None):
+        """Predicts the parameters mu and sigma of a student-t-distribution which characterises the dependent variable (backscatter)
+        given values of the independent variable (CDW).
 
         Args:
-            y_hat (array): values of the independent variable
-            theta: parameters describing the logistic function of mu and the polynomial function of sigma (default to self.theta_fitted)
+            x (array): independent variable (CDW)
+            theta: parameters of asymmetric_logistic (mu) and and polynomial functions (scale)
 
         Returns:
             mu,sigma (array): values for mu and sigma charcterising the student-t-distributions describing the dependent variable (backscatter)
@@ -70,52 +71,50 @@ class BiomassErrorModel(ErrorModel):
         """
         if theta is None:
             theta = self.theta_fitted
-        mu = asymmetric_logistic(y_hat, theta[:5])
+        mu = asymmetric_logistic(x, theta[:5])
         sigma = polynomial(mu, theta[5:])
         df = self.student_df
         return mu, sigma, df
 
-    def predict_independent(self, y_obs):
+    def predict_independent(self, y):
         """Predict the most likely value of the independent variable using the calibrated error model in inverse direction.
 
         Args:
-            y_obs (array): observed backscatter measurements (dependent variable)
+            y (array): observed backscatter measurements (dependent variable)
 
         Returns:
             biomass (array): most likely biomass values (independent variable)
         """
-        y_hat = inverse_asymmetric_logistic(y_obs, self.theta_fitted)
-        return y_hat
+        x = inverse_asymmetric_logistic(y, self.theta_fitted)
+        return x
         
-    def theano_asymmetric_logistic(self, y_hat, theta):
+    def theano_asymmetric_logistic(self, x, theta):
         """5-parameter logistic model of the expected measurement outcome, given a true independent variable.
     
         Args:
-            y_hat (array): realizations of the independent variable
+            x (theano.TensorVariable): symbolic independent variable
             theta (array): parameters of the logistic model
-            L_L: lower asymptote
-            L_U: upper asymptote
-            k: growth rate
-            I_x: x-value at inflection point
-            v: parameter affecting the position of the inflection point (symmetry)
+                L_L: lower asymptote
+                L_U: upper asymptote
+                I_x: x-value at inflection point
+                k: growth rate
+                v: symmetry parameter
         
         Returns:
-            y_val(array): expected measurement outcome
+            y (theano.TensorVariable): symbolic expected measurement outcome
         """
         L_L, L_U, I_x, k, v = theta[:5]
-        y_val = L_L + (L_U-L_L)/(theano.tensor.power((1+theano.tensor.exp(-k*(y_hat-I_x))),1/v))
+        y = L_L + (L_U-L_L)/(theano.tensor.power((1+theano.tensor.exp(-k*(x-I_x))),1/v))
+        return y
 
-        return y_val
 
-
-    def infer_independent(self, y_obs, *, cdw_lower=0, cdw_upper=17, draws=1000):
+    def infer_independent(self, y, *, cdw_lower=0, cdw_upper=17, draws=1000):
         """Infer the posterior distribution of the independent variable given the observations of one point of the dependent variable.
         
         Args:
-            y_obs (array): observed backscatter measurements
+            y (array): observed backscatter measurements
             cdw_lower (int): lower limit for uniform distribution of cdw prior
             cdw_upper (int): upper limit for uniform distribution of cdw prior
-            student_df (int): df of student-t-likelihood (default: 1)
             draws (int): number of samples to draw (handed to pymc3.sample)
         
         Returns:
@@ -126,26 +125,28 @@ class BiomassErrorModel(ErrorModel):
             cdw = pm.Uniform('CDW', lower=cdw_lower, upper=cdw_upper, shape=(1,))
             mu = self.theano_asymmetric_logistic(cdw, theta[:5])
             sd = polynomial(cdw, theta[5:])
-            ll = pm.StudentT('likelihood', nu=self.student_df, mu=mu, sd=sd, observed=y_obs, shape=(1,))
+            ll = pm.StudentT('likelihood', nu=self.student_df, mu=mu, sd=sd, observed=y, shape=(1,))
             trace = pm.sample(draws)
         return trace
         
-    def loglikelihood(self, *, y_obs,  y_hat, theta=None):
+    def loglikelihood(self, *, y,  x, theta=None):
         """Loglikelihood of observation (dependent variable) given the independent variable
 
         Args:
-            y_obs (array): observed backscatter measurements (dependent variable)
-            y_hat (array): predicted values of independent variable
-            theta: parameters describing the logistic function of mu and the polynomial function of sigma (to be fitted with data)
+            y (array): observed backscatter measurements (dependent variable)
+            x (array): assumed independent variable
+            theta: parameters of asymmetric_logistic (mu) and and polynomial functions (scale)
 
+        Returns:
+            L (float): sum of log-likelihoods
         """
         if theta is None:
             if self.theta_fitted is None:
                 raise Exception('No parameter vector was provided and the model is not fitted with data yet.')
             theta = self.theta_fitted
-        mu, sigma, df = self.predict_dependent(y_hat, theta=theta)
+        mu, sigma, df = self.predict_dependent(x, theta=theta)
         # using t-distributed error in the non-transformed space
-        likelihoods = scipy.stats.t.pdf(x=y_obs, loc=mu, scale=sigma, df=df)
+        likelihoods = scipy.stats.t.pdf(x=y, loc=mu, scale=sigma, df=df)
         loglikelihoods = numpy.log(likelihoods)
         ll = numpy.sum(loglikelihoods)
         return ll
