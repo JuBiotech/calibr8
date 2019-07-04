@@ -83,24 +83,6 @@ class BaseGlucoseErrorModel(ErrorModel):
         loglikelihoods = numpy.log(likelihoods)
         ll = numpy.sum(loglikelihoods)
         return ll
-    
-    def fit(self, dependent, independent, *, theta_guessed, bounds):
-        """Function to fit the error model with observed data. The attribute theta_fitted is overwritten after the fit.
-
-        Args:
-            dependent (array): observations of dependent variable
-            independent (array): desired values of the independent variable or measured values of the same
-            theta_guessed: initial guess for parameters describing the mode and standard deviation of a PDF of the dependent variable
-            bounds: bounds to fit the parameters
-
-        Returns:
-            fit: Fitting result of scipy.optimize.minimize
-        """
-        def sum_negative_loglikelihood(theta):
-            return(-self.loglikelihood(y_obs=dependent, y_hat=independent, theta=theta))
-        fit = scipy.optimize.minimize(sum_negative_loglikelihood, theta_guessed, bounds=bounds)
-        self.theta_fitted = fit.x
-        return fit
 
 
 class LinearGlucoseErrorModel(BaseGlucoseErrorModel):

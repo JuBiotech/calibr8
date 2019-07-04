@@ -69,12 +69,12 @@ class ErrorModel(object):
         """
         raise NotImplementedError('The loglikelihood function should be implemented by the inheriting class.')
         
-    def fit(self, dependent, independent, *, theta_guessed, bounds=None):
+    def fit(self, independent, dependent, *, theta_guessed, bounds=None):
         """Function to fit the error model with observed data. The attribute theta_fitted is overwritten after the fit.
 
         Args:
-            dependent (array): observations of dependent variable
             independent (array): desired values of the independent variable or measured values of the same
+            dependent (array): observations of dependent variable
             theta_guessed: initial guess for parameters describing the mode and standard deviation of a PDF of the dependent variable
             bounds: bounds to fit the parameters
 

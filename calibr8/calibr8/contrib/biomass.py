@@ -150,21 +150,3 @@ class BiomassErrorModel(ErrorModel):
         ll = numpy.sum(loglikelihoods)
         return ll
     
-    def fit(self, dependent, independent, *, theta_guessed, bounds):
-        """Function to fit the error model with observed data. The attribute theta_fitted is overwritten after the fit.
-
-        Args:
-            dependent (array): observations of dependent variable
-            independent (array): desired values of the independent variable or measured values of the same
-            theta_guessed: initial guess for parameters describing the logistic function of mu and the polynomial function of sigma
-            bounds: bounds to fit the parameters
-
-        Returns:
-            fit: Fitting result of scipy.optimize.minimize
-        """
-        def sum_negative_loglikelihood(theta):
-            return(-self.loglikelihood(y_obs=dependent, y_hat=independent, theta=theta))
-        fit = scipy.optimize.minimize(sum_negative_loglikelihood, theta_guessed, bounds=bounds)
-        self.theta_fitted = fit.x
-        return fit
-    
