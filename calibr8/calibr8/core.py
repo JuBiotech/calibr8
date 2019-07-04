@@ -69,7 +69,7 @@ class ErrorModel(object):
         """
         raise NotImplementedError('The loglikelihood function should be implemented by the inheriting class.')
         
-    def fit(self, independent, dependent, *, theta_guessed, bounds=None):
+    def fit(self, *,independent, dependent, theta_guessed, bounds=None):
         """Function to fit the error model with observed data. The attribute theta_fitted is overwritten after the fit.
 
         Args:

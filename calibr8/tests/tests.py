@@ -151,7 +151,7 @@ class BaseGlucoseErrorModelTest(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             _ = errormodel.loglikelihood(y_obs=y_obs, y_hat=y_hat)
         with self.assertRaises(NotImplementedError):
-            _ = errormodel.fit(y_hat, y_obs, theta_guessed=None, bounds=None)
+            _ = errormodel.fit(independent=y_hat, dependent=y_obs, theta_guessed=None, bounds=None)
         return
         
         
