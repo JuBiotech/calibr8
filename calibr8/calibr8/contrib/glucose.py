@@ -85,7 +85,7 @@ class BaseGlucoseErrorModel(core.ErrorModel):
         mu, sigma, df = self.predict_dependent(x, theta=theta)
         if HAVE_THEANO:
             if isinstance(x, theano.tensor.TensorVariable):
-                L = pm.StudentT(utils.to_did(dependent_key, replicate_id),
+                L = pm.StudentT(f'{replicate_id}.{dependent_key}'),
                             mu=mu,
                             sd=sigma,
                             nu=df,
