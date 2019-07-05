@@ -177,7 +177,7 @@ class TestSymbolicModelFunctions(unittest.TestCase):
             [2, 2, 4, 1]
         )
         return
-
+    
     def test_xlog_logistic(self):
         self._check_numpy_theano_equivalence(
             calibr8.xlog_logistic,
