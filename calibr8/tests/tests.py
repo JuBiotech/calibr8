@@ -9,9 +9,11 @@ import calibr8
 
 try:
     import pymc3
-    HAVE_PYMC3 = True
+    import theano
+    HAS_PYMC3 = True
 except ModuleNotFoundError:
-    HAVE_PYMC3 = False
+    HAS_PYMC3 = False
+
 
 
 dir_testfiles = pathlib.Path(pathlib.Path(__file__).absolute().parent, 'testfiles')
@@ -182,7 +184,7 @@ class LinearGlucoseErrorModelTest(unittest.TestCase):
         self.assertTrue(numpy.allclose(x_predicted, x_original))
         return
     
-    @unittest.skipUnless(HAVE_PYMC3, "requires PyMC3")
+    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_infer_independent(self):
         errormodel = calibr8.LinearGlucoseErrorModel('S', 'OD')
         errormodel.theta_fitted = [0, 2, 0.1]
@@ -191,7 +193,7 @@ class LinearGlucoseErrorModelTest(unittest.TestCase):
         self.assertTrue(len(trace['Glucose'][0]==1))
         return
 
-    @unittest.skipIf(HAVE_PYMC3, "only if PyMC3 is not imported")
+    @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
     def test_error_infer_independent(self):
         errormodel = calibr8.LinearGlucoseErrorModel('S', 'OD')
         with self.assertRaises(ImportError):
@@ -253,7 +255,7 @@ class LogisticGlucoseErrorModelTest(unittest.TestCase):
         self.assertTrue(numpy.allclose(x_predicted, x_original))
         return
     
-    @unittest.skipUnless(HAVE_PYMC3, "requires PyMC3")
+    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_infer_independent(self):
         errormodel = calibr8.LogisticGlucoseErrorModel('S', 'OD')
         errormodel.theta_fitted = [0,4,2,1,1,2,0]
@@ -262,7 +264,7 @@ class LogisticGlucoseErrorModelTest(unittest.TestCase):
         self.assertTrue(len(trace['Glucose'][0]==1))
         return
 
-    @unittest.skipIf(HAVE_PYMC3, "only if PyMC3 is not imported")
+    @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
     def test_error_infer_independent(self):
         errormodel = calibr8.LogisticGlucoseErrorModel('S', 'OD')
         with self.assertRaises(ImportError):
@@ -320,7 +322,7 @@ class BiomassErrorModelTest(unittest.TestCase):
         self.assertTrue(numpy.allclose(x_predicted, x_original))
         return
 
-    @unittest.skipUnless(HAVE_PYMC3, "requires PyMC3")
+    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_infer_independent(self):
         errormodel = calibr8.BiomassErrorModel('X', 'BS')
         errormodel.theta_fitted = numpy.array([0,4,2,1,1,2,0])
@@ -329,7 +331,7 @@ class BiomassErrorModelTest(unittest.TestCase):
         self.assertTrue(len(trace['CDW'][0]==1))
         return
 
-    @unittest.skipIf(HAVE_PYMC3, "only if PyMC3 is not imported")
+    @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
     def test_error_infer_independent(self):
         errormodel = calibr8.BiomassErrorModel('X', 'BS')
         with self.assertRaises(ImportError):
