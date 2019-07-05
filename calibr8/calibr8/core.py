@@ -166,7 +166,7 @@ def inverse_asymmetric_logistic(y, theta):
     """
     L_L, L_U, I_x, k, v = theta[:5]
     y = numpy.array(y)
-    x = I_x-k*numpy.log((numpy.power((L_U-L_L)/(y-L_L), v))-1)    
+    x = I_x-(1/k)*numpy.log((numpy.power((L_U-L_L)/(y-L_L), v))-1)
     return x
 
 
