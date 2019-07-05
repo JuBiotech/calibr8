@@ -10,6 +10,7 @@ import calibr8
 try:
     import pymc3
     import theano
+    import theano.tensor as tt
     HAS_PYMC3 = True
 except ModuleNotFoundError:
     HAS_PYMC3 = False
@@ -47,7 +48,7 @@ class ErrorModelTest(unittest.TestCase):
         return
     
 
-class LogisticTest(unittest.TestCase):
+class TestModelFunctions(unittest.TestCase):
     def test_logistic(self):
         x = numpy.array([1.,2.,4.])
         theta = [2,2,4,1]
@@ -134,6 +135,61 @@ class LogisticTest(unittest.TestCase):
         forward = calibr8.ylog_logistic(x, theta)
         reverse = calibr8.inverse_ylog_logistic(forward, theta)
         self.assertTrue(numpy.allclose(x, reverse))
+        return
+
+
+@unittest.skipUnless(HAS_PYMC3, 'require PyMC3')
+class TestSymbolicModelFunctions(unittest.TestCase):
+    def _check_numpy_theano_equivalence(self, function, theta):
+        # create computation graph
+        x = tt.vector('x', dtype=theano.config.floatX)
+        y = function(x, theta)
+        self.assertIsInstance(y, tt.TensorVariable)
+
+        # compile theano function
+        f = theano.function([x], [y])
+        
+        # check equivalence of numpy and theano computation
+        x_test = [1, 2, 4]
+        self.assertTrue(numpy.array_equal(
+            f(x_test)[0],
+            function(x_test, theta)
+        ))
+        return
+
+    def test_logistic(self):
+        self._check_numpy_theano_equivalence(
+            calibr8.logistic,
+            [2, 2, 4, 1]
+        )
+        return
+
+    def test_asymmetric_logistic(self):
+        self._check_numpy_theano_equivalence(
+            calibr8.asymmetric_logistic,
+            [0, 4, 2, 1, 1]
+        )
+        return
+
+    def test_log_log_logistic(self):
+        self._check_numpy_theano_equivalence(
+            calibr8.log_log_logistic,
+            [2, 2, 4, 1]
+        )
+        return
+
+    def test_xlog_logistic(self):
+        self._check_numpy_theano_equivalence(
+            calibr8.xlog_logistic,
+            [2, 2, 4, 1]
+        )
+        return
+
+    def test_ylog_logistic(self):
+        self._check_numpy_theano_equivalence(
+            calibr8.ylog_logistic,
+            [2, 2, 4, 1]
+        )
         return
 
 
