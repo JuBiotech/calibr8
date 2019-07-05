@@ -2,8 +2,14 @@ import abc
 import numpy
 import scipy.optimize
 import sys
+
+HAVE_PYMC3 = False
+HAVE_THEANO = False
+
 try:
     import pymc3 as pm
+    HAVE_PYMC3 = True
+
 except ModuleNotFoundError:  # pymc3 is optional, throw exception when used
     class _ImportWarnerPyMC3:
         __all__ = []
@@ -24,6 +30,7 @@ except ModuleNotFoundError:  # pymc3 is optional, throw exception when used
 
 try:
     import theano
+    HAVE_THEANO = True
 except ModuleNotFoundError:  # theano is optional, throw exception when used
 
     class _ImportWarnerTheano:
@@ -43,10 +50,11 @@ except ModuleNotFoundError:  # theano is optional, throw exception when used
     
     theano = _Theano()
 
-from .. core import ErrorModel,  asymmetric_logistic, inverse_asymmetric_logistic, polynomial
+from .. import core 
+from .. import utils
 
 
-class BiomassErrorModel(ErrorModel):
+class BiomassErrorModel(core.ErrorModel):
     def __init__(self, independent_key:str, dependent_key:str):
         """ A class for modeling the error of backscatter measurements of biomass.
 
@@ -71,8 +79,8 @@ class BiomassErrorModel(ErrorModel):
         """
         if theta is None:
             theta = self.theta_fitted
-        mu = asymmetric_logistic(x, theta[:5])
-        sigma = polynomial(mu, theta[5:])
+        mu = core.asymmetric_logistic(x, theta[:5])
+        sigma = core.polynomial(mu, theta[5:])
         df = self.student_df
         return mu, sigma, df
 
@@ -85,7 +93,7 @@ class BiomassErrorModel(ErrorModel):
         Returns:
             biomass (array): most likely biomass values (independent variable)
         """
-        x = inverse_asymmetric_logistic(y, self.theta_fitted)
+        x = core.inverse_asymmetric_logistic(y, self.theta_fitted)
         return x
         
     def theano_asymmetric_logistic(self, x, theta):
@@ -124,17 +132,19 @@ class BiomassErrorModel(ErrorModel):
         with pm.Model() as model:
             cdw = pm.Uniform('CDW', lower=cdw_lower, upper=cdw_upper, shape=(1,))
             mu = self.theano_asymmetric_logistic(cdw, theta[:5])
-            sd = polynomial(cdw, theta[5:])
+            sd = core.polynomial(cdw, theta[5:])
             ll = pm.StudentT('likelihood', nu=self.student_df, mu=mu, sd=sd, observed=y, shape=(1,))
             trace = pm.sample(draws)
         return trace
         
-    def loglikelihood(self, *, y,  x, theta=None):
+    def loglikelihood(self, *, y,  x, replicate_id=None, dependent_key=None, theta=None):
         """Loglikelihood of observation (dependent variable) given the independent variable
 
         Args:
             y (array): observed backscatter measurements (dependent variable)
-            x (array): assumed independent variable
+            x (array or TensorVariable): assumed independent variable
+            replicate_id(str): unique identifier for replicate (necessary for pymc3 likelihood)
+            dependent_key(str): key of the dependent variable (necessary for pymc3 likelihood)
             theta: parameters of asymmetric_logistic (mu) and and polynomial functions (scale)
 
         Returns:
@@ -145,9 +155,31 @@ class BiomassErrorModel(ErrorModel):
                 raise Exception('No parameter vector was provided and the model is not fitted with data yet.')
             theta = self.theta_fitted
         mu, sigma, df = self.predict_dependent(x, theta=theta)
-        # using t-distributed error in the non-transformed space
-        likelihoods = scipy.stats.t.pdf(x=y, loc=mu, scale=sigma, df=df)
-        loglikelihoods = numpy.log(likelihoods)
-        ll = numpy.sum(loglikelihoods)
-        return ll
+        if HAVE_THEANO:
+            if isinstance(x, theano.tensor.TensorVariable):
+                L = pm.StudentT(utils.to_did(dependent_key, replicate_id),
+                            mu=mu,
+                            sd=sigma,
+                            nu=df,
+                            observed=y)
+                return
+            elif isinstance(x, (list, numpy.ndarray)):
+                # using t-distributed error in the non-transformed space
+                likelihoods = scipy.stats.t.pdf(x=y, loc=mu, scale=sigma, df=df)
+                loglikelihoods = numpy.log(likelihoods)
+                ll = numpy.sum(loglikelihoods)
+                return ll
+            
+            else:
+                raise Exception('Input x must either be a TensorVariable or an array-like object.')
+        
+        else:
+            if isinstance(x, (list, numpy.ndarray)):
+                 # using t-distributed error in the non-transformed space
+                likelihoods = scipy.stats.t.pdf(x=y, loc=mu, scale=sigma, df=df)
+                loglikelihoods = numpy.log(likelihoods)
+                ll = numpy.sum(loglikelihoods)
+                return ll
     
+            else:
+                raise Exception('Input x must either be a TensorVariable or an array-like object.')
