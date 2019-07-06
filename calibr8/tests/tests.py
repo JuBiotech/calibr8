@@ -256,6 +256,30 @@ class LinearGlucoseErrorModelTest(unittest.TestCase):
             _ = errormodel.infer_independent(y=1, draws=1)
         return
 
+    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
+    def test_symbolic_loglikelihood(self):
+        errormodel = calibr8.LinearGlucoseErrorModel('S', 'A')
+        errormodel.theta_fitted = [0,1,0.1]
+       
+        # create test data
+        x_true = numpy.array([1,2,3,4,5])
+        y_obs = errormodel.predict_dependent(x_true)[0]
+
+        # create a pymc3 model using the error model
+        with pymc3.Model() as pmodel:
+            x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
+            L = errormodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
+            self.assertIsInstance(L, tt.TensorVariable)
+        
+        # compare the two loglikelihood computation methods
+        x_test = numpy.random.normal(x_true, scale=0.1)
+        actual = L.logp({
+            'x_hat': x_test
+        })
+        expected = errormodel.loglikelihood(x=x_test, y=y_obs)
+        self.assertAlmostEqual(actual, expected, 7)
+        return
+
     def test_loglikelihood(self):
         independent = 'S'
         dependent = 'OD'
@@ -327,6 +351,30 @@ class LogisticGlucoseErrorModelTest(unittest.TestCase):
             _ = errormodel.infer_independent(y=1, draws=1)
         return
 
+    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
+    def test_symbolic_loglikelihood(self):
+        errormodel = calibr8.LogisticGlucoseErrorModel('S', 'A')
+        errormodel.theta_fitted = [0,4,2,1,1,2,0]
+       
+        # create test data
+        x_true = numpy.array([1,2,3,4,5])
+        y_obs = errormodel.predict_dependent(x_true)[0]
+
+        # create a pymc3 model using the error model
+        with pymc3.Model() as pmodel:
+            x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
+            L = errormodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
+            self.assertIsInstance(L, tt.TensorVariable)
+        
+        # compare the two loglikelihood computation methods
+        x_test = numpy.random.normal(x_true, scale=0.1)
+        actual = L.logp({
+            'x_hat': x_test
+        })
+        expected = errormodel.loglikelihood(x=x_test, y=y_obs)
+        self.assertAlmostEqual(actual, expected, 7)
+        return
+    
     def test_loglikelihood(self):
         independent = 'S'
         dependent = 'OD'
@@ -392,6 +440,30 @@ class BiomassErrorModelTest(unittest.TestCase):
         errormodel = calibr8.BiomassErrorModel('X', 'BS')
         with self.assertRaises(ImportError):
             errormodel.infer_independent(1)
+        return
+
+    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
+    def test_symbolic_loglikelihood(self):
+        errormodel = calibr8.BiomassErrorModel('X', 'BS')
+        errormodel.theta_fitted = numpy.array([0,4,2,1,1,2,0])
+
+        # create test data
+        x_true = numpy.array([1,2,3,4,5])
+        y_obs = errormodel.predict_dependent(x_true)[0]
+
+        # create a pymc3 model using the error model
+        with pymc3.Model() as pmodel:
+            x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
+            L = errormodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='BS')
+            self.assertIsInstance(L, tt.TensorVariable)
+        
+        # compare the two loglikelihood computation methods
+        x_test = numpy.random.normal(x_true, scale=0.1)
+        actual = L.logp({
+            'x_hat': x_test
+        })
+        expected = errormodel.loglikelihood(x=x_test, y=y_obs)
+        self.assertAlmostEqual(actual, expected, 7)
         return
 
     def test_loglikelihood(self):
