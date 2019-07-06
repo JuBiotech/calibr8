@@ -76,7 +76,7 @@ class BaseGlucoseErrorModel(core.ErrorModel):
             theta: parameters of asymmetric_logistic (mu) and and polynomial functions (scale)
 
         Returns:
-            L (float): sum of log-likelihoods
+            L (float or TensorVariable): sum of log-likelihoods
         """
         if theta is None:
             if self.theta_fitted is None:
@@ -92,7 +92,7 @@ class BaseGlucoseErrorModel(core.ErrorModel):
                     nu=df,
                     observed=y
                 )
-                return
+                return L
             elif isinstance(x, (list, numpy.ndarray)):
                 # using t-distributed error in the non-transformed space
                 likelihoods = scipy.stats.t.pdf(x=y, loc=mu, scale=sigma, df=df)
