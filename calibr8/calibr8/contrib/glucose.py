@@ -83,36 +83,23 @@ class BaseGlucoseErrorModel(core.ErrorModel):
                 raise Exception('No parameter vector was provided and the model is not fitted with data yet.')
             theta = self.theta_fitted
         mu, sigma, df = self.predict_dependent(x, theta=theta)
-        if HAVE_THEANO:
-            if isinstance(x, theano.tensor.TensorVariable):
-                L = pm.StudentT(
-                    f'{replicate_id}.{dependent_key}',
-                    mu=mu,
-                    sd=sigma,
-                    nu=df,
-                    observed=y
-                )
-                return L
-            elif isinstance(x, (list, numpy.ndarray)):
-                # using t-distributed error in the non-transformed space
-                likelihoods = scipy.stats.t.pdf(x=y, loc=mu, scale=sigma, df=df)
-                loglikelihoods = numpy.log(likelihoods)
-                ll = numpy.sum(loglikelihoods)
-                return ll
-            
-            else:
-                raise Exception('Input x must either be a TensorVariable or an array-like object.')
-        
+        if HAVE_THEANO and isinstance(x, theano.tensor.TensorVariable):
+            L = pm.StudentT(
+                f'{replicate_id}.{dependent_key}',
+                mu=mu,
+                sd=sigma,
+                nu=df,
+                observed=y
+            )
+            return L
+        elif isinstance(x, (list, numpy.ndarray)):
+            # using t-distributed error in the non-transformed space
+            likelihoods = scipy.stats.t.pdf(x=y, loc=mu, scale=sigma, df=df)
+            loglikelihoods = numpy.log(likelihoods)
+            ll = numpy.sum(loglikelihoods)
+            return ll        
         else:
-            if isinstance(x, (list, numpy.ndarray)):
-                 # using t-distributed error in the non-transformed space
-                likelihoods = scipy.stats.t.pdf(x=y, loc=mu, scale=sigma, df=df)
-                loglikelihoods = numpy.log(likelihoods)
-                ll = numpy.sum(loglikelihoods)
-                return ll
-    
-            else:
-                raise Exception('Input x must either be a TensorVariable or an array-like object.')
+            raise Exception('Input x must either be a TensorVariable or an array-like object.')
 
 
 class LinearGlucoseErrorModel(BaseGlucoseErrorModel):
