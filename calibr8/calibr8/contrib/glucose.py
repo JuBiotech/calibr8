@@ -83,7 +83,7 @@ class BaseGlucoseErrorModel(core.ErrorModel):
                 raise Exception('No parameter vector was provided and the model is not fitted with data yet.')
             theta = self.theta_fitted
         mu, sigma, df = self.predict_dependent(x, theta=theta)
-        if HAVE_THEANO and isinstance(x, theano.tensor.TensorVariable):
+        if utils.istensor(x):
             L = pm.StudentT(
                 f'{replicate_id}.{dependent_key}',
                 mu=mu,
