@@ -16,7 +16,7 @@ coverage-calibr8:
   script:
     - cd calibr8 && python setup.py develop
     - pip install coverage
-    - coverage run tests/tests.py && coverage report -m
+    - coverage run --source=calibr8 tests/tests.py && coverage report -m
 
 release-calibr8:
   stage: release
