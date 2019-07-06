@@ -85,11 +85,13 @@ class BaseGlucoseErrorModel(core.ErrorModel):
         mu, sigma, df = self.predict_dependent(x, theta=theta)
         if HAVE_THEANO:
             if isinstance(x, theano.tensor.TensorVariable):
-                L = pm.StudentT(f'{replicate_id}.{dependent_key}'),
-                            mu=mu,
-                            sd=sigma,
-                            nu=df,
-                            observed=y)
+                L = pm.StudentT(
+                    f'{replicate_id}.{dependent_key}',
+                    mu=mu,
+                    sd=sigma,
+                    nu=df,
+                    observed=y
+                )
                 return
             elif isinstance(x, (list, numpy.ndarray)):
                 # using t-distributed error in the non-transformed space
