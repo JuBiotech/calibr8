@@ -1,2 +1,2 @@
-from . biomass import BiomassErrorModel
-from . glucose import BaseGlucoseErrorModel, LinearGlucoseErrorModel, LogisticGlucoseErrorModel
+from . biomass import *
+from . glucose import *

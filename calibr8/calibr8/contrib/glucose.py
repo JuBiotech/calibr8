@@ -3,8 +3,13 @@ import logging
 logger = logging.getLogger('calibr8.contrib.glucose')
 import numpy  
 import scipy.optimize
+
+HAVE_PYMC3 = False
+HAVE_THEANO = False
+
 try:
     import pymc3 as pm
+    HAVE_PYMC3 = True
 except ModuleNotFoundError:  # pymc3 is optional, throw exception when used
     class _ImportWarner:
         __all__ = []
@@ -25,8 +30,8 @@ except ModuleNotFoundError:  # pymc3 is optional, throw exception when used
 
 try:
     import theano
+    HAVE_THEANO = True
 except ModuleNotFoundError:  # theano is optional, throw exception when used
-
     class _ImportWarnerTheano:
         __all__ = []
 
@@ -44,10 +49,11 @@ except ModuleNotFoundError:  # theano is optional, throw exception when used
     
     theano = _Theano()
 
-from .. core import ErrorModel, asymmetric_logistic, inverse_asymmetric_logistic, polynomial
+from .. import core
+from .. import utils 
 
 
-class BaseGlucoseErrorModel(ErrorModel):
+class BaseGlucoseErrorModel(core.ErrorModel):
     def __init__(self, independent_key:str, dependent_key:str):
         """ A class for modeling the error of OD measurements of glucose.
 
@@ -59,30 +65,41 @@ class BaseGlucoseErrorModel(ErrorModel):
         self.student_df = 1
 
 
-    def loglikelihood(self, *, y,  x, theta=None):
+    def loglikelihood(self, *, y,  x, replicate_id=None, dependent_key=None, theta=None):
         """Loglikelihood of observation (dependent variable) given the independent variable
 
         Args:
             y (array): observed backscatter measurements (dependent variable)
-            x (array): predicted values of independent variable
-            theta: parameters describing the logistic function of mu and the polynomial function of sigma 
-                   (to be fitted with data, otherwise theta=self.theta_fitted)
-        
-        Return:
-            Sum of loglikelihoods
+            x (array or TensorVariable): assumed independent variable
+            replicate_id(str): unique identifier for replicate (necessary for pymc3 likelihood)
+            dependent_key(str): key of the dependent variable (necessary for pymc3 likelihood)
+            theta: parameters of asymmetric_logistic (mu) and and polynomial functions (scale)
 
+        Returns:
+            L (float or TensorVariable): sum of log-likelihoods
         """
         if theta is None:
             if self.theta_fitted is None:
                 raise Exception('No parameter vector was provided and the model is not fitted with data yet.')
             theta = self.theta_fitted
-
         mu, sigma, df = self.predict_dependent(x, theta=theta)
-        # using t-distributed error in the non-transformed space
-        likelihoods = scipy.stats.t.pdf(x=y, loc=mu, scale=sigma, df=df)
-        loglikelihoods = numpy.log(likelihoods)
-        ll = numpy.sum(loglikelihoods)
-        return ll
+        if utils.istensor(x):
+            L = pm.StudentT(
+                f'{replicate_id}.{dependent_key}',
+                mu=mu,
+                sd=sigma,
+                nu=df,
+                observed=y
+            )
+            return L
+        elif isinstance(x, (list, numpy.ndarray)):
+            # using t-distributed error in the non-transformed space
+            likelihoods = scipy.stats.t.pdf(x=y, loc=mu, scale=sigma, df=df)
+            loglikelihoods = numpy.log(likelihoods)
+            ll = numpy.sum(loglikelihoods)
+            return ll        
+        else:
+            raise Exception('Input x must either be a TensorVariable or an array-like object.')
 
 
 class LinearGlucoseErrorModel(BaseGlucoseErrorModel):
@@ -161,8 +178,8 @@ class LogisticGlucoseErrorModel(BaseGlucoseErrorModel):
         """
         if theta is None:
             theta = self.theta_fitted
-        mu = asymmetric_logistic(x, theta[:5])
-        sigma = polynomial(mu, theta[5:])
+        mu = core.asymmetric_logistic(x, theta[:5])
+        sigma = core.polynomial(mu, theta[5:])
         df = self.student_df
         return mu, sigma, df
 
@@ -175,7 +192,7 @@ class LogisticGlucoseErrorModel(BaseGlucoseErrorModel):
         Returns:
             x (array): most likely glucose values (independent variable)
         """
-        x = inverse_asymmetric_logistic(y, self.theta_fitted)
+        x = core.inverse_asymmetric_logistic(y, self.theta_fitted)
         return x
     
     def theano_asymmetric_logistic(self, x, theta):
@@ -213,7 +230,7 @@ class LogisticGlucoseErrorModel(BaseGlucoseErrorModel):
         with pm.Model() as model:
             glc = pm.Uniform('Glucose', lower=glc_lower, upper=glc_upper, shape=(1,))
             mu = self.theano_asymmetric_logistic(glc, theta[:5])
-            sd = polynomial(glc, theta[5:])
+            sd = core.polynomial(glc, theta[5:])
             ll = pm.StudentT('likelihood', nu=self.student_df, mu=mu, sd=sd, observed=y, shape=(1,))
             trace = pm.sample(draws)
         return trace

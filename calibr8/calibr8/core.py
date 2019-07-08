@@ -145,6 +145,7 @@ def asymmetric_logistic(x, theta):
         y (array): dependent variable
     """
     L_L, L_U, I_x, k, v = theta[:5]
+    x = numpy.array(x)
     y = L_L + (L_U-L_L)/(numpy.power((1+numpy.exp(-k*(x-I_x))),1/v))
     return y
 
