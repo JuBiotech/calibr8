@@ -3,12 +3,8 @@ import numpy
 import scipy.optimize
 import sys
 
-HAVE_PYMC3 = False
-HAVE_THEANO = False
-
 try:
     import pymc3 as pm
-    HAVE_PYMC3 = True
 
 except ModuleNotFoundError:  # pymc3 is optional, throw exception when used
     class _ImportWarnerPyMC3:
@@ -30,7 +26,7 @@ except ModuleNotFoundError:  # pymc3 is optional, throw exception when used
 
 try:
     import theano
-    HAVE_THEANO = True
+    
 except ModuleNotFoundError:  # theano is optional, throw exception when used
 
     class _ImportWarnerTheano:
