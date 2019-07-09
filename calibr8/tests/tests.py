@@ -140,22 +140,23 @@ class TestModelFunctions(unittest.TestCase):
 
 @unittest.skipUnless(HAS_PYMC3, 'requires PyMC3')
 class TestSymbolicModelFunctions(unittest.TestCase):
-    @theano.configparser.change_flags(compute_test_value='off')
     def _check_numpy_theano_equivalence(self, function, theta):
-        # create computation graph
-        x = tt.vector('x', dtype=theano.config.floatX)
-        y = function(x, theta)
-        self.assertIsInstance(y, tt.TensorVariable)
+        # make sure that test value computation is turned off (pymc3 likes to turn it on)
+        with theano.configparser.change_flags(compute_test_value='off'):
+            # create computation graph
+            x = tt.vector('x', dtype=theano.config.floatX)
+            y = function(x, theta)
+            self.assertIsInstance(y, tt.TensorVariable)
 
-        # compile theano function
-        f = theano.function([x], [y])
+            # compile theano function
+            f = theano.function([x], [y])
         
-        # check equivalence of numpy and theano computation
-        x_test = [1, 2, 4]
-        self.assertTrue(numpy.array_equal(
-            f(x_test)[0],
-            function(x_test, theta)
-        ))
+            # check equivalence of numpy and theano computation
+            x_test = [1, 2, 4]
+            self.assertTrue(numpy.array_equal(
+                f(x_test)[0],
+                function(x_test, theta)
+            ))
         return
 
     def test_logistic(self):
