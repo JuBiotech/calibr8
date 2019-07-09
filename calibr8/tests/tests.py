@@ -138,7 +138,7 @@ class TestModelFunctions(unittest.TestCase):
         return
 
 
-@unittest.skipUnless(HAS_PYMC3, 'require PyMC3')
+@unittest.skipUnless(HAS_PYMC3, 'requires PyMC3')
 class TestSymbolicModelFunctions(unittest.TestCase):
     def _check_numpy_theano_equivalence(self, function, theta):
         # create computation graph
@@ -191,6 +191,43 @@ class TestSymbolicModelFunctions(unittest.TestCase):
             [2, 2, 4, 1]
         )
         return
+
+
+class UtilsTest(unittest.TestCase):
+    @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
+    def test_istensor_without_pymc3(self):
+        test_dict = {
+            'a': 1, 
+            'b': [1,2,3], 
+            'c': numpy.array([(1,2), (3,4)])
+            }
+        self.assertFalse(calibr8.istensor(test_dict))
+        self.assertFalse(calibr8.istensor(1.2))
+        self.assertFalse(calibr8.istensor(-5))
+        self.assertFalse(calibr8.istensor([1,2,3]))
+        self.assertFalse(calibr8.istensor('hello'))
+
+    @unittest.skipUnless(HAS_PYMC3, 'requires PyMC3')
+    def test_istensor_with_pymc3(self):
+        test_dict = {
+            'a': 1, 
+            'b': [1,2,3], 
+            'c': numpy.array([(1,2), (3,4)])
+            }
+        self.assertFalse(calibr8.istensor(test_dict))
+        self.assertFalse(calibr8.istensor(1.2))
+        self.assertFalse(calibr8.istensor(-5))
+        self.assertFalse(calibr8.istensor([1,2,3]))
+        self.assertFalse(calibr8.istensor('hello'))
+            
+        test_dict2 = {
+            'a': 1, 
+            'b': [1,2,3], 
+            'c': numpy.array([(1, tt.TensorVariable([1,2,3])), (3,4)])
+            }
+        self.assertTrue(calibr8.istensor(test_dict2))
+        self.assertTrue(calibr8.istensor([1, tt.TensorVariable([1,2]), 3]))
+        self.assertTrue(calibr8.istensor(numpy.array([1, tt.TensorVariable([1,2]), 3])))
 
 
 class BaseGlucoseErrorModelTest(unittest.TestCase):
@@ -277,7 +314,7 @@ class LinearGlucoseErrorModelTest(unittest.TestCase):
             'x_hat': x_test
         })
         expected = errormodel.loglikelihood(x=x_test, y=y_obs)
-        self.assertAlmostEqual(actual, expected, 7)
+        self.assertAlmostEqual(actual, expected, 6)
         return
 
     def test_loglikelihood(self):
@@ -372,7 +409,7 @@ class LogisticGlucoseErrorModelTest(unittest.TestCase):
             'x_hat': x_test
         })
         expected = errormodel.loglikelihood(x=x_test, y=y_obs)
-        self.assertAlmostEqual(actual, expected, 7)
+        self.assertAlmostEqual(actual, expected, 6)
         return
     
     def test_loglikelihood(self):
@@ -463,7 +500,7 @@ class BiomassErrorModelTest(unittest.TestCase):
             'x_hat': x_test
         })
         expected = errormodel.loglikelihood(x=x_test, y=y_obs)
-        self.assertAlmostEqual(actual, expected, 7)
+        self.assertAlmostEqual(actual, expected, 6)
         return
 
     def test_loglikelihood(self):
