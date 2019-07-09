@@ -330,10 +330,9 @@ class LinearGlucoseErrorModelTest(unittest.TestCase):
         mu, sigma, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
         expected = numpy.sum(numpy.log(stats.t.pdf(x=y, loc=mu, scale=sigma, df=1)))
         self.assertEqual(expected, true)
-        true = errormodel.loglikelihood(y=y, x=x)
-        mu, sigma, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
-        expected = numpy.sum(numpy.log(stats.t.pdf(x=y, loc=mu, scale=sigma, df=1)))
-        self.assertEqual(expected, true)
+        x = 'hello'
+        with self.assertRaises(Exception):
+            _= errormodel.loglikelihood(y=y, x=x)
         return
     
     def test_loglikelihood_without_fit(self):
@@ -425,6 +424,9 @@ class LogisticGlucoseErrorModelTest(unittest.TestCase):
         mu, sigma, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
         expected = numpy.sum(numpy.log(stats.t.pdf(x=y, loc=mu, scale=sigma, df=df)))
         self.assertEqual(expected, true)
+        x = 'hello'
+        with self.assertRaises(Exception):
+            _= errormodel.loglikelihood(y=y, x=x)
         return
     
     def test_loglikelihood_without_fit(self):
@@ -517,6 +519,9 @@ class BiomassErrorModelTest(unittest.TestCase):
         mu, sigma, df = errormodel.predict_dependent(x, theta=theta)
         expected = numpy.sum(numpy.log(stats.t.pdf(x=y, loc=mu, scale=sigma, df=1)))
         self.assertEqual(expected, true)
+        x = 'hello'
+        with self.assertRaises(Exception):
+            _= errormodel.loglikelihood(y=y, x=x)
         return
     
     def test_loglikelihood_without_fit(self):
