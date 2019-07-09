@@ -140,6 +140,7 @@ class TestModelFunctions(unittest.TestCase):
 
 @unittest.skipUnless(HAS_PYMC3, 'requires PyMC3')
 class TestSymbolicModelFunctions(unittest.TestCase):
+    @theano.configparser.change_flags(compute_test_value='off')
     def _check_numpy_theano_equivalence(self, function, theta):
         # create computation graph
         x = tt.vector('x', dtype=theano.config.floatX)
@@ -191,8 +192,8 @@ class TestSymbolicModelFunctions(unittest.TestCase):
             [2, 2, 4, 1]
         )
         return
-
-
+        
+        
 class UtilsTest(unittest.TestCase):
     @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
     def test_istensor_without_pymc3(self):
@@ -248,8 +249,8 @@ class BaseGlucoseErrorModelTest(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             _ = errormodel.fit(independent=x, dependent=y, theta_guessed=None, bounds=None)
         return
-        
-        
+
+
 class LinearGlucoseErrorModelTest(unittest.TestCase):
     def test_predict_dependent(self):
         independent = 'S'
