@@ -129,7 +129,7 @@ class DilutionPlan(dict):
         output = f'Serial dilution plan ({self.xmin:.5f} to {self.xmax:.2f})' \
             f' from at least {self.v_stock} µl stock:'
         for c, dsteps, src, vtransfer in self.instructions:
-            output += f'\r\n\tPrepare column {c+1} with {vtransfer} µl from '
+            output += f'\r\n\tPrepare column {c} with {vtransfer} µl from '
             if dsteps == 0:
                 output += 'stock'
             else:
