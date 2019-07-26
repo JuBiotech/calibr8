@@ -3,51 +3,17 @@ import numpy
 import scipy.optimize
 import sys
 
-try:
-    import pymc3 as pm
-
-except ModuleNotFoundError:  # pymc3 is optional, throw exception when used
-    class _ImportWarnerPyMC3:
-        __all__ = []
-
-        def __init__(self, attr):
-            self.attr = attr
-
-        def __call__(self, *args, **kwargs):
-            raise ImportError(
-                "PyMC3 is not installed. In order to use this function:\npip install pymc3"
-            )
-
-    class _PyMC3:
-        def __getattr__(self, attr):
-            return _ImportWarnerPyMC3(attr)
-    
-    pm = _PyMC3()
+from .. import core 
+from .. import utils
 
 try:
     import theano
-    
-except ModuleNotFoundError:  # theano is optional, throw exception when used
-
-    class _ImportWarnerTheano:
-        __all__ = []
-
-        def __init__(self, attr):
-            self.attr = attr
-
-        def __call__(self, *args, **kwargs):
-            raise ImportError(
-                "Theano is not installed. In order to use this function:\npip install theano"
-            )
-
-    class _Theano:
-        def __getattr__(self, attr):
-            return _ImportWarnerTheano(attr)
-    
-    theano = _Theano()
-
-from .. import core 
-from .. import utils
+except ModuleNotFoundError:
+    theano = utils.ImportWarner('theano')
+try:
+    import pymc3 as pm
+except ModuleNotFoundError:
+    pm = utils.ImportWarner('pymc3')
 
 
 class BiomassErrorModel(core.ErrorModel):
