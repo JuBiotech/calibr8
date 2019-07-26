@@ -231,6 +231,17 @@ class UtilsTest(unittest.TestCase):
         self.assertTrue(calibr8.istensor([1, tt.TensorVariable([1,2]), 3]))
         self.assertTrue(calibr8.istensor(numpy.array([1, tt.TensorVariable([1,2]), 3])))
 
+    @unittest.skipIf(HAS_PYMC3, 'requires PYMC3')
+    def test_has_modules(self):
+        self.assertFalse(calibr8.utils.HAS_THEANO)
+        self.assertFalse(calibr8.utils.HAS_PYMC3)
+        return
+
+    @unittest.skipUnless(HAS_PYMC3, 'only if PyMC3 is not imported')
+    def test_has_modules(self):
+        self.assertTrue(calibr8.utils.HAS_THEANO)
+        self.assertTrue(calibr8.utils.HAS_PYMC3)
+        return
 
 class BaseGlucoseErrorModelTest(unittest.TestCase):
     def test_errors(self):

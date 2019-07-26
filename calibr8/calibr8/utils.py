@@ -3,6 +3,12 @@ import numpy
 
 try:
     import theano.tensor as tt
+    HAS_THEANO = True
+except ModuleNotFoundError:
+    HAS_THEANO = False
+
+try:
+    import pymc3
     HAS_PYMC3 = True
 except ModuleNotFoundError:
     HAS_PYMC3 = False
@@ -18,7 +24,7 @@ def istensor(input:object):
     Return: 
         result(bool): Indicates if the object is or in any instance contains a TensorVariable.
     """
-    if not HAS_PYMC3:
+    if not HAS_THEANO:
         return False
     elif isinstance(input, str):
         return False
