@@ -42,6 +42,19 @@ def istensor(input:object):
     return False
 
 
+class ImportWarner:
+    """Mock for an uninstalled package, raises `ImportError` when used."""
+    __all__ = []
+
+    def __init__(self, module_name):
+        self.module_name = module_name
+
+    def __getattr__(self, attr):
+        raise ImportError(
+            f'{self.module_name} is not installed. In order to use this function try:\npip install {self.module_name}'
+        )
+
+
 class DilutionPlan(dict):
     """Represents the result of a dilution series planning."""
     def __init__(self, *, xmin:float, xmax:float, R:int, C:int, stock:float, mode:str, vmax:float, min_transfer:float):
