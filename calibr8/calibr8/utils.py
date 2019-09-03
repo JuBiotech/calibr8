@@ -1,5 +1,4 @@
 import collections
-from matplotlib import pyplot
 import numpy
 import scipy.stats
 
