@@ -1,5 +1,6 @@
 import collections
 import numpy
+import scipy.stats
 
 try:
     import theano.tensor as tt
@@ -155,3 +156,54 @@ class DilutionPlan(dict):
                 output += f'column {src} ({dsteps} serial dilutions)'
         output += f'\r\n\tFill up all colums to {self.vmax} µl before aspirating.'
         return output
+
+
+def plot_norm_band(ax, independent, mu, scale):
+    """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a Normal distribution.
+    
+    Args:
+        ax (matplotlib.Axes): subplot object to plot into
+        independent (array-like): x-values for the plot
+        mu (array-like): mu parameter of the Normal distribution
+        scale (array-like): scale parameter of the Normal distribution
+
+    Returns:
+        artists (list of matplotlib.Artist): the created artists (1x Line2D, 3x PolyCollection)
+    """
+    artists = ax.plot(independent, mu, color='green')
+    for q in reversed([97.5, 95, 84]):
+        percent = q - (100 - q)
+        artists.append(ax.fill_between(independent,
+            # by using the Percent Point Function (PPF), which is the inverse of the CDF,
+            # the visualization will show symmetric intervals of <percent> probability
+            scipy.stats.norm.ppf(1-q/100, loc=mu, scale=scale),
+            scipy.stats.norm.ppf(q/100, loc=mu, scale=scale),
+            alpha=.15, color='green', label=f'{percent:.1f} % likelihood band'
+        ))
+    return artists
+
+
+def plot_t_band(ax, independent, mu, scale, df):
+    """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a t-distribution.
+    
+    Args:
+        ax (matplotlib.Axes): subplot object to plot into
+        independent (array-like): x-values for the plot
+        mu (array-like): mu parameter of the t-distribution
+        scale (array-like): scale parameter of the t-distribution
+        df (array-like): density parameter of the t-distribution
+
+    Returns:
+        artists (list of matplotlib.Artist): the created artists (1x Line2D, 3x PolyCollection)
+    """
+    artists = ax.plot(independent, mu, color='green')
+    for q in reversed([97.5, 95, 84]):
+        percent = q - (100 - q)
+        artists.append(ax.fill_between(independent,
+            # by using the Percent Point Function (PPF), which is the inverse of the CDF,
+            # the visualization will show symmetric intervals of <percent> probability
+            scipy.stats.t.ppf(1-q/100, loc=mu, scale=scale, df=df),
+            scipy.stats.t.ppf(q/100, loc=mu, scale=scale, df=df),
+            alpha=.15, color='green', label=f'{percent:.1f} % likelihood band'
+        ))
+    return artists
