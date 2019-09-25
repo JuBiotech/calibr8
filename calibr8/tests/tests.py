@@ -249,6 +249,29 @@ class UtilsTest(unittest.TestCase):
         self.assertTrue(calibr8.utils.HAS_PYMC3)
         return
 
+    def assert_version_match(self):
+        # fist shorter
+        calibr8.utils.assert_version_match("1", "1.2.2.2");
+        calibr8.utils.assert_version_match("1.1", "1.1.2.2");
+        calibr8.utils.assert_version_match("1.1.1", "1.1.1.2");
+        calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.1");
+        # second shorter
+        calibr8.utils.assert_version_match("1.2.2.2", "1");
+        calibr8.utils.assert_version_match("1.1.2.2", "1.1");
+        calibr8.utils.assert_version_match("1.1.1.2", "1.1.1");
+        calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.1");
+
+        with self.assert_raises(MajorMissmatchException):
+            calibr8.utils.assert_version_match("1.1.1.1", "2.1.1.1");
+        with self.assert_raises(MinorMissmatchException):
+            calibr8.utils.assert_version_match("1.1.1.1", "1.2.1.1");
+        with self.assert_raises(PatchMissmatchException):
+            calibr8.utils.assert_version_match("1.1.1.1", "1.1.2.1");
+        with self.assert_raises(BuildMissmatchException):
+            calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.2");
+        return
+
+
 class BaseGlucoseErrorModelTest(unittest.TestCase):
     def test_errors(self):
         independent = 'S'
