@@ -207,3 +207,50 @@ def plot_t_band(ax, independent, mu, scale, df):
             alpha=.15, color='green', label=f'{percent:.1f} % likelihood band'
         ))
     return artists
+
+
+class CompatibilityException(Exception):
+    pass
+
+
+class MajorMismatchException(CompatibilityException):
+    pass
+
+
+class MinorMismatchException(CompatibilityException):
+    pass
+
+
+class PatchMismatchException(CompatibilityException):
+    pass
+
+
+class BuildMismatchException(CompatibilityException):
+    pass
+
+
+def assert_version_match(vA:str, vB:str):
+    """Compares two version numbers and raises exceptions that indicate where they missmatch.
+
+    Args:
+        vA (str): first version number
+        vB (str): second version number
+
+    Raises:
+        MajorMismatchException: difference on the first level
+        MinorMismatchException: difference on the second level
+        PatchMismatchException: difference on the third level
+        BuildMismatchException: difference on the fourth level
+    """
+    level_exceptions = (
+        MajorMismatchException,
+        MinorMismatchException,
+        PatchMismatchException,
+        BuildMismatchException
+    )
+    versions_A = vA.split('.')
+    versions_B = vB.split('.')
+    for ex, a, b in zip(level_exceptions, versions_A, versions_B):
+        if int(a) != int(b):
+            raise ex(f'{vA} != {vB}')
+    return

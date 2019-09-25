@@ -1,6 +1,12 @@
 import abc
+import json
 import numpy
 import scipy.optimize
+
+from . import utils
+
+
+__version__ = '3.3.0'
 
 
 class ErrorModel(object):
@@ -16,6 +22,8 @@ class ErrorModel(object):
         """
         self.independent_key = independent_key
         self.dependent_key = dependent_key
+        self.theta_bounds = None
+        self.theta_guess = None
         self.theta_fitted = None
         super().__init__()
     
@@ -85,8 +93,65 @@ class ErrorModel(object):
         def sum_negative_loglikelihood(theta):
             return(-self.loglikelihood(x=independent, y=dependent, theta=theta))
         fit = scipy.optimize.minimize(sum_negative_loglikelihood, theta_guessed, bounds=bounds)
+        self.theta_bounds = bounds
+        self.theta_guess = theta_guessed
         self.theta_fitted = fit.x
         return fit
+
+    def save(self, filepath:str):
+        """Save key properties of the error model to a JSON file.
+
+        Args:
+            filepath (str): path to the output file
+        """
+        data = dict(
+            calibr8_version=__version__,
+            model_type=f'{self.__module__}.{self.__class__.__name__}',
+            theta_bounds=self.theta_bounds,
+            theta_guess=self.theta_guess,
+            theta_fitted=tuple(self.theta_fitted),
+            independent_key=self.independent_key,
+            dependent_key=self.dependent_key
+        )
+        with open(filepath, 'w') as jfile:
+            json.dump(data, jfile, indent=4)
+        return
+
+    @classmethod
+    def load(cls, filepath):
+        """Instantiates a model from a JSON file of key properties.
+
+        Args:
+            filepath (str): path to the input file
+
+        Raises:
+            MajorMismatchException: when the major calibr8 version is different
+            CompatibilityException: when the model type does not match with the savefile
+        """
+        with open(filepath, 'r') as jfile:
+            data = json.load(jfile)
+        if 'theta_bounds' in data and data['theta_bounds']:
+            data['theta_bounds'] = tuple(map(tuple, data['theta_bounds']))
+        if 'theta_guess' in data and data['theta_guess']:
+            data['theta_guess'] = tuple(data['theta_guess'])
+        if 'theta_fitted' in data and data['theta_fitted']:
+            data['theta_fitted'] = tuple(data['theta_fitted'])
+
+        # check compatibility
+        try:
+            utils.assert_version_match(data['calibr8_version'], __version__)
+        except (utils.BuildMismatchException, utils.PatchMismatchException, utils.MinorMismatchException):
+            pass
+    
+        cls_type = f'{cls.__module__}.{cls.__name__}'
+        json_type = data['model_type']
+        if json_type != cls_type:
+            raise utils.CompatibilityException(f'The model type from the JSON file ({json_type}) does not match this class ({cls_type}).')
+        obj = cls(independent_key=data['independent_key'], dependent_key=data['dependent_key'])
+        obj.theta_bounds = data['theta_bounds']
+        obj.theta_guess = data['theta_guess']
+        obj.theta_fitted = data['theta_fitted']
+        return obj
 
 
 def logistic(x, theta):
