@@ -209,19 +209,23 @@ def plot_t_band(ax, independent, mu, scale, df):
     return artists
 
 
-class MajorMissmatchException(Exception):
+class CompatibilityException(Exception):
     pass
 
 
-class MinorMissmatchException(Exception):
+class MajorMissmatchException(CompatibilityException):
     pass
 
 
-class PatchMissmatchException(Exception):
+class MinorMissmatchException(CompatibilityException):
     pass
 
 
-class BuildMissmatchException(Exception):
+class PatchMissmatchException(CompatibilityException):
+    pass
+
+
+class BuildMissmatchException(CompatibilityException):
     pass
 
 

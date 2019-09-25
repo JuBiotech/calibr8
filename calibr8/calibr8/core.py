@@ -99,6 +99,11 @@ class ErrorModel(object):
         return fit
 
     def save(self, filepath:str):
+        """Save key properties of the error model to a JSON file.
+
+        Args:
+            filepath (str): path to the output file
+        """
         data = dict(
             calibr8_version=__version__,
             model_type=f'{self.__module__}.{self.__class__.__name__}',
@@ -114,6 +119,15 @@ class ErrorModel(object):
 
     @classmethod
     def load(cls, filepath):
+        """Instantiates a model from a JSON file of key properties.
+
+        Args:
+            filepath (str): path to the input file
+
+        Raises:
+            MajorMissmatchException: when the major calibr8 version is different
+            CompatibilityException: when the model type does not match with the savefile
+        """
         with open(filepath, 'r') as jfile:
             data = json.load(jfile)
         if 'theta_bounds' in data and data['theta_bounds']:
@@ -126,13 +140,13 @@ class ErrorModel(object):
         # check compatibility
         try:
             utils.assert_version_match(data['calibr8_version'], __version__)
-        except (utils.PatchMissmatchException, utils.PatchMissmatchException):
+        except (utils.BuildMissmatchException, utils.PatchMissmatchException, utils.MinorMissmatchException):
             pass
     
         cls_type = f'{cls.__module__}.{cls.__name__}'
         json_type = data['model_type']
         if json_type != cls_type:
-            raise Exception(f'The model type from the JSON file ({json_type}) does not match this class ({cls_type}).')
+            raise utils.CompatibilityException(f'The model type from the JSON file ({json_type}) does not match this class ({cls_type}).')
         obj = cls(independent_key=data['independent_key'], dependent_key=data['dependent_key'])
         obj.theta_bounds = data['theta_bounds']
         obj.theta_guess = data['theta_guess']

@@ -72,22 +72,21 @@ class ErrorModelTest(unittest.TestCase):
         vactual = tuple(map(int, calibr8.__version__.split('.')))
         # increment patch
         calibr8.core.__version__ = f'{vactual[0]}.{vactual[1]}.{vactual[2]+1}'
-        em_loaded = calibr8.ErrorModel.load('save_load_test.json')
+        calibr8.ErrorModel.load('save_load_test.json')
         # increment minor version
         calibr8.core.__version__ = f'{vactual[0]}.{vactual[1]+1}.{vactual[2]}'
-        with self.assertRaises(calibr8.MinorMissmatchException):
-            calibr8.ErrorModel.load('save_load_test.json')
+        calibr8.ErrorModel.load('save_load_test.json')
         # change major version
         calibr8.core.__version__ = f'{vactual[0]-1}.{vactual[1]}.{vactual[2]}'
         with self.assertRaises(calibr8.MajorMissmatchException):
             calibr8.ErrorModel.load('save_load_test.json')
-        calibr8.core.__version__ = '.'.join(vactual)
+        calibr8.core.__version__ = '.'.join(map(str, vactual))
         
         # load with the wrong model
         class DifferentEM(calibr8.ErrorModel):
             pass
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(calibr8.CompatibilityException):
             DifferentEM.load('save_load_test.json')
         return
     
