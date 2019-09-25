@@ -125,7 +125,7 @@ class ErrorModel(object):
             filepath (str): path to the input file
 
         Raises:
-            MajorMissmatchException: when the major calibr8 version is different
+            MajorMismatchException: when the major calibr8 version is different
             CompatibilityException: when the model type does not match with the savefile
         """
         with open(filepath, 'r') as jfile:
@@ -140,7 +140,7 @@ class ErrorModel(object):
         # check compatibility
         try:
             utils.assert_version_match(data['calibr8_version'], __version__)
-        except (utils.BuildMissmatchException, utils.PatchMissmatchException, utils.MinorMissmatchException):
+        except (utils.BuildMismatchException, utils.PatchMismatchException, utils.MinorMismatchException):
             pass
     
         cls_type = f'{cls.__module__}.{cls.__name__}'

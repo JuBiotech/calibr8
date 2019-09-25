@@ -213,19 +213,19 @@ class CompatibilityException(Exception):
     pass
 
 
-class MajorMissmatchException(CompatibilityException):
+class MajorMismatchException(CompatibilityException):
     pass
 
 
-class MinorMissmatchException(CompatibilityException):
+class MinorMismatchException(CompatibilityException):
     pass
 
 
-class PatchMissmatchException(CompatibilityException):
+class PatchMismatchException(CompatibilityException):
     pass
 
 
-class BuildMissmatchException(CompatibilityException):
+class BuildMismatchException(CompatibilityException):
     pass
 
 
@@ -237,16 +237,16 @@ def assert_version_match(vA:str, vB:str):
         vB (str): second version number
 
     Raises:
-        MajorMissmatchException: difference on the first level
-        MinorMissmatchException: difference on the second level
-        PatchMissmatchException: difference on the third level
-        BuildMissmatchException: difference on the fourth level
+        MajorMismatchException: difference on the first level
+        MinorMismatchException: difference on the second level
+        PatchMismatchException: difference on the third level
+        BuildMismatchException: difference on the fourth level
     """
     level_exceptions = (
-        MajorMissmatchException,
-        MinorMissmatchException,
-        PatchMissmatchException,
-        BuildMissmatchException
+        MajorMismatchException,
+        MinorMismatchException,
+        PatchMismatchException,
+        BuildMismatchException
     )
     versions_A = vA.split('.')
     versions_B = vB.split('.')

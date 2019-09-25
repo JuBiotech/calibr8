@@ -78,7 +78,7 @@ class ErrorModelTest(unittest.TestCase):
         calibr8.ErrorModel.load('save_load_test.json')
         # change major version
         calibr8.core.__version__ = f'{vactual[0]-1}.{vactual[1]}.{vactual[2]}'
-        with self.assertRaises(calibr8.MajorMissmatchException):
+        with self.assertRaises(calibr8.MajorMismatchException):
             calibr8.ErrorModel.load('save_load_test.json')
         calibr8.core.__version__ = '.'.join(map(str, vactual))
         
@@ -304,13 +304,13 @@ class UtilsTest(unittest.TestCase):
         calibr8.utils.assert_version_match("1.1.1.2", "1.1.1");
         calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.1");
 
-        with self.assert_raises(MajorMissmatchException):
+        with self.assert_raises(MajorMismatchException):
             calibr8.utils.assert_version_match("1.1.1.1", "2.1.1.1");
-        with self.assert_raises(MinorMissmatchException):
+        with self.assert_raises(MinorMismatchException):
             calibr8.utils.assert_version_match("1.1.1.1", "1.2.1.1");
-        with self.assert_raises(PatchMissmatchException):
+        with self.assert_raises(PatchMismatchException):
             calibr8.utils.assert_version_match("1.1.1.1", "1.1.2.1");
-        with self.assert_raises(BuildMissmatchException):
+        with self.assert_raises(BuildMismatchException):
             calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.2");
         return
 
