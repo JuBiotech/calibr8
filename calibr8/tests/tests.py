@@ -46,6 +46,50 @@ class ErrorModelTest(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             _ = errormodel.fit(independent=x, dependent=y, theta_guessed=None)
         return
+
+    def test_save_and_load(self):
+        em = calibr8.ErrorModel('I', 'D')
+        em.theta_guess = (1,1,1)
+        em.theta_fitted = (1,2,3)
+        em.theta_bounds = (
+            (None, None),
+            (0, 5),
+            (0, 10)
+        )
+
+        # save and load
+        em.save('save_load_test.json')
+        em_loaded = calibr8.ErrorModel.load('save_load_test.json')
+
+        self.assertIsInstance(em_loaded, calibr8.ErrorModel)
+        self.assertEqual(em_loaded.independent_key, em.independent_key)
+        self.assertEqual(em_loaded.dependent_key, em.dependent_key)
+        self.assertEqual(em_loaded.theta_bounds, em.theta_bounds)
+        self.assertEqual(em_loaded.theta_guess, em.theta_guess)
+        self.assertEqual(em_loaded.theta_fitted, em.theta_fitted)
+
+        # test version checking
+        vactual = tuple(map(int, calibr8.__version__.split('.')))
+        # increment patch
+        calibr8.core.__version__ = f'{vactual[0]}.{vactual[1]}.{vactual[2]+1}'
+        em_loaded = calibr8.ErrorModel.load('save_load_test.json')
+        # increment minor version
+        calibr8.core.__version__ = f'{vactual[0]}.{vactual[1]+1}.{vactual[2]}'
+        with self.assertRaises(calibr8.MinorMissmatchException):
+            calibr8.ErrorModel.load('save_load_test.json')
+        # change major version
+        calibr8.core.__version__ = f'{vactual[0]-1}.{vactual[1]}.{vactual[2]}'
+        with self.assertRaises(calibr8.MajorMissmatchException):
+            calibr8.ErrorModel.load('save_load_test.json')
+        calibr8.core.__version__ = '.'.join(vactual)
+        
+        # load with the wrong model
+        class DifferentEM(calibr8.ErrorModel):
+            pass
+
+        with self.assertRaises(Exception):
+            DifferentEM.load('save_load_test.json')
+        return
     
 
 class TestModelFunctions(unittest.TestCase):
