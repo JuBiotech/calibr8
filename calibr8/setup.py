@@ -4,7 +4,7 @@ __packagename__ = 'calibr8'
 
 def get_version():
     import os, re
-    VERSIONFILE = os.path.join(__packagename__, '__init__.py')
+    VERSIONFILE = os.path.join(__packagename__, 'core.py')  # calibr8 has its version number in core.py!
     initfile_lines = open(VERSIONFILE, 'rt').readlines()
     VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
     for line in initfile_lines:
