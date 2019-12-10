@@ -68,8 +68,8 @@ class DilutionPlan(dict):
             C (int): number of colums in the MTP
             stock (float): stock concentration (must be >= xmax)
             mode (str): either 'log' or 'linear'
-            vmax (float): maximum possible volume in the MTP
-            min_transfer (float): minimum allowed volume for transfer steps
+            vmax (float): maximum possible volume [µL] in the MTP
+            min_transfer (float): minimum allowed volume [µL] for transfer steps
         """
         # process arguments
         if stock < xmax:
