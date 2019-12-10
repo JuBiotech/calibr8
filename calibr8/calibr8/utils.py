@@ -56,7 +56,7 @@ class ImportWarner:
         )
 
 
-class DilutionPlan(dict):
+class DilutionPlan:
     """Represents the result of a dilution series planning."""
     def __init__(self, *, xmin:float, xmax:float, R:int, C:int, stock:float, mode:str, vmax:float, min_transfer:float):
         """Plans a regularly-spaced dilution series with in very few steps.
