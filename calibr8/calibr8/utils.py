@@ -56,7 +56,7 @@ class ImportWarner:
         )
 
 
-class DilutionPlan(dict):
+class DilutionPlan:
     """Represents the result of a dilution series planning."""
     def __init__(self, *, xmin:float, xmax:float, R:int, C:int, stock:float, mode:str, vmax:float, min_transfer:float):
         """Plans a regularly-spaced dilution series with in very few steps.
@@ -68,8 +68,8 @@ class DilutionPlan(dict):
             C (int): number of colums in the MTP
             stock (float): stock concentration (must be >= xmax)
             mode (str): either 'log' or 'linear'
-            vmax (float): maximum possible volume in the MTP
-            min_transfer (float): minimum allowed volume for transfer steps
+            vmax (float): maximum possible volume [µL] in the MTP
+            min_transfer (float): minimum allowed volume [µL] for transfer steps
         """
         # process arguments
         if stock < xmax:
