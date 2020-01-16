@@ -1,6 +1,7 @@
 import collections
 import numpy
 import scipy.stats
+import warnings
 
 try:
     import theano.tensor as tt
@@ -71,6 +72,10 @@ class DilutionPlan:
             vmax (float): maximum possible volume [µL] in the MTP
             min_transfer (float): minimum allowed volume [µL] for transfer steps
         """
+        warnings.warn(
+            'DilutionPlan has moved to robotools v0.6.0. It will be removed from calibr8 in the near future.',
+            DeprecationWarning
+        )
         # process arguments
         if stock < xmax:
             raise ValueError(f'Stock concentration ({stock}) must be >= xmax ({xmax})')
