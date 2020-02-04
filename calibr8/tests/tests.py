@@ -314,6 +314,22 @@ class UtilsTest(unittest.TestCase):
             calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.2");
         return
 
+    def test_guess_asymmetric_logistic_theta(self):
+        with self.assertRaises(ValueError):
+            calibr8.guess_asymmetric_logistic_theta([1,2,3], [1,2])
+        with self.assertRaises(ValueError):
+            calibr8.guess_asymmetric_logistic_theta([1,2], [[1,2],[2,3]])
+        L_L, L_U, I_X, k, v = calibr8.guess_asymmetric_logistic_theta(
+            X=[0, 1, 2, 3, 4, 5],
+            Y=[0, 1, 2, 3, 4, 5],
+        )
+        self.assertEqual(L_L, 0)
+        self.assertEqual(L_U, 10)
+        self.assertEqual(I_X, (1+2+3+4+5)/2)
+        self.assertEqual(k, 1/10)
+        self.assertEqual(v, 1)
+        return
+
 
 class BaseGlucoseErrorModelTest(unittest.TestCase):
     def test_errors(self):

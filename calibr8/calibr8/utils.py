@@ -152,3 +152,25 @@ def assert_version_match(vA:str, vB:str):
         if int(a) != int(b):
             raise ex(f'{vA} != {vB}')
     return
+
+
+def guess_asymmetric_logistic_theta(X, Y):
+    """Creates an initial guess for the parameter vector of an `asymmetric_logistic` function.
+    
+    Args:
+        X (array-like): independent values of the data points
+        Y (array-like): dependent values (observations)
+        
+    Returns:
+        [L_L, L_U, I_X, k, v] (list): guess of the `asymmetric_logistic` parameters
+    """
+    X = numpy.array(X)
+    Y = numpy.array(Y)
+    if not X.shape == Y.shape and len(X.shape) == 1:
+        raise ValueError('X and Y must have the same 1-dimensional shape.')
+    L_L = numpy.min(Y)
+    L_U = numpy.max(Y) + numpy.ptp(Y)
+    I_X = (min(X) + max(X)) / 2
+    k, _ = numpy.polyfit(X, Y, deg=1) / 10
+    v = 1
+    return [L_L, L_U, I_X, k, v]
