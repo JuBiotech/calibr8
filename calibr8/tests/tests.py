@@ -47,7 +47,7 @@ class ErrorModelTest(unittest.TestCase):
             _ = errormodel.fit(independent=x, dependent=y, theta_guessed=None)
         return
 
-    def test_save_and_load(self):
+    def test_save_and_load_version_check(self):
         em = calibr8.ErrorModel('I', 'D')
         em.theta_guess = (1,1,1)
         em.theta_fitted = (1,2,3)
@@ -60,13 +60,6 @@ class ErrorModelTest(unittest.TestCase):
         # save and load
         em.save('save_load_test.json')
         em_loaded = calibr8.ErrorModel.load('save_load_test.json')
-
-        self.assertIsInstance(em_loaded, calibr8.ErrorModel)
-        self.assertEqual(em_loaded.independent_key, em.independent_key)
-        self.assertEqual(em_loaded.dependent_key, em.dependent_key)
-        self.assertEqual(em_loaded.theta_bounds, em.theta_bounds)
-        self.assertEqual(em_loaded.theta_guess, em.theta_guess)
-        self.assertEqual(em_loaded.theta_fitted, em.theta_fitted)
 
         # test version checking
         vactual = tuple(map(int, calibr8.__version__.split('.')))
@@ -89,7 +82,32 @@ class ErrorModelTest(unittest.TestCase):
         with self.assertRaises(calibr8.CompatibilityException):
             DifferentEM.load('save_load_test.json')
         return
-    
+
+    def test_save_and_load_attributes(self):
+        em = calibr8.ErrorModel('I', 'D')
+        em.theta_guess = (1,1,1)
+        em.theta_fitted = (1,2,3)
+        em.theta_bounds = (
+            (None, None),
+            (0, 5),
+            (0, 10)
+        )
+        em.cal_independent = numpy.linspace(0, 10, 7)
+        em.cal_dependent = numpy.random.normal(em.cal_independent)
+
+        # save and load
+        em.save('save_load_test.json')
+        em_loaded = calibr8.ErrorModel.load('save_load_test.json')
+
+        self.assertIsInstance(em_loaded, calibr8.ErrorModel)
+        self.assertEqual(em_loaded.independent_key, em.independent_key)
+        self.assertEqual(em_loaded.dependent_key, em.dependent_key)
+        self.assertEqual(em_loaded.theta_bounds, em.theta_bounds)
+        self.assertEqual(em_loaded.theta_guess, em.theta_guess)
+        self.assertEqual(em_loaded.theta_fitted, em.theta_fitted)
+        numpy.testing.assert_array_equal(em_loaded.cal_independent, em.cal_independent)
+        numpy.testing.assert_array_equal(em_loaded.cal_dependent, em.cal_dependent)
+        pass
 
 class TestModelFunctions(unittest.TestCase):
     def test_logistic(self):
@@ -325,8 +343,8 @@ class UtilsTest(unittest.TestCase):
         )
         self.assertEqual(L_L, 0)
         self.assertEqual(L_U, 10)
-        self.assertEqual(I_X, (1+2+3+4+5)/2)
-        self.assertEqual(k, 1/10)
+        self.assertEqual(I_X, (0+5)/2)
+        self.assertAlmostEqual(k, 1/10)
         self.assertEqual(v, 1)
         return
 
