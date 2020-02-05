@@ -1,12 +1,14 @@
 import abc
 import json
+import logging
 import numpy
 import scipy.optimize
 
 from . import utils
 
 
-__version__ = '3.4.2'
+__version__ = '3.5.0'
+_log = logging.getLogger('calibr8')
 
 
 class ErrorModel(object):
@@ -25,6 +27,8 @@ class ErrorModel(object):
         self.theta_bounds = None
         self.theta_guess = None
         self.theta_fitted = None
+        self.cal_independent:numpy.ndarray = None
+        self.cal_dependent:numpy.ndarray = None
         super().__init__()
     
     @abc.abstractmethod
@@ -93,9 +97,14 @@ class ErrorModel(object):
         def sum_negative_loglikelihood(theta):
             return(-self.loglikelihood(x=independent, y=dependent, theta=theta))
         fit = scipy.optimize.minimize(sum_negative_loglikelihood, theta_guessed, bounds=bounds)
+        if not fit.success:
+            _log.warning(f'Fit of {type(self).__name__} has failed:')
+            _log.warning(fit)
         self.theta_bounds = bounds
         self.theta_guess = theta_guessed
         self.theta_fitted = fit.x
+        self.cal_independent = numpy.array(independent)
+        self.cal_dependent = numpy.array(dependent)
         return fit
 
     def save(self, filepath:str):
@@ -107,11 +116,13 @@ class ErrorModel(object):
         data = dict(
             calibr8_version=__version__,
             model_type=f'{self.__module__}.{self.__class__.__name__}',
-            theta_bounds=self.theta_bounds,
-            theta_guess=self.theta_guess,
+            theta_bounds=tuple(self.theta_bounds),
+            theta_guess=tuple(self.theta_guess),
             theta_fitted=tuple(self.theta_fitted),
             independent_key=self.independent_key,
-            dependent_key=self.dependent_key
+            dependent_key=self.dependent_key,
+            cal_independent=tuple(self.cal_independent) if self.cal_independent is not None else None,
+            cal_dependent=tuple(self.cal_dependent) if self.cal_dependent is not None else None,
         )
         with open(filepath, 'w') as jfile:
             json.dump(data, jfile, indent=4)
@@ -130,27 +141,26 @@ class ErrorModel(object):
         """
         with open(filepath, 'r') as jfile:
             data = json.load(jfile)
-        if 'theta_bounds' in data and data['theta_bounds']:
-            data['theta_bounds'] = tuple(map(tuple, data['theta_bounds']))
-        if 'theta_guess' in data and data['theta_guess']:
-            data['theta_guess'] = tuple(data['theta_guess'])
-        if 'theta_fitted' in data and data['theta_fitted']:
-            data['theta_fitted'] = tuple(data['theta_fitted'])
-
+        
         # check compatibility
         try:
             utils.assert_version_match(data['calibr8_version'], __version__)
         except (utils.BuildMismatchException, utils.PatchMismatchException, utils.MinorMismatchException):
             pass
-    
+
+        # create model instance
         cls_type = f'{cls.__module__}.{cls.__name__}'
         json_type = data['model_type']
         if json_type != cls_type:
             raise utils.CompatibilityException(f'The model type from the JSON file ({json_type}) does not match this class ({cls_type}).')
         obj = cls(independent_key=data['independent_key'], dependent_key=data['dependent_key'])
-        obj.theta_bounds = data['theta_bounds']
-        obj.theta_guess = data['theta_guess']
-        obj.theta_fitted = data['theta_fitted']
+
+        # assign additional attributes (check keys for backwards compatibility)
+        obj.theta_bounds = tuple(map(tuple, data['theta_bounds'])) if 'theta_bounds' in data else None
+        obj.theta_guess = tuple(data['theta_guess']) if 'theta_guess' in data else None
+        obj.theta_fitted = tuple(data['theta_fitted']) if 'theta_fitted' in data else None
+        obj.cal_independent = numpy.array(data['cal_independent']) if 'cal_independent' in data else None
+        obj.cal_dependent = numpy.array(data['cal_dependent']) if 'cal_dependent' in data else None
         return obj
 
 

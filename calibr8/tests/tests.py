@@ -47,7 +47,7 @@ class ErrorModelTest(unittest.TestCase):
             _ = errormodel.fit(independent=x, dependent=y, theta_guessed=None)
         return
 
-    def test_save_and_load(self):
+    def test_save_and_load_version_check(self):
         em = calibr8.ErrorModel('I', 'D')
         em.theta_guess = (1,1,1)
         em.theta_fitted = (1,2,3)
@@ -60,13 +60,6 @@ class ErrorModelTest(unittest.TestCase):
         # save and load
         em.save('save_load_test.json')
         em_loaded = calibr8.ErrorModel.load('save_load_test.json')
-
-        self.assertIsInstance(em_loaded, calibr8.ErrorModel)
-        self.assertEqual(em_loaded.independent_key, em.independent_key)
-        self.assertEqual(em_loaded.dependent_key, em.dependent_key)
-        self.assertEqual(em_loaded.theta_bounds, em.theta_bounds)
-        self.assertEqual(em_loaded.theta_guess, em.theta_guess)
-        self.assertEqual(em_loaded.theta_fitted, em.theta_fitted)
 
         # test version checking
         vactual = tuple(map(int, calibr8.__version__.split('.')))
@@ -89,7 +82,32 @@ class ErrorModelTest(unittest.TestCase):
         with self.assertRaises(calibr8.CompatibilityException):
             DifferentEM.load('save_load_test.json')
         return
-    
+
+    def test_save_and_load_attributes(self):
+        em = calibr8.ErrorModel('I', 'D')
+        em.theta_guess = (1,1,1)
+        em.theta_fitted = (1,2,3)
+        em.theta_bounds = (
+            (None, None),
+            (0, 5),
+            (0, 10)
+        )
+        em.cal_independent = numpy.linspace(0, 10, 7)
+        em.cal_dependent = numpy.random.normal(em.cal_independent)
+
+        # save and load
+        em.save('save_load_test.json')
+        em_loaded = calibr8.ErrorModel.load('save_load_test.json')
+
+        self.assertIsInstance(em_loaded, calibr8.ErrorModel)
+        self.assertEqual(em_loaded.independent_key, em.independent_key)
+        self.assertEqual(em_loaded.dependent_key, em.dependent_key)
+        self.assertEqual(em_loaded.theta_bounds, em.theta_bounds)
+        self.assertEqual(em_loaded.theta_guess, em.theta_guess)
+        self.assertEqual(em_loaded.theta_fitted, em.theta_fitted)
+        numpy.testing.assert_array_equal(em_loaded.cal_independent, em.cal_independent)
+        numpy.testing.assert_array_equal(em_loaded.cal_dependent, em.cal_dependent)
+        pass
 
 class TestModelFunctions(unittest.TestCase):
     def test_logistic(self):
@@ -312,6 +330,22 @@ class UtilsTest(unittest.TestCase):
             calibr8.utils.assert_version_match("1.1.1.1", "1.1.2.1");
         with self.assert_raises(BuildMismatchException):
             calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.2");
+        return
+
+    def test_guess_asymmetric_logistic_theta(self):
+        with self.assertRaises(ValueError):
+            calibr8.guess_asymmetric_logistic_theta([1,2,3], [1,2])
+        with self.assertRaises(ValueError):
+            calibr8.guess_asymmetric_logistic_theta([1,2], [[1,2],[2,3]])
+        L_L, L_U, I_X, k, v = calibr8.guess_asymmetric_logistic_theta(
+            X=[0, 1, 2, 3, 4, 5],
+            Y=[0, 1, 2, 3, 4, 5],
+        )
+        self.assertEqual(L_L, 0)
+        self.assertEqual(L_U, 10)
+        self.assertEqual(I_X, (0+5)/2)
+        self.assertAlmostEqual(k, 1/10)
+        self.assertEqual(v, 1)
         return
 
 
@@ -617,97 +651,6 @@ class BiomassErrorModelTest(unittest.TestCase):
         errormodel = calibr8.BiomassErrorModel(independent, dependent)
         with self.assertRaises(Exception):
             _= errormodel.loglikelihood(y=y, x=x)
-        return
-
-
-class TestSerialDilutionPlanning(unittest.TestCase):
-    def test_argchecking(self):
-        with self.assertRaises(ValueError):
-            calibr8.utils.DilutionPlan(
-                xmin=0.001, xmax=30,
-                R=8, C=12,
-                stock=20,
-                mode='log',
-                vmax=1000,
-                min_transfer=20
-            )
-
-        with self.assertRaises(ValueError):
-            calibr8.utils.DilutionPlan(
-                xmin=0.001, xmax=30,
-                R=8, C=12,
-                stock=30,
-                mode='invalid',
-                vmax=1000,
-                min_transfer=20
-            )
-
-        with self.assertRaises(ValueError):
-            calibr8.utils.DilutionPlan(
-                xmin=0.001, xmax=30,
-                R=6, C=4,
-                stock=30,
-                mode='linear',
-                vmax=1000,
-                min_transfer=20
-            )
-
-        return
-
-    def test_repr(self):
-        plan = calibr8.utils.DilutionPlan(
-            xmin=0.001, xmax=30,
-            R=8, C=12,
-            stock=30,
-            mode='log',
-            vmax=1000,
-            min_transfer=20
-        )
-
-        out = plan.__repr__()
-
-        self.assertIsNotNone(out)
-        self.assertIsInstance(out, str)
-        return
-
-    def test_linear_plan(self):
-        plan = calibr8.utils.DilutionPlan(
-            xmin=1, xmax=10,
-            R=10, C=1,
-            stock=20,
-            mode='linear',
-            vmax=1000,
-            min_transfer=20
-        )
-
-        self.assertTrue(numpy.array_equal(plan.x, plan.ideal_x))
-        self.assertEqual(plan.max_steps, 0)
-        self.assertEqual(plan.v_stock, 2750)
-        self.assertEqual(plan.instructions[0][0], 0)
-        self.assertEqual(plan.instructions[0][1], 0)
-        self.assertEqual(plan.instructions[0][2], 'stock')
-        self.assertTrue(numpy.array_equal(plan.instructions[0][3], [500, 450, 400, 350, 300, 250, 200, 150, 100,  50,]))
-        return
-
-    def test_log_plan(self):
-        plan = calibr8.utils.DilutionPlan(
-            xmin=0.01, xmax=10,
-            R=4, C=3,
-            stock=20,
-            mode='log',
-            vmax=1000,
-            min_transfer=20
-        )
-
-        self.assertTrue(numpy.allclose(plan.x, plan.ideal_x, rtol=0.05))
-        self.assertEqual(plan.max_steps, 2)
-        self.assertEqual(plan.v_stock, 985)
-        self.assertEqual(plan.instructions[0][0], 0)
-        self.assertEqual(plan.instructions[0][1], 0)
-        self.assertEqual(plan.instructions[0][2], 'stock')
-        self.assertTrue(numpy.array_equal(plan.instructions[0][3], [500, 267, 142, 76]))
-        self.assertTrue(numpy.array_equal(plan.instructions[1][3], [82, 82, 82, 82]))
-        self.assertTrue(numpy.array_equal(plan.instructions[2][3], [81, 81, 81, 81]))
         return
 
 
