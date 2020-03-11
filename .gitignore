@@ -15,3 +15,5 @@
 .coverage
 /calibr8/build/lib/calibr8
 /calibr8/dist
+*.json
+Sandbox*.ipynb

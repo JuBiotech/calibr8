@@ -7,23 +7,24 @@ import scipy.optimize
 from . import utils
 
 
-__version__ = '3.5.0'
+__version__ = '4.0.0'
 _log = logging.getLogger('calibr8')
 
 
-class ErrorModel(object):
+class ErrorModel:
     """A parent class providing the general structure of an error model."""
-    __metaclass__ = abc.ABCMeta
     
-    def __init__(self, independent_key:str, dependent_key:str):
+    def __init__(self, independent_key:str, dependent_key:str, *, theta_names:tuple):
         """Creates an ErrorModel object.
 
         Args:
             independent_key: key of predicted Timeseries (independent variable of the error model)
             dependent_key: key of observed Timeseries (dependent variable of the error model)
+            theta_names (tuple): names of the model parameters
         """
         self.independent_key = independent_key
         self.dependent_key = dependent_key
+        self.theta_names = theta_names
         self.theta_bounds = None
         self.theta_guess = None
         self.theta_fitted = None
@@ -31,7 +32,6 @@ class ErrorModel(object):
         self.cal_dependent:numpy.ndarray = None
         super().__init__()
     
-    @abc.abstractmethod
     def predict_dependent(self, x, *, theta=None):
         """Predicts the parameters of a probability distribution which characterises 
            the dependent variable given values of the independent variable.
@@ -45,7 +45,6 @@ class ErrorModel(object):
         """
         raise NotImplementedError('The predict_dependent function should be implemented by the inheriting class.')
     
-    @abc.abstractmethod
     def predict_independent(self, y):
         """Predict the most likely value of the independent variable using the calibrated error model in inverse direction.
 
@@ -57,7 +56,6 @@ class ErrorModel(object):
         """
         raise NotImplementedError('The predict_independent function should be implemented by the inheriting class.')
 
-    @abc.abstractmethod
     def infer_independent(self, y):
         """Infer the posterior distribution of the independent variable given the observations of one point of the dependent variable.
 
@@ -82,30 +80,24 @@ class ErrorModel(object):
         """
         raise NotImplementedError('The loglikelihood function should be implemented by the inheriting class.')
         
-    def fit(self, *, independent, dependent, theta_guessed, bounds=None):
-        """Function to fit the error model with observed data. The attribute theta_fitted is overwritten after the fit.
-
+    def objective(self, independent, dependent, minimize=True):
+        """Creates an objective function for fitting to data.
+        
         Args:
             independent (array): desired values of the independent variable or measured values of the same
             dependent (array): observations of dependent variable
-            theta_guessed: initial guess for parameters describing the mode and standard deviation of a PDF of the dependent variable
-            bounds: bounds to fit the parameters
-
+            minimize (bool): wheter to create the objective for minimization or maximization
+        
         Returns:
-            fit: Fitting result of scipy.optimize.minimize
+            obj (callable): objective function
         """
-        def sum_negative_loglikelihood(theta):
-            return(-self.loglikelihood(x=independent, y=dependent, theta=theta))
-        fit = scipy.optimize.minimize(sum_negative_loglikelihood, theta_guessed, bounds=bounds)
-        if not fit.success:
-            _log.warning(f'Fit of {type(self).__name__} has failed:')
-            _log.warning(fit)
-        self.theta_bounds = bounds
-        self.theta_guess = theta_guessed
-        self.theta_fitted = fit.x
-        self.cal_independent = numpy.array(independent)
-        self.cal_dependent = numpy.array(dependent)
-        return fit
+        def obj(x):
+            L = self.loglikelihood(x=independent, y=dependent, theta=x)
+            if minimize:
+                return -L
+            else:
+                return L
+        return obj
 
     def save(self, filepath:str):
         """Save key properties of the error model to a JSON file.
@@ -116,6 +108,7 @@ class ErrorModel(object):
         data = dict(
             calibr8_version=__version__,
             model_type=f'{self.__module__}.{self.__class__.__name__}',
+            theta_names=tuple(self.theta_names),
             theta_bounds=tuple(self.theta_bounds),
             theta_guess=tuple(self.theta_guess),
             theta_fitted=tuple(self.theta_fitted),
@@ -153,7 +146,7 @@ class ErrorModel(object):
         json_type = data['model_type']
         if json_type != cls_type:
             raise utils.CompatibilityException(f'The model type from the JSON file ({json_type}) does not match this class ({cls_type}).')
-        obj = cls(independent_key=data['independent_key'], dependent_key=data['dependent_key'])
+        obj = cls(independent_key=data['independent_key'], dependent_key=data['dependent_key'], theta_names=data['theta_names'])
 
         # assign additional attributes (check keys for backwards compatibility)
         obj.theta_bounds = tuple(map(tuple, data['theta_bounds'])) if 'theta_bounds' in data else None
@@ -212,38 +205,56 @@ def asymmetric_logistic(x, theta):
         theta (array): parameters of the logistic model
             L_L: lower asymptote
             L_U: upper asymptote
-            I_x: x-value at inflection point (v=1)
-            k: growth rate
-            v: symmetry parameter
+            I_x: x-value at inflection point
+            S: slope at the inflection point
+            c: symmetry parameter (0 is symmetric)
     
     Returns:
         y (array): dependent variable
     """
-    L_L, L_U, I_x, k, v = theta[:5]
+    L_L, L_U, I_x, S, c = theta[:5]
+    # re-scale the inflection point slope with the interval
+    s = S / (L_U - L_L)
+    
+    # common subexpressions
+    x0 = numpy.exp(c) + 1
+    x1 = numpy.exp(-c)
+    x2 = x0 ** (x0 * x1)
+    
     x = numpy.array(x)
-    y = L_L + (L_U-L_L)/(numpy.power((1+numpy.exp(-k*(x-I_x))),1/v))
-    return y
+    y = (numpy.exp(x2 * (s*(I_x-x)+c/x2)) + 1) ** -x1
+    return L_L + (L_U-L_L) * y
 
 
 def inverse_asymmetric_logistic(y, theta):
     """Inverse 5-parameter asymmetric logistic model.
-        
+    
     Args:
         y (array): dependent variable
         theta (array): parameters of the logistic model
             L_L: lower asymptote
             L_U: upper asymptote
-            I_x: x-value at inflection point (v=1)
-            k: growth rate
-            v: symmetry parameter
+            I_x: x-value at inflection point
+            S: slope at the inflection point
+            c: symmetry parameter (0 is symmetric)
     
     Returns:
         x (array): independent variable
     """
-    L_L, L_U, I_x, k, v = theta[:5]
-    y = numpy.array(y)
-    x = I_x-(1/k)*numpy.log((numpy.power((L_U-L_L)/(y-L_L), v))-1)
-    return x
+    L_L, L_U, I_x, S, c = theta[:5]
+    # re-scale the inflection point slope with the interval
+    s = S / (L_U - L_L)
+    
+    # re-scale into the interval [0, 1]
+    y = (y - L_L) / (L_U - L_L)
+    
+    x0 = numpy.exp(c)
+    x1 = x0 + 1
+    x2 = -c
+    x3 = numpy.exp(x2)
+    x4 = I_x*s*x1**x3
+    
+    return - (x1**(-x1*x3) * numpy.log( ((1/y)**x0 - 1) * numpy.exp(-x0*x4+x2-x4) ) ) / s
 
 
 def log_log_logistic(x, theta):

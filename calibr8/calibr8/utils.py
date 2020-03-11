@@ -1,4 +1,5 @@
 import collections
+from matplotlib import pyplot
 import numpy
 import scipy.stats
 
@@ -154,7 +155,7 @@ def assert_version_match(vA:str, vB:str):
     return
 
 
-def guess_asymmetric_logistic_theta(X, Y):
+def guess_asymmetric_logistic_theta(X, Y) -> list:
     """Creates an initial guess for the parameter vector of an `asymmetric_logistic` function.
     
     Args:
@@ -162,7 +163,7 @@ def guess_asymmetric_logistic_theta(X, Y):
         Y (array-like): dependent values (observations)
         
     Returns:
-        [L_L, L_U, I_X, k, v] (list): guess of the `asymmetric_logistic` parameters
+        [L_L, L_U, I_x, S, c] (list): guess of the `asymmetric_logistic` parameters
     """
     X = numpy.array(X)
     Y = numpy.array(Y)
@@ -170,7 +171,77 @@ def guess_asymmetric_logistic_theta(X, Y):
         raise ValueError('X and Y must have the same 1-dimensional shape.')
     L_L = numpy.min(Y)
     L_U = numpy.max(Y) + numpy.ptp(Y)
-    I_X = (min(X) + max(X)) / 2
-    k, _ = numpy.polyfit(X, Y, deg=1) / 10
-    v = 1
-    return [L_L, L_U, I_X, k, v]
+    I_x = (min(X) + max(X)) / 2
+    S, _ = numpy.polyfit(X, Y, deg=1)
+    c = -1
+    return [L_L, L_U, I_x, S, c]
+
+
+def guess_asymmetric_logistic_bounds(X, Y, half_open=True) -> list:
+    """Creates bounds for the parameter vector of an `asymmetric_logistic` function.
+    
+    Args:
+        X (array-like): independent values of the data points
+        Y (array-like): dependent values (observations)
+        half_open (bool): sets whether the half-open bounds are allowed (e.g. for L_L and L_U)
+        
+    Returns:
+        bounds (list): bounds for the `asymmetric_logistic` parameters
+    """
+    X = numpy.array(X)
+    Y = numpy.array(Y)
+    if not X.shape == Y.shape and len(X.shape) == 1:
+        raise ValueError('X and Y must have the same 1-dimensional shape.')
+    slope, _ = numpy.polyfit(X, Y, deg=1)
+    bounds = [
+        # L_L
+        (-numpy.inf if half_open else min(Y) - numpy.ptp(Y)*100, numpy.median(Y)),
+        # L_U
+        (numpy.median(Y), numpy.inf if half_open else max(Y) + numpy.ptp(Y)*100),
+        # I_x
+        (min(X) - 3 * numpy.ptp(X), max(X) + 3 * numpy.ptp(X)),
+        # S
+        (0, 10 * slope) if slope > 0 else (10 * slope, 0),
+        # c
+        (-5, 5)
+    ]
+    return bounds
+
+
+def plot_model(model):
+    """Makes a plot of the model with its data.
+
+    Args:
+        model (ErrorModel): a fitted error model with data.
+            The predict_dependent method should return a tuple where the mean is the first entry.
+
+    Returns:
+        fig, axs (Figure, Axes-array): a matplotlib figure with 3 subplots: x-linear, x-log and residuals (xlog)
+    """
+    X = model.cal_independent
+    Y = model.cal_dependent
+    
+    fig, axs = pyplot.subplots(ncols=3, figsize=(14,6), dpi=120)
+    left, right, residuals = axs
+
+    X_pred = numpy.exp(numpy.linspace(numpy.log(min(X)), numpy.log(max(X)), 1000))
+    Y_pred = model.predict_dependent(X_pred)
+    plot_t_band(left, X_pred, *Y_pred)
+    plot_t_band(right, X_pred, *Y_pred)
+    plot_t_band(residuals, X_pred, numpy.repeat(0, len(X_pred)), *Y_pred[1:])
+
+    left.scatter(X, Y)
+    right.scatter(X, Y)
+    residuals.scatter(X, Y - model.predict_dependent(X)[0])
+
+    left.set_ylabel(model.dependent_key)
+    left.set_xlabel(model.independent_key)
+    right.set_xlabel(model.independent_key)
+    right.set_xscale('log')
+    right.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
+    residuals.set_xlabel(model.independent_key)
+    residuals.set_ylabel('residuals')
+    residuals.set_xscale('log')
+    residuals.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
+
+    return fig, axs

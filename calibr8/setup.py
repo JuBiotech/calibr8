@@ -32,6 +32,8 @@ setuptools.setup(name = __packagename__,
         ],
         install_requires=[
             'numpy',
-            'scipy'
+            'scipy',
+            'matplotlib',
+            'fastprogress'
         ]
 )
