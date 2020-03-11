@@ -1,2 +1,2 @@
-from . biomass import *
-from . glucose import *
+from . base import *
+from . models import *

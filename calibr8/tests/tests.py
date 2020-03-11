@@ -15,26 +15,35 @@ try:
 except ModuleNotFoundError:
     HAS_PYMC3 = False
 
+try:
+    import pygmo
+    HAS_PYGMO = True
+except ModuleNotFoundError:
+    HAS_PYGMO = False
 
 
 dir_testfiles = pathlib.Path(pathlib.Path(__file__).absolute().parent, 'testfiles')
-       
+
 
 class ErrorModelTest(unittest.TestCase):
     def test_init(self):
-        independent = 'X'
-        dependent = 'BS'
-        errormodel = calibr8.ErrorModel(independent, dependent)
-        self.assertEqual(errormodel.independent_key, independent)
-        self.assertEqual(errormodel.dependent_key, dependent)
-        self.assertEqual(errormodel.theta_fitted, None)
+        em = calibr8.ErrorModel('I', 'D', theta_names=tuple('a,b,c'.split(',')))
+        self.assertEqual(em.independent_key, 'I')
+        self.assertEqual(em.dependent_key, 'D')
+        self.assertEqual(em.theta_names, ('a', 'b', 'c'))
+        self.assertIsNone(em.theta_bounds)
+        self.assertIsNone(em.theta_guess)
+        self.assertIsNone(em.theta_fitted)
+        self.assertIsNone(em.cal_independent)
+        self.assertIsNone(em.cal_dependent)
+        pass
     
     def test_exceptions(self):
         independent = 'X'
         dependent = 'BS'
         x = numpy.array([1,2,3])
         y = numpy.array([4,5,6])
-        errormodel = calibr8.ErrorModel(independent, dependent)
+        errormodel = calibr8.ErrorModel(independent, dependent, theta_names=('a,b,c'.split(',')))
         with self.assertRaises(NotImplementedError):
             _ = errormodel.predict_dependent(x)
         with self.assertRaises(NotImplementedError):
@@ -43,12 +52,10 @@ class ErrorModelTest(unittest.TestCase):
             _ = errormodel.infer_independent(y)
         with self.assertRaises(NotImplementedError):
             _ = errormodel.loglikelihood(y=y, x=x, theta=[1,2,3])
-        with self.assertRaises(NotImplementedError):
-            _ = errormodel.fit(independent=x, dependent=y, theta_guessed=None)
-        return
+        pass
 
     def test_save_and_load_version_check(self):
-        em = calibr8.ErrorModel('I', 'D')
+        em = calibr8.ErrorModel('I', 'D', theta_names=('a,b,c'.split(',')))
         em.theta_guess = (1,1,1)
         em.theta_fitted = (1,2,3)
         em.theta_bounds = (
@@ -84,7 +91,7 @@ class ErrorModelTest(unittest.TestCase):
         return
 
     def test_save_and_load_attributes(self):
-        em = calibr8.ErrorModel('I', 'D')
+        em = calibr8.ErrorModel('I', 'D', theta_names=('a,b,c'.split(',')))
         em.theta_guess = (1,1,1)
         em.theta_fitted = (1,2,3)
         em.theta_bounds = (
@@ -127,13 +134,31 @@ class TestModelFunctions(unittest.TestCase):
         return
 
     def test_asymmetric_logistic(self):
-        x = numpy.array([1.,2.,4.])
-        theta = [0,4,2,1,1]
-        expected = 0+(4-0)/(1+numpy.exp(-1*(x-2)))
-        true = calibr8.asymmetric_logistic(x, theta)
-        self.assertTrue(numpy.array_equal(true, expected))
-        expected = calibr8.logistic(x, theta=[2,2,4,1])
-        self.assertTrue(numpy.array_equal(true, expected))
+        L_L = -3
+        L_U = 4
+        I_x = 4.5
+        S = 3.3
+        c = -1
+        theta = (L_L, L_U, I_x, S, c)
+        
+        # test that forward and backward match
+        x_test = numpy.linspace(I_x - 0.1, I_x + 0.1, 5)
+        y_test = calibr8.asymmetric_logistic(x_test, theta)
+        x_test_reverse = calibr8.inverse_asymmetric_logistic(y_test, theta)
+        numpy.testing.assert_array_almost_equal(x_test_reverse, x_test)
+        
+        # test I_y
+        self.assertEqual(
+            calibr8.asymmetric_logistic(I_x, theta),
+            L_L + (L_U - L_L) * (numpy.exp(c) + 1) ** (-numpy.exp(-c))
+        )
+
+        # test slope at inflection point
+        ϵ = 0.0001
+        self.assertAlmostEqual(
+            (calibr8.asymmetric_logistic(I_x + ϵ, theta) - calibr8.asymmetric_logistic(I_x - ϵ, theta)) / (2*ϵ),
+            S
+        )
         return
 
     def test_inverse_asymmetric_logistic(self):
@@ -141,7 +166,7 @@ class TestModelFunctions(unittest.TestCase):
         theta = [0,4,2,1,1]
         forward = calibr8.asymmetric_logistic(x, theta)
         reverse = calibr8.inverse_asymmetric_logistic(forward, theta)
-        self.assertTrue(numpy.allclose(x, reverse))
+        numpy.testing.assert_allclose(x, reverse)
         return 
 
     def test_log_log_logistic(self):
@@ -254,8 +279,8 @@ class TestSymbolicModelFunctions(unittest.TestCase):
             [2, 2, 4, 1]
         )
         return
-        
-        
+
+
 class UtilsTest(unittest.TestCase):
     @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
     def test_istensor_without_pymc3(self):
@@ -337,85 +362,260 @@ class UtilsTest(unittest.TestCase):
             calibr8.guess_asymmetric_logistic_theta([1,2,3], [1,2])
         with self.assertRaises(ValueError):
             calibr8.guess_asymmetric_logistic_theta([1,2], [[1,2],[2,3]])
-        L_L, L_U, I_X, k, v = calibr8.guess_asymmetric_logistic_theta(
+        L_L, L_U, I_x, S, c = calibr8.guess_asymmetric_logistic_theta(
             X=[0, 1, 2, 3, 4, 5],
             Y=[0, 1, 2, 3, 4, 5],
         )
         self.assertEqual(L_L, 0)
         self.assertEqual(L_U, 10)
-        self.assertEqual(I_X, (0+5)/2)
-        self.assertAlmostEqual(k, 1/10)
-        self.assertEqual(v, 1)
+        self.assertEqual(I_x, (0+5)/2)
+        self.assertAlmostEqual(S, 1)
+        self.assertEqual(c, -1)
+        return
+
+    def test_guess_asymmetric_logistic_bounds(self):
+        with self.assertRaises(ValueError):
+            calibr8.guess_asymmetric_logistic_theta([1,2,3], [1,2])
+        with self.assertRaises(ValueError):
+            calibr8.guess_asymmetric_logistic_theta([1,2], [[1,2],[2,3]])
+        
+        for half_open in (True, False):
+            L_L, L_U, I_x, S, c = calibr8.guess_asymmetric_logistic_bounds(
+                X=[0, 1, 2, 3, 4, 5],
+                Y=[0, 1, 2, 3, 4, 5],
+                half_open=half_open
+            )
+            if half_open:
+                numpy.testing.assert_allclose(L_L, (-numpy.inf, 2.5))
+                numpy.testing.assert_allclose(L_U, (2.5, numpy.inf))
+            else:
+                numpy.testing.assert_allclose(L_L, (0-100*5, 2.5))
+                numpy.testing.assert_allclose(L_U, (2.5, 5+100*5))
+            numpy.testing.assert_allclose(I_x, (-15, 20))
+            numpy.testing.assert_allclose(S, (0, 10))
+            numpy.testing.assert_allclose(c, (-5, 5))
+        return
+
+    def test_guess_asymmetric_logistic_theta_in_bounds(self):
+        X = numpy.linspace(0, 50, 42)
+        Y = numpy.random.normal(X, scale=0.4)
+        theta = calibr8.guess_asymmetric_logistic_theta(X, Y)
+        for half_open in (True, False):
+            bounds = calibr8.guess_asymmetric_logistic_bounds(X, Y, half_open=half_open)
+            for t, (lb, ub) in zip(theta, bounds):
+                self.assertGreater(t, lb)
+                self.assertLess(t, ub)
         return
 
 
-class BaseGlucoseErrorModelTest(unittest.TestCase):
-    def test_errors(self):
+class TestContribBase(unittest.TestCase):
+    def test_base_t(self):
+        em = calibr8.BaseModelT(independent_key='I', dependent_key='D', theta_names=('mu', 'scale', 'df'))
+        with self.assertRaises(NotImplementedError):
+            em.predict_dependent([1,2,3], theta=[1,2,3])
+        with self.assertRaises(NotImplementedError):
+            em.predict_independent([1,2,3])
+        pass
+
+    def test_base_polynomial_t(self):
+        for mu_degree, scale_degree in [(1, 0), (1, 1), (1, 2), (2, 0)]:
+            theta_mu = (2.2, 1.2, 0.2)[:mu_degree+1]
+            theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
+            theta = theta_mu + theta_scale + (1,)
+
+            em = calibr8.BasePolynomialModelT(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
+            self.assertEqual(len(em.theta_names), mu_degree+1 + scale_degree+1 + 1)
+            self.assertEqual(len(em.theta_names), len(theta))
+
+            x = numpy.linspace(0, 10, 3)
+            mu, scale, df = em.predict_dependent(x, theta=theta)
+
+
+            expected = numpy.polyval(theta_mu[::-1], x)
+            numpy.testing.assert_array_equal(mu, expected)
+            
+            expected = numpy.polyval(theta_scale[::-1], x)
+            numpy.testing.assert_array_equal(scale, expected)
+
+            numpy.testing.assert_array_equal(df, 1)
+        pass
+
+    def test_base_polynomial_t_inverse(self):
+        for mu_degree, scale_degree in [(1, 0), (1, 1), (1, 2), (2, 0)]:
+            theta_mu = (2.2, 1.2, 0.2)[:mu_degree+1]
+            theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
+            theta = theta_mu + theta_scale + (1,)
+
+            em = calibr8.BasePolynomialModelT(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
+            em.theta_fitted = theta
+            self.assertEqual(len(em.theta_names), mu_degree+1 + scale_degree+1 + 1)
+            self.assertEqual(len(em.theta_names), len(theta))
+
+            x = numpy.linspace(0, 10, 7)
+            mu, scale, df = em.predict_dependent(x, theta=theta)
+
+            if mu_degree < 2:
+                x_inverse = em.predict_independent(mu)
+                numpy.testing.assert_array_almost_equal(x_inverse, x)
+            else:
+                with self.assertRaises(NotImplementedError):
+                    em.predict_independent(mu)
+        pass
+
+    def test_base_asymmetric_logistic_t(self):
+        for scale_degree in [0, 1, 2]:
+            theta_mu = (-0.5, 0.5, 1, 1, -1)
+            theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
+            theta = theta_mu + theta_scale + (1,)
+
+            em = calibr8.BaseAsymmetricLogisticT(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+            self.assertEqual(len(em.theta_names), 5 + scale_degree+1 + 1)
+            self.assertEqual(len(em.theta_names), len(theta))
+
+            x = numpy.linspace(1, 5, 3)
+            mu, scale, df = em.predict_dependent(x, theta=theta)
+
+            expected = calibr8.asymmetric_logistic(x, theta_mu)
+            numpy.testing.assert_array_equal(mu, expected)
+            
+            expected = numpy.polyval(theta_scale[::-1], x)
+            numpy.testing.assert_array_equal(scale, expected)
+
+            numpy.testing.assert_array_equal(df, 1)
+        pass
+
+    def test_base_asymmetric_logistic_t_inverse(self):
+        for scale_degree in [0, 1, 2]:
+            theta_mu = (-0.5, 0.5, 1, 1, -1)
+            theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
+            theta = theta_mu + theta_scale + (1,)
+
+            em = calibr8.BaseAsymmetricLogisticT(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+            em.theta_fitted = theta
+            
+            x = numpy.linspace(1, 5, 7)
+            mu, scale, df = em.predict_dependent(x, theta=theta)
+
+            x_inverse = em.predict_independent(mu)
+            numpy.testing.assert_array_almost_equal(x_inverse, x)
+        pass
+
+
+class TestLinearGlucoseModel(unittest.TestCase):
+    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
+    def test_infer_independent(self):
+        em = calibr8.LinearGlucoseErrorModelV1('S', 'A365')
+        em.theta_fitted = [0, 2, 0.1, 1]
+        trace = em.infer_independent(y=1, draws=1, lower=0, upper=20)
+        self.assertEqual(len(trace), 1)
+        self.assertEqual(len(trace['S'][0]), 1)
+        pass
+    
+    @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
+    def test_error_infer_independent(self):
+        errormodel = calibr8.LinearGlucoseErrorModelV1('S', 'A365')
+        with self.assertRaises(ImportError):
+            _ = errormodel.infer_independent(y=1, draws=1, lower=0, upper=20)
+        pass
+
+    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
+    def test_symbolic_loglikelihood(self):
+        errormodel = calibr8.LinearGlucoseErrorModelV1('S', 'A')
+        errormodel.theta_fitted = [0, 1, 0.1, 1]
+       
+        # create test data
+        x_true = numpy.array([1,2,3,4,5])
+        y_obs = errormodel.predict_dependent(x_true)[0]
+
+        # create a pymc3 model using the error model
+        with pymc3.Model() as pmodel:
+            x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
+            L = errormodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
+            self.assertIsInstance(L, tt.TensorVariable)
+        
+        # compare the two loglikelihood computation methods
+        x_test = numpy.random.normal(x_true, scale=0.1)
+        actual = L.logp({
+            'x_hat': x_test
+        })
+        expected = errormodel.loglikelihood(x=x_test, y=y_obs)
+        self.assertAlmostEqual(actual, expected, 6)
+        pass
+
+    def test_loglikelihood(self):
         independent = 'S'
         dependent = 'OD'
-        y = numpy.array([1,2,3])
         x = numpy.array([1,2,3])
-        theta = [0,0,0]
-        errormodel = calibr8.BaseGlucoseErrorModel(independent, dependent)
-        errormodel.theta_fitted = [0,1,0.1]
-        with self.assertRaises(NotImplementedError):
-            _ = errormodel.predict_dependent(x)
-        with self.assertRaises(NotImplementedError):
-            _ = errormodel.infer_independent(y)
-        with self.assertRaises(NotImplementedError):
-            _ = errormodel.loglikelihood(y=y, x=x)
-        with self.assertRaises(NotImplementedError):
-            _ = errormodel.fit(independent=x, dependent=y, theta_guessed=None, bounds=None)
+        y = numpy.array([1,2,3])
+        errormodel = calibr8.LinearGlucoseErrorModelV1(independent, dependent)
+        errormodel.theta_fitted = [0, 1, 0.1, 1.6]
+        with self.assertRaises(TypeError):
+            _ = errormodel.loglikelihood(y, x=x)
+        true = errormodel.loglikelihood(y=y, x=x)
+        mu, sigma, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
+        expected = numpy.sum(stats.t.logpdf(x=y, loc=mu, scale=sigma, df=df))
+        self.assertEqual(expected, true)
+        x = 'hello'
+        with self.assertRaises(Exception):
+            _= errormodel.loglikelihood(y=y, x=x)
+        return
+    
+    def test_loglikelihood_without_fit(self):
+        independent = 'Glu'
+        dependent = 'OD'
+        x = numpy.array([1,2,3])
+        y = numpy.array([1,2,3])
+        errormodel = calibr8.LinearGlucoseErrorModelV1(independent, dependent)
+        with self.assertRaises(Exception):
+            _= errormodel.loglikelihood(y=y, x=x)
         return
 
 
-class LinearGlucoseErrorModelTest(unittest.TestCase):
+class TestLogisticGlucoseModel(unittest.TestCase):
     def test_predict_dependent(self):
         independent = 'S'
         dependent = 'OD'
         x = numpy.array([1,2,3])
-        theta = [0,0,0]
-        errormodel = calibr8.LinearGlucoseErrorModel(independent, dependent)
-        errormodel.theta_fitted = [0,1,0.1]
+        theta = [0, 4, 2, 1, 1, 0, 2, 1.4]
+        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent, dependent, scale_degree=2)
+        errormodel.theta_fitted = theta
         with self.assertRaises(TypeError):
             _ = errormodel.predict_dependent(x, theta)
-        mu, sigma, df = errormodel.predict_dependent(x)
-        self.assertTrue(numpy.array_equal(mu, numpy.array([1,2,3])))
-        self.assertTrue(numpy.array_equal(sigma, numpy.array([0.1,0.1,0.1])))
-        self.assertEqual(df, 1)
+        mu, scale, df = errormodel.predict_dependent(x)
+        numpy.testing.assert_array_equal(mu, calibr8.asymmetric_logistic(x, theta))
+        numpy.testing.assert_array_equal(scale, 0 + 2 * x)
+        self.assertEqual(df, 1.4)
         return
     
     def test_predict_independent(self):
-        errormodel = calibr8.LinearGlucoseErrorModel('S', 'OD')
-        errormodel.theta_fitted = [0, 2, 0.1]
+        errormodel = calibr8.LogisticGlucoseErrorModelV1('S', 'OD')
+        errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.43]
         x_original = numpy.array([4, 5, 6])
         mu, sd, df = errormodel.predict_dependent(x_original)
         x_predicted = errormodel.predict_independent(y=mu)
-        self.assertTrue(numpy.array_equal(mu, [8, 10, 12]))
-        self.assertTrue(numpy.array_equal(sd, [0.1, 0.1, 0.1]))
         self.assertTrue(numpy.allclose(x_predicted, x_original))
         return
     
     @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_infer_independent(self):
-        errormodel = calibr8.LinearGlucoseErrorModel('S', 'OD')
-        errormodel.theta_fitted = [0, 2, 0.1]
-        trace = errormodel.infer_independent(y=1, draws=1)
+        errormodel = calibr8.LogisticGlucoseErrorModelV1('S', 'OD')
+        errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.34]
+        trace = errormodel.infer_independent(y=1, draws=1, lower=0, upper=20)
         self.assertTrue(len(trace)==1)
-        self.assertTrue(len(trace['Glucose'][0]==1))
+        self.assertTrue(len(trace['S'][0]==1))
         return
 
     @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
     def test_error_infer_independent(self):
-        errormodel = calibr8.LinearGlucoseErrorModel('S', 'OD')
+        errormodel = calibr8.LogisticGlucoseErrorModelV1('S', 'OD')
         with self.assertRaises(ImportError):
-            _ = errormodel.infer_independent(y=1, draws=1)
+            _ = errormodel.infer_independent(y=1, draws=1, lower=0, upper=20)
         return
 
     @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_symbolic_loglikelihood(self):
-        errormodel = calibr8.LinearGlucoseErrorModel('S', 'A')
-        errormodel.theta_fitted = [0,1,0.1]
+        errormodel = calibr8.LogisticGlucoseErrorModelV1('S', 'A')
+        errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.23]
        
         # create test data
         x_true = numpy.array([1,2,3,4,5])
@@ -435,19 +635,19 @@ class LinearGlucoseErrorModelTest(unittest.TestCase):
         expected = errormodel.loglikelihood(x=x_test, y=y_obs)
         self.assertAlmostEqual(actual, expected, 6)
         return
-
+    
     def test_loglikelihood(self):
         independent = 'S'
         dependent = 'OD'
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = calibr8.LinearGlucoseErrorModel(independent, dependent)
-        errormodel.theta_fitted = [0,1,0.1]
+        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent, dependent)
+        errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.7]
         with self.assertRaises(TypeError):
             _ = errormodel.loglikelihood(y, x=x)
         true = errormodel.loglikelihood(y=y, x=x)
-        mu, sigma, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
-        expected = numpy.sum(numpy.log(stats.t.pdf(x=y, loc=mu, scale=sigma, df=1)))
+        mu, scale, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
+        expected = numpy.sum(stats.t.logpdf(x=y, loc=mu, scale=scale, df=df))
         self.assertEqual(expected, true)
         x = 'hello'
         with self.assertRaises(Exception):
@@ -459,200 +659,70 @@ class LinearGlucoseErrorModelTest(unittest.TestCase):
         dependent = 'OD'
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = calibr8.LinearGlucoseErrorModel(independent, dependent)
+        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent, dependent)
         with self.assertRaises(Exception):
             _= errormodel.loglikelihood(y=y, x=x)
         return
 
 
-class LogisticGlucoseErrorModelTest(unittest.TestCase):
-    def test_predict_dependent(self):
-        independent = 'S'
-        dependent = 'OD'
-        x = numpy.array([1,2,3])
-        theta = [0,4,2,1,1,0,2]
-        errormodel = calibr8.LogisticGlucoseErrorModel(independent, dependent)
-        errormodel.theta_fitted = theta
-        with self.assertRaises(TypeError):
-            _ = errormodel.predict_dependent(x, theta)
-        mu, sigma, df = errormodel.predict_dependent(x)
-        self.assertTrue(numpy.array_equal(mu, calibr8.asymmetric_logistic(x, theta)))
-        self.assertTrue(numpy.array_equal(sigma, 2*mu))
-        self.assertEqual(df, 1)
-        return
-    
-    def test_predict_independent(self):
-        errormodel = calibr8.LogisticGlucoseErrorModel('S', 'OD')
-        errormodel.theta_fitted = [0,4,2,1,1,2,0]
-        x_original = numpy.array([4, 5, 6])
-        mu, sd, df = errormodel.predict_dependent(x_original)
-        x_predicted = errormodel.predict_independent(y=mu)
-        self.assertTrue(numpy.allclose(x_predicted, x_original))
-        return
-    
-    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
-    def test_infer_independent(self):
-        errormodel = calibr8.LogisticGlucoseErrorModel('S', 'OD')
-        errormodel.theta_fitted = [0,4,2,1,1,2,0]
-        trace = errormodel.infer_independent(y=1, draws=1)
-        self.assertTrue(len(trace)==1)
-        self.assertTrue(len(trace['Glucose'][0]==1))
-        return
+class TestOptimization(unittest.TestCase):
+    def _get_test_model(self):
+        theta_mu = (0.5, 1.4)
+        theta_scale = (0.2,)
+        theta = theta_mu + theta_scale + (4,)
 
-    @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
-    def test_error_infer_independent(self):
-        errormodel = calibr8.LogisticGlucoseErrorModel('S', 'OD')
-        with self.assertRaises(ImportError):
-            _ = errormodel.infer_independent(y=1, draws=1)
-        return
+        x = numpy.linspace(1, 10, 500)
+        y = stats.t.rvs(
+            loc=calibr8.polynomial(x, theta_mu),
+            scale=calibr8.polynomial(x, theta_scale),
+            df=theta[-1]
+        )
 
-    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
-    def test_symbolic_loglikelihood(self):
-        errormodel = calibr8.LogisticGlucoseErrorModel('S', 'A')
-        errormodel.theta_fitted = [0,4,2,1,1,2,0]
-       
-        # create test data
-        x_true = numpy.array([1,2,3,4,5])
-        y_obs = errormodel.predict_dependent(x_true)[0]
+        class TestModel(calibr8.BasePolynomialModelT):
+            def __init__(self):
+                super().__init__(independent_key='I', dependent_key='D', mu_degree=1, scale_degree=0)
 
-        # create a pymc3 model using the error model
-        with pymc3.Model() as pmodel:
-            x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
-            L = errormodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
-            self.assertIsInstance(L, tt.TensorVariable)
-        
-        # compare the two loglikelihood computation methods
-        x_test = numpy.random.normal(x_true, scale=0.1)
-        actual = L.logp({
-            'x_hat': x_test
-        })
-        expected = errormodel.loglikelihood(x=x_test, y=y_obs)
-        self.assertAlmostEqual(actual, expected, 6)
-        return
-    
-    def test_loglikelihood(self):
-        independent = 'S'
-        dependent = 'OD'
-        x = numpy.array([1,2,3])
-        y = numpy.array([1,2,3])
-        errormodel = calibr8.LogisticGlucoseErrorModel(independent, dependent)
-        errormodel.theta_fitted = [0,4,2,1,1,2,0]
-        with self.assertRaises(TypeError):
-            _ = errormodel.loglikelihood(y, x=x)
-        true = errormodel.loglikelihood(y=y, x=x)
-        mu, sigma, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
-        expected = numpy.sum(numpy.log(stats.t.pdf(x=y, loc=mu, scale=sigma, df=df)))
-        self.assertEqual(expected, true)
-        x = 'hello'
-        with self.assertRaises(Exception):
-            _= errormodel.loglikelihood(y=y, x=x)
-        return
-    
-    def test_loglikelihood_without_fit(self):
-        independent = 'Glu'
-        dependent = 'OD'
-        x = numpy.array([1,2,3])
-        y = numpy.array([1,2,3])
-        errormodel = calibr8.LogisticGlucoseErrorModel(independent, dependent)
-        with self.assertRaises(Exception):
-            _= errormodel.loglikelihood(y=y, x=x)
-        return
+        em = TestModel()
+        return theta_mu, theta_scale, theta, em, x, y
 
+    def test_fit_scipy(self):
+        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
+        numpy.random.seed(1234)
+        theta_fit, history = calibr8.fit_scipy(
+            em,
+            independent=x, dependent=y,
+            theta_guess=numpy.ones_like(theta),
+            theta_bounds=[(-5, 5)]*len(theta_mu) + [(0.02, 1), (1, 20)]
+        )
+        for actual, desired, atol in zip(theta_fit, theta, [0.10, 0.05, 0.2, 2]):
+            numpy.testing.assert_allclose(actual, desired, atol=atol)
+        self.assertIsInstance(history, list)
+        numpy.testing.assert_array_equal(em.theta_fitted, theta_fit)
+        self.assertIsNotNone(em.theta_bounds)
+        self.assertIsNotNone(em.theta_guess)
+        numpy.testing.assert_array_equal(em.cal_independent, x)
+        numpy.testing.assert_array_equal(em.cal_dependent, y)
+        pass
 
-class BiomassErrorModelTest(unittest.TestCase):
-    def test_predict_dependent(self):
-        independent = 'BTM'
-        dependent = 'BS'
-        x = numpy.array([1,2,3])
-        theta = [0,4,2,1,1,0,2]
-        errormodel = calibr8.BiomassErrorModel(independent, dependent)
-        errormodel.theta_fitted = theta
-        with self.assertRaises(TypeError):
-            _ = errormodel.predict_dependent(x, theta)
-        mu, sigma, df = errormodel.predict_dependent(x)
-        self.assertTrue(numpy.array_equal(mu, calibr8.asymmetric_logistic(x, theta)))
-        self.assertTrue(numpy.array_equal(sigma, 2*mu))        
-        self.assertEqual(df, 1)
-        return
-
-    def test_predict_independent(self):
-        errormodel = calibr8.BiomassErrorModel('X', 'BS')
-        errormodel.theta_fitted = numpy.array([0,4,2,1,1,2,0])
-        x_original = numpy.linspace(0.01, 30, 20)
-        mu, sd, df = errormodel.predict_dependent(x_original)
-        x_predicted = errormodel.predict_independent(y=mu)
-        self.assertTrue(numpy.allclose(x_predicted, x_original))
-        return
-
-    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
-    def test_infer_independent(self):
-        errormodel = calibr8.BiomassErrorModel('X', 'BS')
-        errormodel.theta_fitted = numpy.array([0,4,2,1,1,2,0])
-        trace = errormodel.infer_independent(y=1, draws=1)
-        self.assertTrue(len(trace)==1)
-        self.assertTrue(len(trace['CDW'][0]==1))
-        return
-
-    @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
-    def test_error_infer_independent(self):
-        errormodel = calibr8.BiomassErrorModel('X', 'BS')
-        with self.assertRaises(ImportError):
-            errormodel.infer_independent(1)
-        return
-
-    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
-    def test_symbolic_loglikelihood(self):
-        errormodel = calibr8.BiomassErrorModel('X', 'BS')
-        errormodel.theta_fitted = numpy.array([0,4,2,1,1,2,0])
-
-        # create test data
-        x_true = numpy.array([1,2,3,4,5])
-        y_obs = errormodel.predict_dependent(x_true)[0]
-
-        # create a pymc3 model using the error model
-        with pymc3.Model() as pmodel:
-            x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
-            L = errormodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='BS')
-            self.assertIsInstance(L, tt.TensorVariable)
-        
-        # compare the two loglikelihood computation methods
-        x_test = numpy.random.normal(x_true, scale=0.1)
-        actual = L.logp({
-            'x_hat': x_test
-        })
-        expected = errormodel.loglikelihood(x=x_test, y=y_obs)
-        self.assertAlmostEqual(actual, expected, 6)
-        return
-
-    def test_loglikelihood(self):
-        independent = 'X'
-        dependent = 'BS'
-        x = numpy.array([1,2,3])
-        y = numpy.array([1,2,3])
-        errormodel = calibr8.BiomassErrorModel(independent, dependent)
-        errormodel.theta_fitted = numpy.array([0,4,2,1,1,2,0])
-        with self.assertRaises(TypeError):
-            _ = errormodel.loglikelihood(y, x=x, theta=errormodel.theta_fitted)
-        theta = errormodel.theta_fitted
-        true = errormodel.loglikelihood(y=y, x=x, theta=theta)
-        mu, sigma, df = errormodel.predict_dependent(x, theta=theta)
-        expected = numpy.sum(numpy.log(stats.t.pdf(x=y, loc=mu, scale=sigma, df=1)))
-        self.assertEqual(expected, true)
-        x = 'hello'
-        with self.assertRaises(Exception):
-            _= errormodel.loglikelihood(y=y, x=x)
-        return
-    
-    def test_loglikelihood_without_fit(self):
-        independent = 'X'
-        dependent = 'BS'
-        x = numpy.array([1,2,3])
-        y = numpy.array([1,2,3])
-        errormodel = calibr8.BiomassErrorModel(independent, dependent)
-        with self.assertRaises(Exception):
-            _= errormodel.loglikelihood(y=y, x=x)
-        return
+    @unittest.skipUnless(HAS_PYGMO, 'requires PyGMO')
+    def test_fit_pygmo(self):
+        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
+        numpy.random.seed(1234)
+        theta_fit, history = calibr8.fit_pygmo(
+            em,
+            independent=x, dependent=y,
+            theta_bounds=[(-5, 5)]*len(theta_mu) + [(0.02, 1), (1, 20)]
+        )
+        for actual, desired, atol in zip(theta_fit, theta, [0.10, 0.05, 0.2, 2]):
+            numpy.testing.assert_allclose(actual, desired, atol=atol)
+        self.assertIsInstance(history, list)
+        numpy.testing.assert_array_equal(em.theta_fitted, theta_fit)
+        self.assertIsNotNone(em.theta_bounds)
+        self.assertIsNone(em.theta_guess)
+        numpy.testing.assert_array_equal(em.cal_independent, x)
+        numpy.testing.assert_array_equal(em.cal_dependent, y)
+        pass
 
 
 if __name__ == '__main__':
-    unittest.main(exit=False)
+    unittest.main()

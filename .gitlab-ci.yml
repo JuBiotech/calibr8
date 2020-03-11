@@ -2,7 +2,7 @@ stages:
   - test
   - release
 
-test-calibr8:
+test-calibr8-py36:
   stage: test
   image: python:3.6
   script:
@@ -10,6 +10,18 @@ test-calibr8:
     - python setup.py bdist_wheel && pip install dist/*.whl
     - python -m unittest discover -s tests -v
     - pip install pymc3
+    - pip install pygmo
+    - python -m unittest discover -s tests -v
+
+test-calibr8-py37:
+  stage: test
+  image: python:3.7
+  script:
+    - cd calibr8
+    - python setup.py bdist_wheel && pip install dist/*.whl
+    - python -m unittest discover -s tests -v
+    - pip install pymc3
+    - pip install pygmo
     - python -m unittest discover -s tests -v
 
 coverage-calibr8:
@@ -20,6 +32,7 @@ coverage-calibr8:
     - pip install coverage
     - coverage run --parallel --source=calibr8 tests/tests.py 
     - pip install pymc3
+    - pip install pygmo
     - coverage run --parallel --source=calibr8 tests/tests.py && coverage combine && coverage report -m
 
 release-calibr8:
