@@ -685,6 +685,18 @@ class TestOptimization(unittest.TestCase):
         em = TestModel()
         return theta_mu, theta_scale, theta, em, x, y
 
+    def test_fit_checks_guess_and_bounds_count(self):
+        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
+        common = dict(model=em, independent=x, dependent=y)
+        for fit in (calibr8.fit_scipy, calibr8.fit_pygmo):
+            # wrong theta
+            with self.assertRaises(ValueError):
+                fit(**common, theta_guess=numpy.ones(14), theta_bounds=[(-5, 5)]*len(theta))
+            # wrong bounds
+            with self.assertRaises(ValueError):
+                fit(**common, theta_guess=numpy.ones_like(theta), theta_bounds=[(-5, 5)]*14)
+        return
+
     def test_fit_scipy(self):
         theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         numpy.random.seed(1234)
