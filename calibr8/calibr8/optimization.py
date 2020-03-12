@@ -27,6 +27,16 @@ def _warn_hit_bounds(theta, bounds, theta_names):
     return bound_hit
 
 
+def _check_guess_bounds_count(theta_guess, theta_bounds, n_theta:int):
+    n_guess = len(theta_guess)
+    n_bounds = len(theta_bounds)
+    if n_guess != n_theta:
+        raise ValueError(f'The length of theta_guess ({n_guess}) does not match the number of model parameters ({n_theta}).')
+    if n_bounds != n_theta:
+        raise ValueError(f'The length of theta_bounds ({n_bounds}) does not match the number of model parameters ({n_theta}).')
+    return
+
+
 def fit_scipy(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:numpy.ndarray, theta_guess:list, theta_bounds:list=None, minimize_kwargs:dict=None):
     """Function to fit the error model with observed data.
 
@@ -40,6 +50,7 @@ def fit_scipy(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
         theta: best found parameter vector
         history (list): history of the optimization
     """
+    _check_guess_bounds_count(theta_guess, theta_bounds, len(model.theta_names))
     if not minimize_kwargs:
         minimize_kwargs = {}
 
@@ -83,6 +94,7 @@ def fit_pygmo(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
         theta: best found parameter vector
         history (list): history of the optimization
     """
+    _check_guess_bounds_count(theta_guess, theta_bounds, len(model.theta_names))
     bounds = tuple(numpy.array(theta_bounds).T)
     
     # problem specification
