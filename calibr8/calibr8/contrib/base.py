@@ -71,18 +71,19 @@ class BaseModelT(core.ErrorModel):
 
 
 class BasePolynomialModelT(BaseModelT):
-    def __init__(self, *, independent_key:str, dependent_key:str, mu_degree:int, scale_degree:int=0):
+    def __init__(self, *, independent_key:str, dependent_key:str, mu_degree:int, scale_degree:int=0, theta_names=None):
         if mu_degree == 0:
             raise Exception('0-degree (constant) mu error models are useless.')
         self.mu_degree = mu_degree
         self.scale_degree = scale_degree
-        theta_names = tuple(
-            f'mu_{d}'
-            for d in range(mu_degree + 1)
-        ) + tuple(
-            f'scale_{d}'
-            for d in range(scale_degree + 1)
-        ) + ('df',)
+        if theta_names is None:
+            theta_names = tuple(
+                f'mu_{d}'
+                for d in range(mu_degree + 1)
+            ) + tuple(
+                f'scale_{d}'
+                for d in range(scale_degree + 1)
+            ) + ('df',)
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
@@ -127,12 +128,13 @@ class BasePolynomialModelT(BaseModelT):
 
 
 class BaseAsymmetricLogisticT(BaseModelT):
-    def __init__(self, *, independent_key:str, dependent_key:str, scale_degree:int=0):
+    def __init__(self, *, independent_key:str, dependent_key:str, scale_degree:int=0, theta_names=None):
         self.scale_degree = scale_degree
-        theta_names = tuple('L_L,L_U,I_x,S,c'.split(',')) + tuple(
-            f'scale_{d}'
-            for d in range(scale_degree + 1)
-        ) + ('df',)
+        if theta_names is None:
+            theta_names = tuple('L_L,L_U,I_x,S,c'.split(',')) + tuple(
+                f'scale_{d}'
+                for d in range(scale_degree + 1)
+            ) + ('df',)
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
