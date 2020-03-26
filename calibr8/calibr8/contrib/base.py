@@ -62,7 +62,7 @@ class BaseModelT(core.ErrorModel):
             trace: trace of the posterior distribution of inferred independent variable
         """ 
         theta = self.theta_fitted
-        with pm.Model() as model:
+        with pm.Model():
             prior = pm.Uniform(self.independent_key, lower=lower, upper=upper, shape=(1,))
             mu, scale, df = self.predict_dependent(prior, theta=theta)
             pm.StudentT('likelihood', nu=df, mu=mu, sd=scale, observed=y, shape=(1,))
@@ -94,7 +94,7 @@ class BasePolynomialModelT(BaseModelT):
             x (array): values of the independent variable
             theta (array): parameter vector of the error model:
                 [mu_degree] parameters for mu (lowest degree first)
-                [scale_degree]  parameters of for scale (lowest degree first)
+                [scale_degree]  parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
 
         Returns:
