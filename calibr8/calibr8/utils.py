@@ -245,6 +245,7 @@ def plot_model(model):
     left.set_ylabel(model.dependent_key)
     left.set_xlabel(model.independent_key)
     right.set_xlabel(model.independent_key)
+    right.set_ylabel(model.dependent_key)
     right.set_xscale('log')
     right.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
     residuals.set_xlabel(model.independent_key)
