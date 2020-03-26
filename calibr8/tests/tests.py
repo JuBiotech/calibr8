@@ -37,6 +37,11 @@ class _TestPolynomialModel(calibr8.BasePolynomialModelT):
         super().__init__(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
 
 
+class _TestLogisticModel(calibr8.BaseAsymmetricLogisticT):
+    def __init__(self, independent_key=None, dependent_key=None, theta_names=None, *, scale_degree=0):
+        super().__init__(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+
+
 class ErrorModelTest(unittest.TestCase):
     def test_init(self):
         em = _TestModel('I', 'D', theta_names=tuple('c,d,e'.split(',')))
@@ -502,7 +507,7 @@ class TestContribBase(unittest.TestCase):
             theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
             theta = theta_mu + theta_scale + (1,)
 
-            em = calibr8.LogisticGlucoseErrorModelV1(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+            em = _TestLogisticModel(independent_key='I', dependent_key='D', scale_degree=scale_degree)
             self.assertEqual(len(em.theta_names), 5 + scale_degree+1 + 1)
             self.assertEqual(len(em.theta_names), len(theta))
 
@@ -524,7 +529,7 @@ class TestContribBase(unittest.TestCase):
             theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
             theta = theta_mu + theta_scale + (1,)
 
-            em = calibr8.LogisticGlucoseErrorModelV1(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+            em = _TestLogisticModel(independent_key='I', dependent_key='D', scale_degree=scale_degree)
             em.theta_fitted = theta
             
             x = numpy.linspace(1, 5, 7)
@@ -538,7 +543,7 @@ class TestContribBase(unittest.TestCase):
 class TestLinearGlucoseModel(unittest.TestCase):
     @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_infer_independent(self):
-        em = calibr8.LinearGlucoseErrorModelV1('S', 'A365')
+        em = calibr8.LinearGlucoseErrorModelV1(independent_key='S', dependent_key='A365')
         em.theta_fitted = [0, 2, 0.1, 1]
         trace = em.infer_independent(y=1, draws=1, lower=0, upper=20)
         self.assertEqual(len(trace), 1)
@@ -547,14 +552,14 @@ class TestLinearGlucoseModel(unittest.TestCase):
     
     @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
     def test_error_infer_independent(self):
-        errormodel = calibr8.LinearGlucoseErrorModelV1('S', 'A365')
+        errormodel = calibr8.LinearGlucoseErrorModelV1(independent_key='S', dependent_key='A365')
         with self.assertRaises(ImportError):
             _ = errormodel.infer_independent(y=1, draws=1, lower=0, upper=20)
         pass
 
     @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_symbolic_loglikelihood(self):
-        errormodel = calibr8.LinearGlucoseErrorModelV1('S', 'A')
+        errormodel = calibr8.LinearGlucoseErrorModelV1(independent_key='S', dependent_key='A')
         errormodel.theta_fitted = [0, 1, 0.1, 1]
        
         # create test data
@@ -577,11 +582,9 @@ class TestLinearGlucoseModel(unittest.TestCase):
         pass
 
     def test_loglikelihood(self):
-        independent = 'S'
-        dependent = 'OD'
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = calibr8.LinearGlucoseErrorModelV1(independent, dependent)
+        errormodel = calibr8.LinearGlucoseErrorModelV1(independent_key='S', dependent_key='OD')
         errormodel.theta_fitted = [0, 1, 0.1, 1.6]
         with self.assertRaises(TypeError):
             _ = errormodel.loglikelihood(y, x=x)
@@ -595,11 +598,9 @@ class TestLinearGlucoseModel(unittest.TestCase):
         return
     
     def test_loglikelihood_without_fit(self):
-        independent = 'Glu'
-        dependent = 'OD'
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = calibr8.LinearGlucoseErrorModelV1(independent, dependent)
+        errormodel = calibr8.LinearGlucoseErrorModelV1(independent_key='Glu', dependent_key='OD')
         with self.assertRaises(Exception):
             _= errormodel.loglikelihood(y=y, x=x)
         return
@@ -607,11 +608,9 @@ class TestLinearGlucoseModel(unittest.TestCase):
 
 class TestLogisticGlucoseModel(unittest.TestCase):
     def test_predict_dependent(self):
-        independent = 'S'
-        dependent = 'OD'
         x = numpy.array([1,2,3])
         theta = [0, 4, 2, 1, 1, 0, 2, 1.4]
-        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent, dependent, scale_degree=2)
+        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='OD')
         errormodel.theta_fitted = theta
         with self.assertRaises(TypeError):
             _ = errormodel.predict_dependent(x, theta)
@@ -622,7 +621,7 @@ class TestLogisticGlucoseModel(unittest.TestCase):
         return
     
     def test_predict_independent(self):
-        errormodel = calibr8.LogisticGlucoseErrorModelV1('S', 'OD')
+        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='OD')
         errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.43]
         x_original = numpy.array([4, 5, 6])
         mu, sd, df = errormodel.predict_dependent(x_original)
@@ -632,7 +631,7 @@ class TestLogisticGlucoseModel(unittest.TestCase):
     
     @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_infer_independent(self):
-        errormodel = calibr8.LogisticGlucoseErrorModelV1('S', 'OD')
+        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='OD')
         errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.34]
         trace = errormodel.infer_independent(y=1, draws=1, lower=0, upper=20)
         self.assertTrue(len(trace)==1)
@@ -641,14 +640,14 @@ class TestLogisticGlucoseModel(unittest.TestCase):
 
     @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
     def test_error_infer_independent(self):
-        errormodel = calibr8.LogisticGlucoseErrorModelV1('S', 'OD')
+        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='OD')
         with self.assertRaises(ImportError):
             _ = errormodel.infer_independent(y=1, draws=1, lower=0, upper=20)
         return
 
     @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_symbolic_loglikelihood(self):
-        errormodel = calibr8.LogisticGlucoseErrorModelV1('S', 'A')
+        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='A')
         errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.23]
        
         # create test data
@@ -671,11 +670,9 @@ class TestLogisticGlucoseModel(unittest.TestCase):
         return
     
     def test_loglikelihood(self):
-        independent = 'S'
-        dependent = 'OD'
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent, dependent)
+        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='OD')
         errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.7]
         with self.assertRaises(TypeError):
             _ = errormodel.loglikelihood(y, x=x)
@@ -689,11 +686,9 @@ class TestLogisticGlucoseModel(unittest.TestCase):
         return
     
     def test_loglikelihood_without_fit(self):
-        independent = 'Glu'
-        dependent = 'OD'
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent, dependent)
+        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='Glu', dependent_key='OD')
         with self.assertRaises(Exception):
             _= errormodel.loglikelihood(y=y, x=x)
         return
