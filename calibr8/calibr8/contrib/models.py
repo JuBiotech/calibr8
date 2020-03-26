@@ -5,17 +5,17 @@ from . import base
 
 
 class LinearGlucoseErrorModelV1(base.BasePolynomialModelT):
-    def __init__(self, independent_key, dependent_key, *, scale_degree:int=0):
+    def __init__(self, independent_key:str=None, dependent_key:str=None, *, scale_degree:int=0):
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, scale_degree=scale_degree)
         
 
 class LogisticGlucoseErrorModelV1(base.BaseAsymmetricLogisticT):
-    def __init__(self, independent_key:str, dependent_key:str, *, scale_degree:int=0):
+    def __init__(self, independent_key:str=None, dependent_key:str=None, *, scale_degree:int=0):
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, scale_degree=scale_degree)
 
 
 class CDWBackscatterModelV1(base.BaseAsymmetricLogisticT):
-    def __init__(self, dependent_key:str, independent_key:str='X'):
+    def __init__(self, dependent_key:str='BS', independent_key:str='X'):
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, scale_degree=1)
 
 

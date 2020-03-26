@@ -1,4 +1,5 @@
 import abc
+import inspect
 import json
 import logging
 import numpy
@@ -7,7 +8,7 @@ import scipy.optimize
 from . import utils
 
 
-__version__ = '4.0.0'
+__version__ = '4.0.1'
 _log = logging.getLogger('calibr8')
 
 
@@ -22,6 +23,14 @@ class ErrorModel:
             dependent_key: key of observed Timeseries (dependent variable of the error model)
             theta_names (tuple): names of the model parameters
         """
+        # make sure that the inheriting type has no required constructor (kw)args
+        args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults, annotations = inspect.getfullargspec(type(self).__init__)
+        n_defaults = 0 if not defaults else len(defaults)
+        n_kwonlyargs = 0 if not kwonlyargs else len(kwonlyargs)
+        n_kwonlydefaults = 0 if not kwonlydefaults else len(kwonlydefaults)
+        if (len(args) - 1 > n_defaults) or (n_kwonlyargs > n_kwonlydefaults):
+            raise TypeError('The constructor must not have any required (kw)arguments.')
+
         self.independent_key = independent_key
         self.dependent_key = dependent_key
         self.theta_names = theta_names
@@ -146,7 +155,12 @@ class ErrorModel:
         json_type = data['model_type']
         if json_type != cls_type:
             raise utils.CompatibilityException(f'The model type from the JSON file ({json_type}) does not match this class ({cls_type}).')
-        obj = cls(independent_key=data['independent_key'], dependent_key=data['dependent_key'], theta_names=data['theta_names'])
+        obj = cls()
+
+        # assign essential attributes
+        obj.independent_key = data['independent_key']
+        obj.dependent_key = data['dependent_key']
+        obj.theta_names = data['theta_names']
 
         # assign additional attributes (check keys for backwards compatibility)
         obj.theta_bounds = tuple(map(tuple, data['theta_bounds'])) if 'theta_bounds' in data else None

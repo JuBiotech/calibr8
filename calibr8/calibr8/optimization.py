@@ -40,6 +40,12 @@ def fit_scipy(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
         theta: best found parameter vector
         history (list): history of the optimization
     """
+    n_theta = len(model.theta_names)
+    if len(theta_guess) != n_theta:
+        raise ValueError(f'The length of theta_guess ({len(theta_guess)}) does not match the number of model parameters ({n_theta}).')
+    if len(theta_bounds) != n_theta:
+        raise ValueError(f'The length of theta_bounds ({len(theta_bounds)}) does not match the number of model parameters ({n_theta}).')
+
     if not minimize_kwargs:
         minimize_kwargs = {}
 
@@ -83,6 +89,12 @@ def fit_pygmo(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
         theta: best found parameter vector
         history (list): history of the optimization
     """
+    n_theta = len(model.theta_names)
+    if theta_guess is not None and len(theta_guess) != n_theta:
+        raise ValueError(f'The length of theta_guess ({len(theta_guess)}) does not match the number of model parameters ({n_theta}).')
+    if len(theta_bounds) != n_theta:
+        raise ValueError(f'The length of theta_bounds ({len(theta_bounds)}) does not match the number of model parameters ({n_theta}).')
+
     bounds = tuple(numpy.array(theta_bounds).T)
     
     # problem specification

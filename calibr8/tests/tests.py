@@ -25,12 +25,25 @@ except ModuleNotFoundError:
 dir_testfiles = pathlib.Path(pathlib.Path(__file__).absolute().parent, 'testfiles')
 
 
+class _TestModel(calibr8.ErrorModel):
+    def __init__(self, independent_key=None, dependent_key=None, theta_names=None):
+        if theta_names is None:
+            theta_names = tuple('a,b,c'.split(','))
+        super().__init__(independent_key='I', dependent_key='D', theta_names=theta_names)
+
+
+class _TestPolynomialModel(calibr8.BasePolynomialModelT):
+    def __init__(self, independent_key=None, dependent_key=None, theta_names=None, *, scale_degree=0, mu_degree=1):
+        super().__init__(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
+
+
 class ErrorModelTest(unittest.TestCase):
     def test_init(self):
-        em = calibr8.ErrorModel('I', 'D', theta_names=tuple('a,b,c'.split(',')))
+        em = _TestModel('I', 'D', theta_names=tuple('c,d,e'.split(',')))
         self.assertEqual(em.independent_key, 'I')
         self.assertEqual(em.dependent_key, 'D')
-        self.assertEqual(em.theta_names, ('a', 'b', 'c'))
+        print(em.theta_names)
+        self.assertEqual(em.theta_names, ('c', 'd', 'e'))
         self.assertIsNone(em.theta_bounds)
         self.assertIsNone(em.theta_guess)
         self.assertIsNone(em.theta_fitted)
@@ -38,12 +51,32 @@ class ErrorModelTest(unittest.TestCase):
         self.assertIsNone(em.cal_dependent)
         pass
     
+    def test_constructor_signature_check(self):
+        class EM_OK(calibr8.ErrorModel):
+            def __init__(self, arg1=1, *, kwonly=2, kwonlydefault=4):
+                super().__init__('I', 'D', theta_names=tuple('abc'))
+        EM_OK()
+
+        class EM_args(calibr8.ErrorModel):
+            def __init__(self, arg1):
+                super().__init__('I', 'D', theta_names=tuple('abc'))
+        with self.assertRaises(TypeError):
+            EM_args(arg1=3)
+
+        class EM_kwargs(calibr8.ErrorModel):
+            def __init__(self, *, kwonly, kwonlydefault=4):
+                super().__init__('I', 'D', theta_names=tuple('abc'))
+        with self.assertRaises(TypeError):
+            EM_kwargs(kwonly=3)
+        
+        pass
+
     def test_exceptions(self):
         independent = 'X'
         dependent = 'BS'
         x = numpy.array([1,2,3])
         y = numpy.array([4,5,6])
-        errormodel = calibr8.ErrorModel(independent, dependent, theta_names=('a,b,c'.split(',')))
+        errormodel = _TestModel()
         with self.assertRaises(NotImplementedError):
             _ = errormodel.predict_dependent(x)
         with self.assertRaises(NotImplementedError):
@@ -55,7 +88,7 @@ class ErrorModelTest(unittest.TestCase):
         pass
 
     def test_save_and_load_version_check(self):
-        em = calibr8.ErrorModel('I', 'D', theta_names=('a,b,c'.split(',')))
+        em = _TestModel()
         em.theta_guess = (1,1,1)
         em.theta_fitted = (1,2,3)
         em.theta_bounds = (
@@ -66,20 +99,20 @@ class ErrorModelTest(unittest.TestCase):
 
         # save and load
         em.save('save_load_test.json')
-        em_loaded = calibr8.ErrorModel.load('save_load_test.json')
+        em_loaded = _TestModel.load('save_load_test.json')
 
         # test version checking
         vactual = tuple(map(int, calibr8.__version__.split('.')))
         # increment patch
         calibr8.core.__version__ = f'{vactual[0]}.{vactual[1]}.{vactual[2]+1}'
-        calibr8.ErrorModel.load('save_load_test.json')
+        _TestModel.load('save_load_test.json')
         # increment minor version
         calibr8.core.__version__ = f'{vactual[0]}.{vactual[1]+1}.{vactual[2]}'
-        calibr8.ErrorModel.load('save_load_test.json')
+        _TestModel.load('save_load_test.json')
         # change major version
         calibr8.core.__version__ = f'{vactual[0]-1}.{vactual[1]}.{vactual[2]}'
         with self.assertRaises(calibr8.MajorMismatchException):
-            calibr8.ErrorModel.load('save_load_test.json')
+            _TestModel.load('save_load_test.json')
         calibr8.core.__version__ = '.'.join(map(str, vactual))
         
         # load with the wrong model
@@ -91,7 +124,7 @@ class ErrorModelTest(unittest.TestCase):
         return
 
     def test_save_and_load_attributes(self):
-        em = calibr8.ErrorModel('I', 'D', theta_names=('a,b,c'.split(',')))
+        em = _TestModel()
         em.theta_guess = (1,1,1)
         em.theta_fitted = (1,2,3)
         em.theta_bounds = (
@@ -104,9 +137,9 @@ class ErrorModelTest(unittest.TestCase):
 
         # save and load
         em.save('save_load_test.json')
-        em_loaded = calibr8.ErrorModel.load('save_load_test.json')
+        em_loaded = _TestModel.load('save_load_test.json')
 
-        self.assertIsInstance(em_loaded, calibr8.ErrorModel)
+        self.assertIsInstance(em_loaded, _TestModel)
         self.assertEqual(em_loaded.independent_key, em.independent_key)
         self.assertEqual(em_loaded.dependent_key, em.dependent_key)
         self.assertEqual(em_loaded.theta_bounds, em.theta_bounds)
@@ -409,12 +442,13 @@ class UtilsTest(unittest.TestCase):
 
 
 class TestContribBase(unittest.TestCase):
-    def test_base_t(self):
-        em = calibr8.BaseModelT(independent_key='I', dependent_key='D', theta_names=('mu', 'scale', 'df'))
-        with self.assertRaises(NotImplementedError):
-            em.predict_dependent([1,2,3], theta=[1,2,3])
-        with self.assertRaises(NotImplementedError):
-            em.predict_independent([1,2,3])
+    def test_cant_instantiate_base_models(self):
+        with self.assertRaises(TypeError):
+            calibr8.BaseModelT(independent_key='I', dependent_key='D')
+        with self.assertRaises(TypeError):
+            calibr8.BaseAsymmetricLogisticT(independent_key='I', dependent_key='D')
+        with self.assertRaises(TypeError):
+            calibr8.BasePolynomialModelT(independent_key='I', dependent_key='D', mu_degree=1, scale_degree=1)
         pass
 
     def test_base_polynomial_t(self):
@@ -423,7 +457,7 @@ class TestContribBase(unittest.TestCase):
             theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
             theta = theta_mu + theta_scale + (1,)
 
-            em = calibr8.BasePolynomialModelT(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
+            em = _TestPolynomialModel(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
             self.assertEqual(len(em.theta_names), mu_degree+1 + scale_degree+1 + 1)
             self.assertEqual(len(em.theta_names), len(theta))
 
@@ -434,7 +468,7 @@ class TestContribBase(unittest.TestCase):
             expected = numpy.polyval(theta_mu[::-1], x)
             numpy.testing.assert_array_equal(mu, expected)
             
-            expected = numpy.polyval(theta_scale[::-1], x)
+            expected = numpy.polyval(theta_scale[::-1], mu)
             numpy.testing.assert_array_equal(scale, expected)
 
             numpy.testing.assert_array_equal(df, 1)
@@ -446,7 +480,7 @@ class TestContribBase(unittest.TestCase):
             theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
             theta = theta_mu + theta_scale + (1,)
 
-            em = calibr8.BasePolynomialModelT(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
+            em = _TestPolynomialModel(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
             em.theta_fitted = theta
             self.assertEqual(len(em.theta_names), mu_degree+1 + scale_degree+1 + 1)
             self.assertEqual(len(em.theta_names), len(theta))
@@ -468,7 +502,7 @@ class TestContribBase(unittest.TestCase):
             theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
             theta = theta_mu + theta_scale + (1,)
 
-            em = calibr8.BaseAsymmetricLogisticT(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+            em = calibr8.LogisticGlucoseErrorModelV1(independent_key='I', dependent_key='D', scale_degree=scale_degree)
             self.assertEqual(len(em.theta_names), 5 + scale_degree+1 + 1)
             self.assertEqual(len(em.theta_names), len(theta))
 
@@ -478,7 +512,7 @@ class TestContribBase(unittest.TestCase):
             expected = calibr8.asymmetric_logistic(x, theta_mu)
             numpy.testing.assert_array_equal(mu, expected)
             
-            expected = numpy.polyval(theta_scale[::-1], x)
+            expected = numpy.polyval(theta_scale[::-1], mu)
             numpy.testing.assert_array_equal(scale, expected)
 
             numpy.testing.assert_array_equal(df, 1)
@@ -490,7 +524,7 @@ class TestContribBase(unittest.TestCase):
             theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
             theta = theta_mu + theta_scale + (1,)
 
-            em = calibr8.BaseAsymmetricLogisticT(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+            em = calibr8.LogisticGlucoseErrorModelV1(independent_key='I', dependent_key='D', scale_degree=scale_degree)
             em.theta_fitted = theta
             
             x = numpy.linspace(1, 5, 7)
@@ -583,7 +617,7 @@ class TestLogisticGlucoseModel(unittest.TestCase):
             _ = errormodel.predict_dependent(x, theta)
         mu, scale, df = errormodel.predict_dependent(x)
         numpy.testing.assert_array_equal(mu, calibr8.asymmetric_logistic(x, theta))
-        numpy.testing.assert_array_equal(scale, 0 + 2 * x)
+        numpy.testing.assert_array_equal(scale, 0 + 2 * mu)
         self.assertEqual(df, 1.4)
         return
     
@@ -678,16 +712,24 @@ class TestOptimization(unittest.TestCase):
             df=theta[-1]
         )
 
-        class TestModel(calibr8.BasePolynomialModelT):
-            def __init__(self):
-                super().__init__(independent_key='I', dependent_key='D', mu_degree=1, scale_degree=0)
-
-        em = TestModel()
+        em = _TestPolynomialModel()
         return theta_mu, theta_scale, theta, em, x, y
 
-    def test_fit_scipy(self):
+    def test_fit_checks_guess_and_bounds_count(self):
         theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
+        common = dict(model=em, independent=x, dependent=y)
+        for fit in (calibr8.fit_scipy, calibr8.fit_pygmo):
+            # wrong theta
+            with self.assertRaises(ValueError):
+                fit(**common, theta_guess=numpy.ones(14), theta_bounds=[(-5, 5)]*len(theta))
+            # wrong bounds
+            with self.assertRaises(ValueError):
+                fit(**common, theta_guess=numpy.ones_like(theta), theta_bounds=[(-5, 5)]*14)
+        return
+
+    def test_fit_scipy(self):
         numpy.random.seed(1234)
+        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         theta_fit, history = calibr8.fit_scipy(
             em,
             independent=x, dependent=y,
@@ -706,8 +748,8 @@ class TestOptimization(unittest.TestCase):
 
     @unittest.skipUnless(HAS_PYGMO, 'requires PyGMO')
     def test_fit_pygmo(self):
-        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         numpy.random.seed(1234)
+        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         theta_fit, history = calibr8.fit_pygmo(
             em,
             independent=x, dependent=y,

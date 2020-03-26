@@ -62,7 +62,7 @@ class BaseModelT(core.ErrorModel):
             trace: trace of the posterior distribution of inferred independent variable
         """ 
         theta = self.theta_fitted
-        with pm.Model() as model:
+        with pm.Model():
             prior = pm.Uniform(self.independent_key, lower=lower, upper=upper, shape=(1,))
             mu, scale, df = self.predict_dependent(prior, theta=theta)
             pm.StudentT('likelihood', nu=df, mu=mu, sd=scale, observed=y, shape=(1,))
@@ -71,18 +71,19 @@ class BaseModelT(core.ErrorModel):
 
 
 class BasePolynomialModelT(BaseModelT):
-    def __init__(self, *, independent_key:str, dependent_key:str, mu_degree:int, scale_degree:int=0):
+    def __init__(self, *, independent_key:str, dependent_key:str, mu_degree:int, scale_degree:int=0, theta_names=None):
         if mu_degree == 0:
             raise Exception('0-degree (constant) mu error models are useless.')
         self.mu_degree = mu_degree
         self.scale_degree = scale_degree
-        theta_names = tuple(
-            f'mu_{d}'
-            for d in range(mu_degree + 1)
-        ) + tuple(
-            f'scale_{d}'
-            for d in range(scale_degree + 1)
-        ) + ('df',)
+        if theta_names is None:
+            theta_names = tuple(
+                f'mu_{d}'
+                for d in range(mu_degree + 1)
+            ) + tuple(
+                f'scale_{d}'
+                for d in range(scale_degree + 1)
+            ) + ('df',)
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
@@ -93,7 +94,7 @@ class BasePolynomialModelT(BaseModelT):
             x (array): values of the independent variable
             theta (array): parameter vector of the error model:
                 [mu_degree] parameters for mu (lowest degree first)
-                [scale_degree]  parameters of for scale (lowest degree first)
+                [scale_degree]  parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
 
         Returns:
@@ -104,7 +105,10 @@ class BasePolynomialModelT(BaseModelT):
         if theta is None:
             theta = self.theta_fitted
         mu = core.polynomial(x, theta=theta[:self.mu_degree+1])
-        scale = core.polynomial(x, theta=theta[self.mu_degree+1:self.mu_degree+1 + self.scale_degree+1])
+        if self.scale_degree == 0:
+            scale = theta[-2]
+        else:
+            scale = core.polynomial(mu, theta=theta[self.mu_degree+1:self.mu_degree+1 + self.scale_degree+1])
         df = theta[-1]
         return mu, scale, df
 
@@ -127,12 +131,13 @@ class BasePolynomialModelT(BaseModelT):
 
 
 class BaseAsymmetricLogisticT(BaseModelT):
-    def __init__(self, *, independent_key:str, dependent_key:str, scale_degree:int=0):
+    def __init__(self, *, independent_key:str, dependent_key:str, scale_degree:int=0, theta_names=None):
         self.scale_degree = scale_degree
-        theta_names = tuple('L_L,L_U,I_x,S,c'.split(',')) + tuple(
-            f'scale_{d}'
-            for d in range(scale_degree + 1)
-        ) + ('df',)
+        if theta_names is None:
+            theta_names = tuple('L_L,L_U,I_x,S,c'.split(',')) + tuple(
+                f'scale_{d}'
+                for d in range(scale_degree + 1)
+            ) + ('df',)
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
@@ -155,7 +160,10 @@ class BaseAsymmetricLogisticT(BaseModelT):
         if theta is None:
             theta = self.theta_fitted
         mu = core.asymmetric_logistic(x, theta[:5])
-        scale = core.polynomial(x, theta[5:-1])
+        if self.scale_degree == 0:
+            scale = theta[-2]
+        else:
+            scale = core.polynomial(mu, theta[5:-1])
         df = theta[-1]
         return mu, scale, df
 
