@@ -105,7 +105,10 @@ class BasePolynomialModelT(BaseModelT):
         if theta is None:
             theta = self.theta_fitted
         mu = core.polynomial(x, theta=theta[:self.mu_degree+1])
-        scale = core.polynomial(x, theta=theta[self.mu_degree+1:self.mu_degree+1 + self.scale_degree+1])
+        if self.scale_degree == 0:
+            scale = theta[-2]
+        else:
+            scale = core.polynomial(mu, theta=theta[self.mu_degree+1:self.mu_degree+1 + self.scale_degree+1])
         df = theta[-1]
         return mu, scale, df
 
@@ -157,7 +160,10 @@ class BaseAsymmetricLogisticT(BaseModelT):
         if theta is None:
             theta = self.theta_fitted
         mu = core.asymmetric_logistic(x, theta[:5])
-        scale = core.polynomial(x, theta[5:-1])
+        if self.scale_degree == 0:
+            scale = theta[-2]
+        else:
+            scale = core.polynomial(mu, theta[5:-1])
         df = theta[-1]
         return mu, scale, df
 

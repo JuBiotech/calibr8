@@ -468,7 +468,7 @@ class TestContribBase(unittest.TestCase):
             expected = numpy.polyval(theta_mu[::-1], x)
             numpy.testing.assert_array_equal(mu, expected)
             
-            expected = numpy.polyval(theta_scale[::-1], x)
+            expected = numpy.polyval(theta_scale[::-1], mu)
             numpy.testing.assert_array_equal(scale, expected)
 
             numpy.testing.assert_array_equal(df, 1)
@@ -512,7 +512,7 @@ class TestContribBase(unittest.TestCase):
             expected = calibr8.asymmetric_logistic(x, theta_mu)
             numpy.testing.assert_array_equal(mu, expected)
             
-            expected = numpy.polyval(theta_scale[::-1], x)
+            expected = numpy.polyval(theta_scale[::-1], mu)
             numpy.testing.assert_array_equal(scale, expected)
 
             numpy.testing.assert_array_equal(df, 1)
@@ -617,7 +617,7 @@ class TestLogisticGlucoseModel(unittest.TestCase):
             _ = errormodel.predict_dependent(x, theta)
         mu, scale, df = errormodel.predict_dependent(x)
         numpy.testing.assert_array_equal(mu, calibr8.asymmetric_logistic(x, theta))
-        numpy.testing.assert_array_equal(scale, 0 + 2 * x)
+        numpy.testing.assert_array_equal(scale, 0 + 2 * mu)
         self.assertEqual(df, 1.4)
         return
     
@@ -728,8 +728,8 @@ class TestOptimization(unittest.TestCase):
         return
 
     def test_fit_scipy(self):
-        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         numpy.random.seed(1234)
+        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         theta_fit, history = calibr8.fit_scipy(
             em,
             independent=x, dependent=y,
@@ -748,8 +748,8 @@ class TestOptimization(unittest.TestCase):
 
     @unittest.skipUnless(HAS_PYGMO, 'requires PyGMO')
     def test_fit_pygmo(self):
-        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         numpy.random.seed(1234)
+        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         theta_fit, history = calibr8.fit_pygmo(
             em,
             independent=x, dependent=y,
