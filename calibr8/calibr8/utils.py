@@ -70,14 +70,19 @@ def plot_norm_band(ax, independent, mu, scale):
         artists (list of matplotlib.Artist): the created artists (1x Line2D, 3x PolyCollection)
     """
     artists = ax.plot(independent, mu, color='green')
-    for q in reversed([97.5, 95, 84]):
+    for q, c in zip([97.5, 95, 84], ['#d9ecd9', '#b8dbb8', '#9ccd9c']):
         percent = q - (100 - q)
         artists.append(ax.fill_between(independent,
             # by using the Percent Point Function (PPF), which is the inverse of the CDF,
             # the visualization will show symmetric intervals of <percent> probability
             scipy.stats.norm.ppf(1-q/100, loc=mu, scale=scale),
             scipy.stats.norm.ppf(q/100, loc=mu, scale=scale),
-            alpha=.15, color='green', label=f'{percent:.1f} % likelihood band'
+            alpha=.15, color='green'
+        ))
+        artists.append(ax.fill_between([], 
+            [], 
+            [],
+            color=c, label=f'{percent:.1f} % likelihood band'
         ))
     return artists
 
@@ -96,14 +101,19 @@ def plot_t_band(ax, independent, mu, scale, df):
         artists (list of matplotlib.Artist): the created artists (1x Line2D, 3x PolyCollection)
     """
     artists = ax.plot(independent, mu, color='green')
-    for q in reversed([97.5, 95, 84]):
+    for q, c in zip([97.5, 95, 84], ['#d9ecd9', '#b8dbb8', '#9ccd9c']):
         percent = q - (100 - q)
         artists.append(ax.fill_between(independent,
             # by using the Percent Point Function (PPF), which is the inverse of the CDF,
             # the visualization will show symmetric intervals of <percent> probability
             scipy.stats.t.ppf(1-q/100, loc=mu, scale=scale, df=df),
             scipy.stats.t.ppf(q/100, loc=mu, scale=scale, df=df),
-            alpha=.15, color='green', label=f'{percent:.1f} % likelihood band'
+            alpha=.15, color='green'
+        ))
+        artists.append(ax.fill_between([], 
+            [], 
+            [],
+            color=c, label=f'{percent:.1f} % likelihood band'
         ))
     return artists
 
