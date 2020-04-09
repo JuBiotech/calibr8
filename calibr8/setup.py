@@ -3,8 +3,8 @@ import setuptools
 __packagename__ = 'calibr8'
 
 def get_version():
-    import os, re
-    VERSIONFILE = os.path.join(__packagename__, 'core.py')  # calibr8 has its version number in core.py!
+    import pathlib, re
+    VERSIONFILE = pathlib.Path(pathlib.Path(__file__).parent, __packagename__, '__init__.py')
     initfile_lines = open(VERSIONFILE, 'rt').readlines()
     VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
     for line in initfile_lines:
@@ -20,10 +20,10 @@ setuptools.setup(name = __packagename__,
         packages = setuptools.find_packages(), # this must be the same as the name above
         version=__version__,
         description='Package for biological error models.',
-        url='https://gitlab.com/diginbio-fzj/calibr8',
-        author='Laura Marie Helleckes',
-        author_email='laurahelleckes@gmail.com',
-        copyright='(c) 2019 Forschungszentrum Jülich GmbH',
+        url='https://jugit.fz-juelich.de/ibg-1/micropro/calibr8',
+        author='Laura Marie Helleckes, Michael Osthege',
+        author_email='l.helleckes@fz-juelich.de, m.osthege@fz-juelich.de',
+        license='(c) 2020 Forschungszentrum Jülich GmbH',
         classifiers= [
             'Programming Language :: Python',
             'Operating System :: OS Independent',
