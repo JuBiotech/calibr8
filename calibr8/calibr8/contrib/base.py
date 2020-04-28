@@ -41,7 +41,7 @@ class BaseModelT(core.ErrorModel):
             L = pm.StudentT(
                 f'{replicate_id}.{dependent_key}',
                 mu=mu,
-                sd=sigma,
+                sigma=sigma,
                 nu=df,
                 observed=y
             )
@@ -69,7 +69,7 @@ class BaseModelT(core.ErrorModel):
         with pm.Model():
             prior = pm.Uniform(self.independent_key, lower=lower, upper=upper, shape=(1,))
             mu, scale, df = self.predict_dependent(prior, theta=theta)
-            pm.StudentT('likelihood', nu=df, mu=mu, sd=scale, observed=y, shape=(1,))
+            pm.StudentT('likelihood', nu=df, mu=mu, sigma=scale, observed=y, shape=(1,))
             trace = pm.sample(draws, cores=1)
         return trace
 
