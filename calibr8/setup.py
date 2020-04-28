@@ -4,7 +4,7 @@ __packagename__ = 'calibr8'
 
 def get_version():
     import pathlib, re
-    VERSIONFILE = pathlib.Path(pathlib.Path(__file__).parent, __packagename__, '__init__.py')
+    VERSIONFILE = pathlib.Path(pathlib.Path(__file__).parent, __packagename__, 'core.py')
     initfile_lines = open(VERSIONFILE, 'rt').readlines()
     VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
     for line in initfile_lines:
