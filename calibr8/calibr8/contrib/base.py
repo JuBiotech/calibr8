@@ -34,6 +34,10 @@ class BaseModelT(core.ErrorModel):
             theta = self.theta_fitted
         mu, sigma, df = self.predict_dependent(x, theta=theta)
         if utils.istensor(x) or utils.istensor(theta):
+            if not replicate_id:
+                raise  ValueError(f'A replicate_id is required in tensor-mode.')
+            if not dependent_key:
+                raise  ValueError(f'A dependent_key is required in tensor-mode.')
             L = pm.StudentT(
                 f'{replicate_id}.{dependent_key}',
                 mu=mu,
