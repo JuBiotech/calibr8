@@ -32,7 +32,7 @@ class BaseModelT(core.ErrorModel):
             if self.theta_fitted is None:
                 raise Exception('No parameter vector was provided and the model is not fitted with data yet.')
             theta = self.theta_fitted
-        mu, sigma, df = self.predict_dependent(x, theta=theta)
+        mu, scale, df = self.predict_dependent(x, theta=theta)
         if utils.istensor(x) or utils.istensor(theta):
             if not replicate_id:
                 raise  ValueError(f'A replicate_id is required in tensor-mode.')
@@ -41,14 +41,14 @@ class BaseModelT(core.ErrorModel):
             L = pm.StudentT(
                 f'{replicate_id}.{dependent_key}',
                 mu=mu,
-                sigma=sigma,
+                sigma=scale,
                 nu=df,
                 observed=y
             )
             return L
         elif isinstance(x, (list, numpy.ndarray)):
             # using t-distributed error in the non-transformed space
-            loglikelihoods = scipy.stats.t.logpdf(x=y, loc=mu, scale=sigma, df=df)
+            loglikelihoods = scipy.stats.t.logpdf(x=y, loc=mu, scale=scale, df=df)
             return numpy.sum(loglikelihoods)
         else:
             raise Exception('Input x must either be a TensorVariable or an array-like object.')
@@ -91,7 +91,7 @@ class BasePolynomialModelT(BaseModelT):
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
-        """Predicts the parameters mu and sigma of a student-t-distribution which characterises the dependent variable
+        """Predicts the parameters mu and scale of a student-t-distribution which characterises the dependent variable
            given values of the independent variable.
 
         Args:
