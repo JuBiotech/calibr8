@@ -589,8 +589,8 @@ class TestLinearGlucoseModel(unittest.TestCase):
         with self.assertRaises(TypeError):
             _ = errormodel.loglikelihood(y, x=x)
         true = errormodel.loglikelihood(y=y, x=x)
-        mu, sigma, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
-        expected = numpy.sum(stats.t.logpdf(x=y, loc=mu, scale=sigma, df=df))
+        mu, scale, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
+        expected = numpy.sum(stats.t.logpdf(x=y, loc=mu, scale=scale, df=df))
         self.assertEqual(expected, true)
         x = 'hello'
         with self.assertRaises(Exception):
