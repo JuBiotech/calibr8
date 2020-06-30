@@ -8,7 +8,7 @@ import scipy.optimize
 from . import utils
 
 
-__version__ = '4.0.2'
+__version__ = '4.0.3'
 _log = logging.getLogger('calibr8')
 
 
@@ -65,15 +65,24 @@ class ErrorModel:
         """
         raise NotImplementedError('The predict_independent function should be implemented by the inheriting class.')
 
-    def infer_independent(self, y):
-        """Infer the posterior distribution of the independent variable given the observations of one point of the dependent variable.
+    def infer_independent(self, y, *, lower, upper, steps, percentiles):
+        """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
+           The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
+           This is identical to the posterior with a Uniform (lower,upper) prior. If precentiles are provided, the interval of
+           the PDF will be shortened.
 
         Args:
-            y (array): realizations of the dependent variable
-        
+            y:              one or more obersevations at the same x
+            lower:          lower limit for uniform distribution of prior
+            upper:          upper limit for uniform distribution of prior
+            steps:          steps between lower and upper or steps between the percentiles
+            percentiles:    if provided, the resulting pdf will be trimmed accordingly
+            
         Returns:
-            trace: PyMC3 trace of the posterior distribution of the inferred independent variable
+            x:      values of the independent variable in the percentiles or in [lower, upper]
+            pdf:    probability of the posterior distribution of the inferred independent variable
         """  
+
         raise NotImplementedError('The infer_independent function should be implemented by the inheriting class.')
             
     def loglikelihood(self, *, y,  x, theta=None):

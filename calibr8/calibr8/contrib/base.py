@@ -1,5 +1,6 @@
 import numpy  
 import scipy
+import typing
 
 from .. import core
 from .. import utils 
@@ -53,25 +54,80 @@ class BaseModelT(core.ErrorModel):
         else:
             raise Exception('Input x must either be a TensorVariable or an array-like object.')
 
-    def infer_independent(self, y, *, lower, upper, draws=1000):
-        """Infer the posterior distribution of the independent variable given the observations of one point of the dependent variable.
-        
+    def infer_independent(self, y:typing.Union[int,float,numpy.ndarray], *, lower:float, upper:float, steps:int=300, percentiles:typing.Optional[typing.Tuple[float,float]]=None) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+        """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
+           The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
+           This is identical to the posterior with a Uniform (lower,upper) prior. If precentiles are provided, the interval of
+           the PDF will be shortened.
+
         Args:
-            y (array): observed measurements
-            lower (float): lower limit for uniform distribution of prior
-            upper (float): lower limit for uniform distribution of prior
-            draws (int): number of samples to draw (handed to pymc3.sample)
-        
+            y (int, float, array):  one or more obersevations at the same x
+            lower (float):          lower limit for uniform distribution of prior
+            upper (float):          upper limit for uniform distribution of prior
+            steps (int):            steps between lower and upper or steps between the percentiles
+            percentiles:
+                    if tying.tuple[float,float]:
+                                    pdf will be trimmed to the given percentiles; floats must be between 0 and 1
+                    if None:
+                                    the complete interval [upper,lower] will be retruned
+
+          
         Returns:
-            trace: trace of the posterior distribution of inferred independent variable
-        """ 
-        theta = self.theta_fitted
-        with pm.Model():
-            prior = pm.Uniform(self.independent_key, lower=lower, upper=upper, shape=(1,))
-            mu, scale, df = self.predict_dependent(prior, theta=theta)
-            pm.StudentT('likelihood', nu=df, mu=mu, sigma=scale, observed=y, shape=(1,))
-            trace = pm.sample(draws, cores=1)
-        return trace
+            x:      values of the independent variable in the percentiles or in [lower, upper]
+            pdf:    probability of the posterior distribution of the inferred independent variable
+        """  
+    
+        y = numpy.atleast_1d(y)
+
+        def likelihood(x, y):
+            loc, scale, df = self.predict_dependent(x)
+            # get log-probs for all observations
+            logpdfs = [
+                scipy.stats.t.logpdf(y_, loc=loc, scale=scale, df=df)
+                for y_ in y
+            ]
+            # sum them and exp them (numerically better than numpy.prod of pdfs)
+            return numpy.exp(numpy.sum(logpdfs, axis=0))
+        
+        # high resolution x-coordinates for integration
+
+        likelihood_integral, _ = scipy.integrate.quad(
+            func=likelihood,
+            # by restricting the integral into the interval [a,b], the resulting PDF is
+            # identical to the posterior with a Uniform(a, b) prior.
+            # 1. prior probability is constant in [a,b]
+            # 2. prior probability is 0 outside of [a,b]
+            # > numerical integral is only computed in [a,b], but because of 1. and 2., it's
+            #   identical to the integral over [-∞,+∞]
+                a=lower, b=upper,
+                args=(y,)
+            )
+        if percentiles is not None:
+            try:
+                if len(percentiles) != 2:
+                    raise Exception('Both a lower and upper percentile of the PDF must be provided to trim the PDF.')
+            except:
+                raise Exception(f'Wrong type of input. It should be a tuple, but is {type(percentiles)}')
+            if not (percentiles[0] >= 0 and percentiles[1] <= 1 and percentiles[0] < percentiles[1]):
+                raise Exception(f'The tuple of percentiles must be floats between 0 and 1 and sorted by value, but are {percentiles[0], percentiles[1]}.')
+
+            x_integrate = numpy.linspace(lower, upper, 100_000)
+            area_by_x = scipy.integrate.cumtrapz(likelihood(x_integrate, y), x_integrate, initial=0)
+            prob_by_x = area_by_x / area_by_x[-1]
+            i_025 = numpy.argmax(prob_by_x > percentiles[0])
+            i_975 = numpy.argmax(prob_by_x > percentiles[1])
+            x_dense = numpy.linspace(
+                x_integrate[i_025],
+                x_integrate[i_975-1],
+                steps
+            )
+            pdf = likelihood(x_dense, y) / likelihood_integral
+            return (x_dense, pdf)
+        
+        else:
+            x_integrate = numpy.linspace(lower, upper, steps)
+            pdf = likelihood(x_integrate, y) / likelihood_integral
+            return (x_integrate, pdf)
 
 
 class BasePolynomialModelT(BaseModelT):

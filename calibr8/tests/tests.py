@@ -2,6 +2,7 @@ import collections
 import unittest
 import numpy
 import pathlib
+import scipy
 import scipy.stats as stats
 
 import calibr8
@@ -87,7 +88,7 @@ class ErrorModelTest(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             _ = errormodel.predict_independent(x)
         with self.assertRaises(NotImplementedError):
-            _ = errormodel.infer_independent(y)
+            _ = errormodel.infer_independent(y, lower=0, upper=10, steps=10, percentiles=None)
         with self.assertRaises(NotImplementedError):
             _ = errormodel.loglikelihood(y=y, x=x, theta=[1,2,3])
         pass
@@ -541,22 +542,32 @@ class TestContribBase(unittest.TestCase):
 
 
 class TestLinearGlucoseModel(unittest.TestCase):
-    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_infer_independent(self):
         em = calibr8.LinearGlucoseErrorModelV1(independent_key='S', dependent_key='A365')
         em.theta_fitted = [0, 2, 0.1, 1]
-        trace = em.infer_independent(y=1, draws=1, lower=0, upper=20)
-        self.assertEqual(len(trace), 1)
-        self.assertEqual(len(trace['S'][0]), 1)
+        x, pdf = em.infer_independent(y=1, lower=0, upper=20, steps=876)
+
+        self.assertEqual(len(x), len(pdf))
+        self.assertEqual(x[0], 0)
+        self.assertEqual(x[-1], 20)
+        self.assertTrue(numpy.isclose(scipy.integrate.cumtrapz(pdf,x)[-1], 1, atol=0.0001))
+
+        # check trimming to [2.5,97.5] interval
+        x_short, pdf_short = em.infer_independent(y=1, lower=0, upper=20, steps=1775, percentiles=(0.025,0.975))
+        self.assertEqual(len(x_short), len(pdf_short))
+        self.assertTrue(numpy.isclose(scipy.integrate.cumtrapz(pdf_short,x_short)[-1], 0.95, atol=0.0001))
+
+        # check that error are raised by wrong input
+        with self.assertRaises(Exception):
+            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, percentiles=(0.1))
+        with self.assertRaises(Exception):
+            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, percentiles=(2.5,97.5))
+        with self.assertRaises(Exception):
+            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, percentiles=(0.9,0.3))
+        with self.assertRaises(Exception):
+            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, percentiles=(0.1,0.3,0.5))
         pass
     
-    @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
-    def test_error_infer_independent(self):
-        errormodel = calibr8.LinearGlucoseErrorModelV1(independent_key='S', dependent_key='A365')
-        with self.assertRaises(ImportError):
-            _ = errormodel.infer_independent(y=1, draws=1, lower=0, upper=20)
-        pass
-
     @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_symbolic_loglikelihood(self):
         errormodel = calibr8.LinearGlucoseErrorModelV1(independent_key='S', dependent_key='A')
@@ -629,22 +640,6 @@ class TestLogisticGlucoseModel(unittest.TestCase):
         self.assertTrue(numpy.allclose(x_predicted, x_original))
         return
     
-    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
-    def test_infer_independent(self):
-        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='OD')
-        errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.34]
-        trace = errormodel.infer_independent(y=1, draws=1, lower=0, upper=20)
-        self.assertTrue(len(trace)==1)
-        self.assertTrue(len(trace['S'][0]==1))
-        return
-
-    @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
-    def test_error_infer_independent(self):
-        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='OD')
-        with self.assertRaises(ImportError):
-            _ = errormodel.infer_independent(y=1, draws=1, lower=0, upper=20)
-        return
-
     @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_symbolic_loglikelihood(self):
         errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='A')
