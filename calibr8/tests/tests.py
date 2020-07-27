@@ -54,6 +54,7 @@ class ErrorModelTest(unittest.TestCase):
         self.assertIsNone(em.theta_bounds)
         self.assertIsNone(em.theta_guess)
         self.assertIsNone(em.theta_fitted)
+        self.assertIsNone(em.theta_timestamp)
         self.assertIsNone(em.cal_independent)
         self.assertIsNone(em.cal_dependent)
         pass
@@ -134,6 +135,7 @@ class ErrorModelTest(unittest.TestCase):
         em = _TestModel()
         em.theta_guess = (1,1,1)
         em.theta_fitted = (1,2,3)
+        theta_timestamp = em.theta_timestamp
         em.theta_bounds = (
             (None, None),
             (0, 5),
@@ -152,6 +154,8 @@ class ErrorModelTest(unittest.TestCase):
         self.assertEqual(em_loaded.theta_bounds, em.theta_bounds)
         self.assertEqual(em_loaded.theta_guess, em.theta_guess)
         self.assertEqual(em_loaded.theta_fitted, em.theta_fitted)
+        self.assertIsNotNone(em_loaded.theta_timestamp)
+        self.assertEqual(em_loaded.theta_timestamp, theta_timestamp)
         numpy.testing.assert_array_equal(em_loaded.cal_independent, em.cal_independent)
         numpy.testing.assert_array_equal(em_loaded.cal_dependent, em.cal_dependent)
         pass
