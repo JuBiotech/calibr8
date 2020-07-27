@@ -1,4 +1,5 @@
 import collections
+import datetime
 import unittest
 import numpy
 import pathlib
@@ -321,6 +322,24 @@ class TestSymbolicModelFunctions(unittest.TestCase):
 
 
 class UtilsTest(unittest.TestCase):
+    def test_datetime_parsing(self):
+        self.assertIsNone(calibr8.parse_datetime(None))
+        self.assertEqual(
+            calibr8.parse_datetime('2018-12-01T09:27:30Z'),
+            datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc)
+        )
+        self.assertEqual(
+            calibr8.parse_datetime('2018-12-01T09:27:30+0000'),
+            datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc)
+        )
+
+    def test_datetime_formatting(self):
+        self.assertIsNone(calibr8.format_datetime(None))
+        self.assertEqual(
+            calibr8.format_datetime(datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc)),
+            '2018-12-01T09:27:30Z'
+        )
+
     @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
     def test_istensor_without_pymc3(self):
         test_dict = {
