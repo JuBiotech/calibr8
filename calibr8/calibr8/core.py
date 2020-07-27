@@ -236,16 +236,15 @@ def asymmetric_logistic(x, theta):
         y (array): dependent variable
     """
     L_L, L_U, I_x, S, c = theta[:5]
-    # re-scale the inflection point slope with the interval
-    s = S / (L_U - L_L)
-    
     # common subexpressions
-    x0 = numpy.exp(c) + 1
-    x1 = numpy.exp(-c)
-    x2 = x0 ** (x0 * x1)
+    s0 = numpy.exp(c) + 1
+    s1 = numpy.exp(-c)
+    s2 = s0 ** (s0 * s1)
+    # re-scale the inflection point slope with the interval
+    s3 = S / (L_U - L_L)
     
     x = numpy.array(x)
-    y = (numpy.exp(x2 * (s*(I_x-x)+c/x2)) + 1) ** -x1
+    y = (numpy.exp(s2 * (s3 * (I_x - x) + c / s2)) + 1) ** -s1
     return L_L + (L_U-L_L) * y
 
 

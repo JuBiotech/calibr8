@@ -186,7 +186,7 @@ class BasePolynomialModelT(BaseModelT):
             theta = self.theta_fitted
         if self.mu_degree > 1:
             raise NotImplementedError('Inverse prediction of higher order polynomials are not implemented.')        
-        a, b = self.theta_fitted[:2]
+        a, b = theta[:2]
         return (y - a) / b
 
 
@@ -239,4 +239,4 @@ class BaseAsymmetricLogisticT(BaseModelT):
         """
         if theta is None:
             theta = self.theta_fitted
-        return core.inverse_asymmetric_logistic(y, self.theta_fitted[:5])
+        return core.inverse_asymmetric_logistic(y, theta[:5])
