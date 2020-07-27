@@ -30,7 +30,7 @@ def istensor(input:object):
         return False
     elif isinstance(input, str):
         return False
-    elif isinstance(input, tt.TensorVariable):
+    elif isinstance(input, (tt.TensorVariable, tt.TensorConstant)):
         return True
     elif isinstance(input, dict):
         for element in input.values():
