@@ -327,7 +327,7 @@ class UtilsTest(unittest.TestCase):
             'a': 1, 
             'b': [1,2,3], 
             'c': numpy.array([(1,2), (3,4)])
-            }
+        }
         self.assertFalse(calibr8.istensor(test_dict))
         self.assertFalse(calibr8.istensor(1.2))
         self.assertFalse(calibr8.istensor(-5))
@@ -340,7 +340,7 @@ class UtilsTest(unittest.TestCase):
             'a': 1, 
             'b': [1,2,3], 
             'c': numpy.array([(1,2), (3,4)])
-            }
+        }
         self.assertFalse(calibr8.istensor(test_dict))
         self.assertFalse(calibr8.istensor(1.2))
         self.assertFalse(calibr8.istensor(-5))
@@ -351,8 +351,9 @@ class UtilsTest(unittest.TestCase):
             'a': 1, 
             'b': [1,2,3], 
             'c': numpy.array([(1, tt.TensorVariable([1,2,3])), (3,4)])
-            }
+        }
         self.assertTrue(calibr8.istensor(test_dict2))
+        self.assertTrue(calibr8.istensor([1, tt.as_tensor_variable([1,2]), 3]))
         self.assertTrue(calibr8.istensor([1, tt.TensorVariable([1,2]), 3]))
         self.assertTrue(calibr8.istensor(numpy.array([1, tt.TensorVariable([1,2]), 3])))
 
