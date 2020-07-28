@@ -191,34 +191,42 @@ def assert_version_match(vA:str, vB:str):
     return
 
 
-def guess_asymmetric_logistic_theta(X, Y) -> list:
+def guess_asymmetric_logistic_theta(X, Y, *, logx: bool=False) -> list:
     """Creates an initial guess for the parameter vector of an `asymmetric_logistic` function.
     
     Args:
         X (array-like): independent values of the data points
         Y (array-like): dependent values (observations)
+        logx (bool): when True, I_x and S are guessed for a xlog_asymmetric_logistic model
         
     Returns:
         [L_L, L_U, I_x, S, c] (list): guess of the `asymmetric_logistic` parameters
     """
     X = numpy.array(X)
+    xmin, xmax = min(X), max(X)
     Y = numpy.array(Y)
     if not X.shape == Y.shape and len(X.shape) == 1:
         raise ValueError('X and Y must have the same 1-dimensional shape.')
     L_L = numpy.min(Y)
     L_U = numpy.max(Y) + numpy.ptp(Y)
-    I_x = (min(X) + max(X)) / 2
-    S, _ = numpy.polyfit(X, Y, deg=1)
+    
+    if not logx:
+        I_x = (xmin + xmax) / 2
+        S, _ = numpy.polyfit(X, Y, deg=1)
+    else:
+        S, _ = numpy.polyfit(numpy.log10(X), Y, deg=1)
+        I_x = (numpy.log10(xmin) + numpy.log10(xmax)) / 2
     c = -1
     return [L_L, L_U, I_x, S, c]
 
 
-def guess_asymmetric_logistic_bounds(X, Y, half_open=True) -> list:
+def guess_asymmetric_logistic_bounds(X, Y, *, logx:bool=False, half_open=True) -> list:
     """Creates bounds for the parameter vector of an `asymmetric_logistic` function.
     
     Args:
         X (array-like): independent values of the data points
         Y (array-like): dependent values (observations)
+        logx (bool): when True, I_x and S are guessed for a xlog_asymmetric_logistic model
         half_open (bool): sets whether the half-open bounds are allowed (e.g. for L_L and L_U)
         
     Returns:
@@ -228,14 +236,18 @@ def guess_asymmetric_logistic_bounds(X, Y, half_open=True) -> list:
     Y = numpy.array(Y)
     if not X.shape == Y.shape and len(X.shape) == 1:
         raise ValueError('X and Y must have the same 1-dimensional shape.')
-    slope, _ = numpy.polyfit(X, Y, deg=1)
+    if not logx:
+        slope, _ = numpy.polyfit(X, Y, deg=1)
+    else:
+        slope, _ = numpy.polyfit(numpy.log10(X), Y, deg=1)
     bounds = [
         # L_L
         (-numpy.inf if half_open else min(Y) - numpy.ptp(Y)*100, numpy.median(Y)),
         # L_U
         (numpy.median(Y), numpy.inf if half_open else max(Y) + numpy.ptp(Y)*100),
         # I_x
-        (min(X) - 3 * numpy.ptp(X), max(X) + 3 * numpy.ptp(X)),
+        (min(X) - 3 * numpy.ptp(X), max(X) + 3 * numpy.ptp(X)) if not logx else
+        (min(numpy.log10(X)) - 3 * numpy.ptp(numpy.log10(X)), max(numpy.log10(X)) + 3 * numpy.ptp(numpy.log10(X))),
         # S
         (0, 10 * slope) if slope > 0 else (10 * slope, 0),
         # c
