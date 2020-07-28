@@ -240,3 +240,55 @@ class BaseAsymmetricLogisticT(BaseModelT):
         if theta is None:
             theta = self.theta_fitted
         return core.inverse_asymmetric_logistic(y, theta[:5])
+
+
+class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
+    def __init__(self, *, independent_key:str, dependent_key:str, scale_degree:int=0, theta_names=None):
+        self.scale_degree = scale_degree
+        if theta_names is None:
+            theta_names = tuple('L_L,L_U,I_x,S,c'.split(',')) + tuple(
+                f'scale_{d}'
+                for d in range(scale_degree + 1)
+            ) + ('df',)
+        super().__init__(independent_key, dependent_key, theta_names=theta_names)
+
+    def predict_dependent(self, x, *, theta=None):
+        """
+        Predicts the parameters mu, scale, df of a student-t-distribution which characterises
+        the dependent variable given values of the independent variable.
+
+        Args:
+            x (array): values of the independent variable
+            theta (array): parameter vector of the error model:
+                5 parameters of log-independent asymmetric logistic model (mu)
+                scale_degree parameters of for scale
+                1 parameter for degree of freedom
+
+        Returns:
+            mu (array): values for the mu parameter of a student-t-distribution describing the dependent variable
+            scale (scalar): values for the scale parameter of a student-t-distribution describing the dependent variable
+            df (scalar): degree of freedom of student-t-distribution
+        """
+        if theta is None:
+            theta = self.theta_fitted
+        mu = core.xlog_asymmetric_logistic(x, theta[:5])
+        if self.scale_degree == 0:
+            scale = theta[-2]
+        else:
+            scale = core.polynomial(mu, theta[5:-1])
+        df = theta[-1]
+        return mu, scale, df
+
+    def predict_independent(self, y, *, theta=None):
+        """Predict the most likely value of the independent variable using the calibrated error model in inverse direction.
+
+        Args:
+            y (array): observed measurements (dependent variable)
+            theta (array): parameter vector of the error model
+
+        Returns:
+            x (array): most likely values (independent variable)
+        """
+        if theta is None:
+            theta = self.theta_fitted
+        return core.inverse_xlog_asymmetric_logistic(y, theta[:5])

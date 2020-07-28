@@ -44,6 +44,11 @@ class _TestLogisticModel(calibr8.BaseAsymmetricLogisticT):
         super().__init__(independent_key='I', dependent_key='D', scale_degree=scale_degree)
 
 
+class _TestLogIndependentLogisticModel(calibr8.BaseLogIndependentAsymmetricLogisticT):
+    def __init__(self, independent_key=None, dependent_key=None, theta_names=None, *, scale_degree=0):
+        super().__init__(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+
+
 class ErrorModelTest(unittest.TestCase):
     def test_init(self):
         em = _TestModel('I', 'D', theta_names=tuple('c,d,e'.split(',')))
@@ -160,6 +165,7 @@ class ErrorModelTest(unittest.TestCase):
         numpy.testing.assert_array_equal(em_loaded.cal_dependent, em.cal_dependent)
         pass
 
+
 class TestModelFunctions(unittest.TestCase):
     def test_logistic(self):
         x = numpy.array([1.,2.,4.])
@@ -210,6 +216,45 @@ class TestModelFunctions(unittest.TestCase):
         theta = [0,4,2,1,1]
         forward = calibr8.asymmetric_logistic(x, theta)
         reverse = calibr8.inverse_asymmetric_logistic(forward, theta)
+        numpy.testing.assert_allclose(x, reverse)
+        return 
+
+    def test_xlog_asymmetric_logistic(self):
+        L_L = -2
+        L_U = 2
+        log_I_x = numpy.log10(1)
+        S = 5
+        c = -2
+        theta = (L_L, L_U, log_I_x, S, c)
+
+        # test that forward and backward match
+        x_test = 10**(numpy.linspace(log_I_x - 1, log_I_x + 1, 200))
+        y_test = calibr8.xlog_asymmetric_logistic(x_test, theta)
+        x_test_reverse = calibr8.inverse_xlog_asymmetric_logistic(y_test, theta)
+        numpy.testing.assert_array_almost_equal(x_test_reverse, x_test)
+        
+        # test I_y
+        self.assertEqual(
+            calibr8.xlog_asymmetric_logistic(10**log_I_x, theta),
+            L_L + (L_U - L_L) * (numpy.exp(c) + 1) ** (-numpy.exp(-c))
+        )
+
+        # test slope at inflection point
+        ϵ = 0.0001
+        x_plus = 10**log_I_x + ϵ
+        x_minus = 10**log_I_x - ϵ
+        y_plus = calibr8.xlog_asymmetric_logistic(x_plus, theta)
+        y_minus = calibr8.xlog_asymmetric_logistic(x_minus, theta)
+        # for the xlog model, the slope parameter refers to the 
+        dy_dlogx = (y_plus - y_minus) / (numpy.log10(x_plus) - numpy.log10(x_minus))
+        self.assertAlmostEqual(dy_dlogx, S)
+        return
+
+    def test_inverse_xlog_asymmetric_logistic(self):
+        x = numpy.array([1., 2., 4.])
+        theta = [0, 4, 2, 1, 1]
+        forward = calibr8.xlog_asymmetric_logistic(x, theta)
+        reverse = calibr8.inverse_xlog_asymmetric_logistic(forward, theta)
         numpy.testing.assert_allclose(x, reverse)
         return 
 
@@ -555,6 +600,44 @@ class TestContribBase(unittest.TestCase):
             theta = theta_mu + theta_scale + (1,)
 
             em = _TestLogisticModel(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+            em.theta_fitted = theta
+            
+            x = numpy.linspace(1, 5, 7)
+            mu, scale, df = em.predict_dependent(x, theta=theta)
+
+            x_inverse = em.predict_independent(mu)
+            numpy.testing.assert_array_almost_equal(x_inverse, x)
+        pass
+
+    def test_base_xlog_asymmetric_logistic_t(self):
+        for scale_degree in [0, 1, 2]:
+            theta_mu = (-0.5, 0.5, 1, 1, -1)
+            theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
+            theta = theta_mu + theta_scale + (1,)
+
+            em = _TestLogIndependentLogisticModel(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+            self.assertEqual(len(em.theta_names), 5 + scale_degree+1 + 1)
+            self.assertEqual(len(em.theta_names), len(theta))
+
+            x = numpy.linspace(1, 5, 3)
+            mu, scale, df = em.predict_dependent(x, theta=theta)
+
+            expected = calibr8.xlog_asymmetric_logistic(x, theta_mu)
+            numpy.testing.assert_array_equal(mu, expected)
+            
+            expected = numpy.polyval(theta_scale[::-1], mu)
+            numpy.testing.assert_array_equal(scale, expected)
+
+            numpy.testing.assert_array_equal(df, 1)
+        pass
+
+    def test_base_xlog_asymmetric_logistic_t_inverse(self):
+        for scale_degree in [0, 1, 2]:
+            theta_mu = (-0.5, 0.5, 1, 1, -1)
+            theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
+            theta = theta_mu + theta_scale + (1,)
+
+            em = _TestLogIndependentLogisticModel(independent_key='I', dependent_key='D', scale_degree=scale_degree)
             em.theta_fitted = theta
             
             x = numpy.linspace(1, 5, 7)

@@ -309,6 +309,66 @@ def inverse_asymmetric_logistic(y, theta):
     return - (x1**(-x1*x3) * numpy.log( ((1/y)**x0 - 1) * numpy.exp(-x0*x4+x2-x4) ) ) / s
 
 
+def xlog_asymmetric_logistic(x, theta):
+    """5-parameter asymmetric logistic model on log10 independent value.
+    
+    Args:
+        x (array): independent variable
+        theta (array): parameters of the logistic model
+            L_L: lower asymptote
+            L_U: upper asymptote
+            log_I_x: log10(x)-value at x-logarithmic inflection point
+            S: slope at the inflection point (Δy/Δlog10(x))
+            c: symmetry parameter (0 is symmetric)
+    
+    Returns:
+        y (array): dependent variable
+    """
+    L_L, L_U, log_I_x, S, c = theta[:5]
+    # common subexpressions
+    s0 = numpy.exp(c) + 1
+    s1 = numpy.exp(-c)
+    s2 = s0 ** (s0 * s1)
+    # re-scale the inflection point slope with the interval
+    s3 = S / (L_U - L_L)
+    
+    x = numpy.array(x)
+    y = (numpy.exp(s2 * (s3 * (log_I_x - numpy.log10(x)) + c / s2)) + 1) ** -s1
+    return L_L + (L_U-L_L) * y
+
+
+def inverse_xlog_asymmetric_logistic(y, theta):
+    """Inverse 5-parameter asymmetric logistic model on log10 independent value.
+    
+    Args:
+        y (array): dependent variable
+        theta (array): parameters of the logistic model
+            L_L: lower asymptote
+            L_U: upper asymptote
+            log_I_x: log10(x)-value at x-logarithmic inflection point
+            S: slope at the inflection point (Δy/Δlog10(x))
+            c: symmetry parameter (0 is symmetric)
+    
+    Returns:
+        x (array): independent variable
+    """
+    L_L, L_U, log_I_x, S, c = theta[:5]
+    # re-scale the inflection point slope with the interval
+    s = S / (L_U - L_L)
+    
+    # re-scale into the interval [0, 1]
+    y = (y - L_L) / (L_U - L_L)
+    
+    x0 = numpy.exp(c)
+    x1 = x0 + 1
+    x2 = -c
+    x3 = numpy.exp(x2)
+    x4 = log_I_x * s * x1**x3
+
+    x_hat = - (x1**(-x1*x3) * numpy.log( ((1/y)**x0 - 1) * numpy.exp(-x0*x4+x2-x4) ) ) / s
+    return 10**x_hat
+
+
 def log_log_logistic(x, theta):
     """4-parameter log-log logistic model.
     
