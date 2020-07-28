@@ -1,7 +1,9 @@
+import datetime
 import collections
 from matplotlib import pyplot
 import numpy
 import scipy.stats
+import typing
 
 try:
     import theano.tensor as tt
@@ -14,6 +16,32 @@ try:
     HAS_PYMC3 = True
 except ModuleNotFoundError:
     HAS_PYMC3 = False
+
+
+def parse_datetime(s: typing.Optional[str]) -> typing.Optional[datetime.datetime]:
+    """ Parses a timezone-aware datetime formatted like 2020-08-05T13:37:00Z.
+
+    Returns
+    -------
+    result : optional, datetime
+        may be None when the input was None
+    """
+    if s is None:
+        return None
+    return datetime.datetime.strptime(s.replace('Z', '+0000'), '%Y-%m-%dT%H:%M:%S%z')
+
+
+def format_datetime(dt: typing.Optional[datetime.datetime]) -> typing.Optional[str]:
+    """ Formats a datetime like 2020-08-05T13:37:00Z.
+
+    Returns
+    -------
+    result : optional, str
+        may be None when the input was None
+    """
+    if dt is None:
+        return None
+    return dt.astimezone(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S%z').replace('+0000', 'Z')
 
 
 def istensor(input:object):

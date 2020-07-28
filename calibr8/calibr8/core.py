@@ -1,14 +1,16 @@
 import abc
+import datetime
 import inspect
 import json
 import logging
 import numpy
 import scipy.optimize
+import typing
 
 from . import utils
 
 
-__version__ = '4.0.3'
+__version__ = '4.1.0'
 _log = logging.getLogger('calibr8')
 
 
@@ -31,6 +33,11 @@ class ErrorModel:
         if (len(args) - 1 > n_defaults) or (n_kwonlyargs > n_kwonlydefaults):
             raise TypeError('The constructor must not have any required (kw)arguments.')
 
+        # underlying private attributes
+        self.__theta_timestamp = None
+        self.__theta_fitted = None
+
+        # public attributes/properties
         self.independent_key = independent_key
         self.dependent_key = dependent_key
         self.theta_names = theta_names
@@ -40,7 +47,28 @@ class ErrorModel:
         self.cal_independent:numpy.ndarray = None
         self.cal_dependent:numpy.ndarray = None
         super().__init__()
-    
+
+    @property
+    def theta_fitted(self) -> typing.Optional[typing.Tuple[float]]:
+        """ The parameter vector that describes the fitted model.
+        """
+        return self.__theta_fitted
+
+    @theta_fitted.setter
+    def theta_fitted(self, value: typing.Optional[typing.Sequence[float]]):
+        if value is not None:
+            self.__theta_fitted = tuple(value)
+            self.__theta_timestamp = datetime.datetime.utcnow().astimezone(datetime.timezone.utc).replace(microsecond=0)
+        else:
+            self.__theta_fitted = None
+            self.__theta_timestamp = None
+
+    @property
+    def theta_timestamp(self) -> typing.Optional[datetime.datetime]:
+        """ The timestamp when `theta_fitted` was set.
+        """
+        return self.__theta_timestamp
+
     def predict_dependent(self, x, *, theta=None):
         """Predicts the parameters of a probability distribution which characterises 
            the dependent variable given values of the independent variable.
@@ -125,11 +153,12 @@ class ErrorModel:
         """
         data = dict(
             calibr8_version=__version__,
-            model_type=f'{self.__module__}.{self.__class__.__name__}',
+            model_type='.'.join([self.__module__, self.__class__.__qualname__]),
             theta_names=tuple(self.theta_names),
             theta_bounds=tuple(self.theta_bounds),
             theta_guess=tuple(self.theta_guess),
-            theta_fitted=tuple(self.theta_fitted),
+            theta_fitted=self.theta_fitted,
+            theta_timestamp=utils.format_datetime(self.theta_timestamp),
             independent_key=self.independent_key,
             dependent_key=self.dependent_key,
             cal_independent=tuple(self.cal_independent) if self.cal_independent is not None else None,
@@ -174,7 +203,8 @@ class ErrorModel:
         # assign additional attributes (check keys for backwards compatibility)
         obj.theta_bounds = tuple(map(tuple, data['theta_bounds'])) if 'theta_bounds' in data else None
         obj.theta_guess = tuple(data['theta_guess']) if 'theta_guess' in data else None
-        obj.theta_fitted = tuple(data['theta_fitted']) if 'theta_fitted' in data else None
+        obj.__theta_fitted = tuple(data['theta_fitted']) if 'theta_fitted' in data else None
+        obj.__theta_timestamp = utils.parse_datetime(data.get('theta_timestamp', None))
         obj.cal_independent = numpy.array(data['cal_independent']) if 'cal_independent' in data else None
         obj.cal_dependent = numpy.array(data['cal_dependent']) if 'cal_dependent' in data else None
         return obj
