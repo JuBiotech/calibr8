@@ -274,11 +274,11 @@ def plot_model(model):
     left.set_xlabel(model.independent_key)
     right.set_xlabel(model.independent_key)
     right.set_ylabel(model.dependent_key)
-    right.set_xscale('log')
-    right.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
+    if all(X > 0):
+        right.set_xscale('log')
+        right.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
+        residuals.set_xscale('log')
+        residuals.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
     residuals.set_xlabel(model.independent_key)
     residuals.set_ylabel('residuals')
-    residuals.set_xscale('log')
-    residuals.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
-
     return fig, axs
