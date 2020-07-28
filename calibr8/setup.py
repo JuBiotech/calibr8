@@ -49,5 +49,9 @@ setuptools.setup(name = __packagename__,
             'scipy',
             'matplotlib',
             'fastprogress',
-        ]
+        ],
+        package_data={
+            'calibr8': package_files(str(pathlib.Path(pathlib.Path(__file__).parent, 'calibr8').absolute()))
+        },
+        include_package_data=True
 )
