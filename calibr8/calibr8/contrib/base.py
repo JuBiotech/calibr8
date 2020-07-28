@@ -246,7 +246,7 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
     def __init__(self, *, independent_key:str, dependent_key:str, scale_degree:int=0, theta_names=None):
         self.scale_degree = scale_degree
         if theta_names is None:
-            theta_names = tuple('L_L,L_U,I_x,S,c'.split(',')) + tuple(
+            theta_names = tuple('L_L,L_U,log_I_x,S,c'.split(',')) + tuple(
                 f'scale_{d}'
                 for d in range(scale_degree + 1)
             ) + ('df',)
