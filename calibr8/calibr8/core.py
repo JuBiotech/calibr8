@@ -153,7 +153,7 @@ class ErrorModel:
         """
         data = dict(
             calibr8_version=__version__,
-            model_type=f'{self.__module__}.{self.__class__.__name__}',
+            model_type='.'.join([self.__module__, self.__class__.__qualname__]),
             theta_names=tuple(self.theta_names),
             theta_bounds=tuple(self.theta_bounds),
             theta_guess=tuple(self.theta_guess),
