@@ -470,27 +470,15 @@ class UtilsTest(unittest.TestCase):
             calibr8.guess_asymmetric_logistic_theta([1,2,3], [1,2])
         with self.assertRaises(ValueError):
             calibr8.guess_asymmetric_logistic_theta([1,2], [[1,2],[2,3]])
-        for logx in [False, True]:
-            if not logx:
-                X = numpy.array([0, 1, 2, 3, 4, 5])
-                Y = X
-            else:
-                X = 10**numpy.array([-2, -1, 0, 1, 2]).astype(float)
-                Y = 5 + 0.7 * numpy.log10(X)
-            L_L, L_U, I_x, S, c = calibr8.guess_asymmetric_logistic_theta(
-                X=X,
-                Y=Y,
-                logx=logx
-            )
-            if not logx:
-                self.assertEqual(L_L, 0)
-                self.assertEqual(L_U, 10)
-                self.assertEqual(I_x, (X[0] + X[-1]) / 2)
-                self.assertAlmostEqual(S, numpy.ptp(Y) / numpy.ptp(X))
-            else:
-                self.assertEqual(I_x, 0)
-                self.assertAlmostEqual(S, numpy.ptp(Y) / (2 - -2))
-            self.assertEqual(c, -1)
+        L_L, L_U, I_x, S, c = calibr8.guess_asymmetric_logistic_theta(
+            X=[0, 1, 2, 3, 4, 5],
+            Y=[0, 1, 2, 3, 4, 5],
+        )
+        self.assertEqual(L_L, 0)
+        self.assertEqual(L_U, 10)
+        self.assertEqual(I_x, (0+5)/2)
+        self.assertAlmostEqual(S, 1)
+        self.assertEqual(c, -1)
         return
 
     def test_guess_asymmetric_logistic_bounds(self):
