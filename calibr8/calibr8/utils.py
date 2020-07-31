@@ -191,7 +191,7 @@ def assert_version_match(vA:str, vB:str):
     return
 
 
-def guess_asymmetric_logistic_theta(X, Y) -> list:
+def guess_asymmetric_logistic_theta(X, Y) -> typing.List[float]:
     """Creates an initial guess for the parameter vector of an `asymmetric_logistic` function.
     
     Args:
@@ -213,7 +213,7 @@ def guess_asymmetric_logistic_theta(X, Y) -> list:
     return [L_L, L_U, I_x, S, c]
 
 
-def guess_asymmetric_logistic_bounds(X, Y, half_open=True) -> list:
+def guess_asymmetric_logistic_bounds(X, Y, *, half_open=True) -> typing.List[typing.Tuple[float, float]]:
     """Creates bounds for the parameter vector of an `asymmetric_logistic` function.
     
     Args:
@@ -274,11 +274,11 @@ def plot_model(model):
     left.set_xlabel(model.independent_key)
     right.set_xlabel(model.independent_key)
     right.set_ylabel(model.dependent_key)
-    right.set_xscale('log')
-    right.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
+    if all(X > 0):
+        right.set_xscale('log')
+        right.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
+        residuals.set_xscale('log')
+        residuals.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
     residuals.set_xlabel(model.independent_key)
     residuals.set_ylabel('residuals')
-    residuals.set_xscale('log')
-    residuals.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
-
     return fig, axs
