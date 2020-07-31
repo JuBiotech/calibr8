@@ -8,7 +8,7 @@ __packagename__ = 'calibr8'
 
 def package_files(directory):
     assert os.path.exists(directory)
-    fp_typed = pathlib.Path(__packagename__, 'py.typed')
+    fp_typed = pathlib.Path(pathlib.Path(__file__).parent, __packagename__, 'py.typed')
     fp_typed.touch()
     paths = [str(fp_typed.absolute())]
     for (path, directories, filenames) in os.walk(directory):
