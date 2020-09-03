@@ -1,5 +1,5 @@
 import datetime
-import collections
+from  collections.abc import Iterable
 from matplotlib import pyplot
 import numpy
 import scipy.stats
@@ -64,7 +64,7 @@ def istensor(input:object):
         for element in input.values():
             if istensor(element):
                 return True  
-    elif isinstance(input, collections.Iterable):
+    elif isinstance(input, Iterable):
         if len(input)>1:
             for element in input:
                 if istensor(element):
