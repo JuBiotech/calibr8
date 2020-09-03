@@ -95,7 +95,7 @@ class ErrorModelTest(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             _ = errormodel.predict_independent(x)
         with self.assertRaises(NotImplementedError):
-            _ = errormodel.infer_independent(y, lower=0, upper=10, steps=10, percentiles=None)
+            _ = errormodel.infer_independent(y, lower=0, upper=10, steps=10, hdi_prob=None)
         with self.assertRaises(NotImplementedError):
             _ = errormodel.loglikelihood(y=y, x=x, theta=[1,2,3])
         pass
@@ -652,27 +652,30 @@ class TestLinearGlucoseModel(unittest.TestCase):
     def test_infer_independent(self):
         em = calibr8.LinearGlucoseErrorModelV1(independent_key='S', dependent_key='A365')
         em.theta_fitted = [0, 2, 0.1, 1]
-        x, pdf = em.infer_independent(y=1, lower=0, upper=20, steps=876)
+        x, pdf, median, hdi_prob, lower_x, upper_x = em.infer_independent(y=1, lower=0, upper=20, steps=876)
+
 
         self.assertEqual(len(x), len(pdf))
         self.assertEqual(x[0], 0)
         self.assertEqual(x[-1], 20)
         self.assertTrue(numpy.isclose(scipy.integrate.cumtrapz(pdf,x)[-1], 1, atol=0.0001))
+        self.assertTrue(lower_x==0)
+        self.assertTrue(upper_x==20)
+        self.assertTrue(hdi_prob==1)
 
         # check trimming to [2.5,97.5] interval
-        x_short, pdf_short = em.infer_independent(y=1, lower=0, upper=20, steps=1775, percentiles=(0.025,0.975))
-        self.assertEqual(len(x_short), len(pdf_short))
-        self.assertTrue(numpy.isclose(scipy.integrate.cumtrapz(pdf_short,x_short)[-1], 0.95, atol=0.0001))
+        posterior = em.infer_independent(y=1, lower=0, upper=20, steps=1775, hdi_prob=0.95)
+
+        self.assertTrue(len(posterior)==6)
+        self.assertEqual(len(posterior.x_dense), len(posterior.pdf))
+        self.assertTrue(posterior.hdi_prob==0.95)
+        self.assertTrue(numpy.isclose(scipy.integrate.cumtrapz(posterior.pdf,posterior.x_dense)[-1], 0.95, atol=0.0001))
 
         # check that error are raised by wrong input
         with self.assertRaises(Exception):
-            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, percentiles=(0.1))
+            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, hdi_prob=(-1))
         with self.assertRaises(Exception):
-            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, percentiles=(2.5,97.5))
-        with self.assertRaises(Exception):
-            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, percentiles=(0.9,0.3))
-        with self.assertRaises(Exception):
-            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, percentiles=(0.1,0.3,0.5))
+            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, hdi_prob=(97.5))
         pass
     
     @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
