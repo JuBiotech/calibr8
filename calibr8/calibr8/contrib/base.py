@@ -55,7 +55,11 @@ class BaseModelT(core.ErrorModel):
         else:
             raise Exception('Input x must either be a TensorVariable or an array-like object.')
 
-    def infer_independent(self, y:typing.Union[int,float,numpy.ndarray], *, lower:float, upper:float, steps:int=300, hdi_prob:typing.Optional[float]=None) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+    def infer_independent(
+        self, y:typing.Union[int,float,numpy.ndarray], *, 
+        lower:float, upper:float, steps:int=300, 
+        hdi_prob:float=1
+    ) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
         """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
         The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
         This is identical to the posterior with a Uniform (lower,upper) prior. If precentiles are provided, the interval of
@@ -69,25 +73,29 @@ class BaseModelT(core.ErrorModel):
             lower limit for uniform distribution of prior
         upper : float
             upper limit for uniform distribution of prior
-        steps : int, optional            
+        steps : int            
             steps between lower and upper or steps between the percentiles (default 300)
-        hdi_prob : float, optional
-                if None (default), the complete interval [upper,lower] will be returned, 
-                else pdf will be trimmed to the according probability interval; 
-                float must be between 0 and 1
+        hdi_prob : float
+            if 1 (default), the complete interval [upper,lower] will be returned, 
+            else pdf will be trimmed to the according probability interval; 
+            float must be in the interval (0,1]
                                 
- 
         Returns
         -------
-        data : collections.namedtuple consisting of
+        data : collections.namedtuple
             x : array
                 values of the independent variable in the percentiles or in [lower, upper]
             pdf : array
-                posterior distribution of the inferred independent variable
+                values of the posterior pdf at positions [x]
             median : float
                 x-value of the posterior median
+            hdi_prob: float
+                highest density interval probability (0,1]
+            lower : float
+                x-value at the lower bound of the hdi
+            upper : float
+                x-value at the upper bound of the hdi 
         """  
-    
         y = numpy.atleast_1d(y)
 
         def likelihood(x, y):
@@ -118,8 +126,9 @@ class BaseModelT(core.ErrorModel):
         area_by_x = scipy.integrate.cumtrapz(likelihood(x_integrate, y), x_integrate, initial=0)
         prob_by_x = area_by_x / area_by_x[-1]
         
-        if hdi_prob is not None:
-            assert 0 <= hdi_prob <= 1, "Wrong type of input. hdi_prob must be a float between 0 and 1 "
+        if hdi_prob != 1:
+            if not (0 < hdi_prob < 1):
+                raise ValueError(f'Unexpected `hdi_prob` value of {hdi_prob}. Expected float in interval (0, 1].')
 
             i_lower = numpy.argmax(prob_by_x > (1 - hdi_prob)/2)
             i_upper = numpy.argmax(prob_by_x > (1 + hdi_prob)/2)
@@ -130,7 +139,6 @@ class BaseModelT(core.ErrorModel):
             )       
         else:
             x_dense = numpy.linspace(lower, upper, steps)
-            hdi_prob=1
 
         pdf = likelihood(x_dense, y) / likelihood_integral
         # find indices for median

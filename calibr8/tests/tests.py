@@ -672,9 +672,9 @@ class TestLinearGlucoseModel(unittest.TestCase):
         self.assertTrue(numpy.isclose(scipy.integrate.cumtrapz(posterior.pdf,posterior.x_dense)[-1], 0.95, atol=0.0001))
 
         # check that error are raised by wrong input
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, hdi_prob=(-1))
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, hdi_prob=(97.5))
         pass
     
