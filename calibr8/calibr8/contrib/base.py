@@ -127,7 +127,7 @@ class BaseModelT(core.ErrorModel):
         prob_by_x = area_by_x / area_by_x[-1]
         
         if hdi_prob != 1:
-            if not (0 < hdi_prob < 1):
+            if not (0 < hdi_prob <= 1):
                 raise ValueError(f'Unexpected `hdi_prob` value of {hdi_prob}. Expected float in interval (0, 1].')
 
             i_lower = numpy.argmax(prob_by_x > (1 - hdi_prob)/2)
