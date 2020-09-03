@@ -1,3 +1,4 @@
+from collections import namedtuple
 import numpy  
 import scipy
 import typing
@@ -54,29 +55,47 @@ class BaseModelT(core.ErrorModel):
         else:
             raise Exception('Input x must either be a TensorVariable or an array-like object.')
 
-    def infer_independent(self, y:typing.Union[int,float,numpy.ndarray], *, lower:float, upper:float, steps:int=300, percentiles:typing.Optional[typing.Tuple[float,float]]=None) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+    def infer_independent(
+        self, y:typing.Union[int,float,numpy.ndarray], *, 
+        lower:float, upper:float, steps:int=300, 
+        hdi_prob:float=1
+    ) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
         """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
-           The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
-           This is identical to the posterior with a Uniform (lower,upper) prior. If precentiles are provided, the interval of
-           the PDF will be shortened.
+        The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
+        This is identical to the posterior with a Uniform (lower,upper) prior. If precentiles are provided, the interval of
+        the PDF will be shortened.
 
-        Args:
-            y (int, float, array):  one or more obersevations at the same x
-            lower (float):          lower limit for uniform distribution of prior
-            upper (float):          upper limit for uniform distribution of prior
-            steps (int):            steps between lower and upper or steps between the percentiles
-            percentiles:
-                    if tying.tuple[float,float]:
-                                    pdf will be trimmed to the given percentiles; floats must be between 0 and 1
-                    if None:
-                                    the complete interval [upper,lower] will be retruned
-
-          
-        Returns:
-            x:      values of the independent variable in the percentiles or in [lower, upper]
-            pdf:    probability of the posterior distribution of the inferred independent variable
+        Parameters
+        ----------
+        y : int, float, array
+            one or more observations at the same x
+        lower : float
+            lower limit for uniform distribution of prior
+        upper : float
+            upper limit for uniform distribution of prior
+        steps : int            
+            steps between lower and upper or steps between the percentiles (default 300)
+        hdi_prob : float
+            if 1 (default), the complete interval [upper,lower] will be returned, 
+            else pdf will be trimmed to the according probability interval; 
+            float must be in the interval (0,1]
+                                
+        Returns
+        -------
+        data : collections.namedtuple
+            x : array
+                values of the independent variable in the percentiles or in [lower, upper]
+            pdf : array
+                values of the posterior pdf at positions [x]
+            median : float
+                x-value of the posterior median
+            hdi_prob: float
+                highest density interval probability (0,1]
+            lower : float
+                x-value at the lower bound of the hdi
+            upper : float
+                x-value at the upper bound of the hdi 
         """  
-    
         y = numpy.atleast_1d(y)
 
         def likelihood(x, y):
@@ -102,32 +121,37 @@ class BaseModelT(core.ErrorModel):
                 a=lower, b=upper,
                 args=(y,)
             )
-        if percentiles is not None:
-            try:
-                if len(percentiles) != 2:
-                    raise Exception('Both a lower and upper percentile of the PDF must be provided to trim the PDF.')
-            except:
-                raise Exception(f'Wrong type of input. It should be a tuple, but is {type(percentiles)}')
-            if not (percentiles[0] >= 0 and percentiles[1] <= 1 and percentiles[0] < percentiles[1]):
-                raise Exception(f'The tuple of percentiles must be floats between 0 and 1 and sorted by value, but are {percentiles[0], percentiles[1]}.')
 
-            x_integrate = numpy.linspace(lower, upper, 100_000)
-            area_by_x = scipy.integrate.cumtrapz(likelihood(x_integrate, y), x_integrate, initial=0)
-            prob_by_x = area_by_x / area_by_x[-1]
-            i_025 = numpy.argmax(prob_by_x > percentiles[0])
-            i_975 = numpy.argmax(prob_by_x > percentiles[1])
-            x_dense = numpy.linspace(
-                x_integrate[i_025],
-                x_integrate[i_975-1],
-                steps
-            )
-            pdf = likelihood(x_dense, y) / likelihood_integral
-            return (x_dense, pdf)
+        x_integrate = numpy.linspace(lower, upper, 100_000)
+        area_by_x = scipy.integrate.cumtrapz(likelihood(x_integrate, y), x_integrate, initial=0)
+        prob_by_x = area_by_x / area_by_x[-1]
         
+        if hdi_prob != 1:
+            if not (0 < hdi_prob <= 1):
+                raise ValueError(f'Unexpected `hdi_prob` value of {hdi_prob}. Expected float in interval (0, 1].')
+
+            i_lower = numpy.argmax(prob_by_x > (1 - hdi_prob)/2)
+            i_upper = numpy.argmax(prob_by_x > (1 + hdi_prob)/2)
+            x_dense = numpy.linspace(
+                x_integrate[i_lower],
+                x_integrate[i_upper-1],
+                steps
+            )       
         else:
-            x_integrate = numpy.linspace(lower, upper, steps)
-            pdf = likelihood(x_integrate, y) / likelihood_integral
-            return (x_integrate, pdf)
+            x_dense = numpy.linspace(lower, upper, steps)
+
+        pdf = likelihood(x_dense, y) / likelihood_integral
+        # find indices for median
+        i_501 = numpy.argmax(prob_by_x > 0.5)
+        median = numpy.mean([
+            x_integrate[i_501],
+            x_integrate[i_501-1]
+        ])
+        lower_x = numpy.min(x_dense)
+        upper_x = numpy.max(x_dense)
+        Posterior = namedtuple('Posterior', ['x_dense', 'pdf', 'median', 'hdi_prob', 'lower', 'upper'])
+        data = Posterior(x_dense, pdf, median, hdi_prob, lower_x, upper_x)
+        return data
 
 
 class BasePolynomialModelT(BaseModelT):

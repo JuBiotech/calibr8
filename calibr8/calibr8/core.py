@@ -10,7 +10,7 @@ import typing
 from . import utils
 
 
-__version__ = '4.1.0'
+__version__ = '4.2.0'
 _log = logging.getLogger('calibr8')
 
 
@@ -93,24 +93,47 @@ class ErrorModel:
         """
         raise NotImplementedError('The predict_independent function should be implemented by the inheriting class.')
 
-    def infer_independent(self, y, *, lower, upper, steps, percentiles):
+    def infer_independent(
+        self, y:typing.Union[int,float,numpy.ndarray], *, 
+        lower:float, upper:float, steps:int=300, 
+        hdi_prob:float=1
+    ) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
         """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
-           The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
-           This is identical to the posterior with a Uniform (lower,upper) prior. If precentiles are provided, the interval of
-           the PDF will be shortened.
+        The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
+        This is identical to the posterior with a Uniform (lower,upper) prior. If precentiles are provided, the interval of
+        the PDF will be shortened.
 
-        Args:
-            y:              one or more obersevations at the same x
-            lower:          lower limit for uniform distribution of prior
-            upper:          upper limit for uniform distribution of prior
-            steps:          steps between lower and upper or steps between the percentiles
-            percentiles:    if provided, the resulting pdf will be trimmed accordingly
-            
-        Returns:
-            x:      values of the independent variable in the percentiles or in [lower, upper]
-            pdf:    probability of the posterior distribution of the inferred independent variable
+        Parameters
+        ----------
+        y : int, float, array
+            one or more observations at the same x
+        lower : float
+            lower limit for uniform distribution of prior
+        upper : float
+            upper limit for uniform distribution of prior
+        steps : int            
+            steps between lower and upper or steps between the percentiles (default 300)
+        hdi_prob : float
+            if 1 (default), the complete interval [upper,lower] will be returned, 
+            else pdf will be trimmed to the according probability interval; 
+            float must be in the interval (0,1]
+                                
+        Returns
+        -------
+        data : collections.namedtuple
+            x : array
+                values of the independent variable in the percentiles or in [lower, upper]
+            pdf : array
+                values of the posterior pdf at positions [x]
+            median : float
+                x-value of the posterior median
+            hdi_prob: float
+                highest density interval probability (0,1]
+            lower : float
+                x-value at the lower bound of the hdi
+            upper : float
+                x-value at the upper bound of the hdi 
         """  
-
         raise NotImplementedError('The infer_independent function should be implemented by the inheriting class.')
             
     def loglikelihood(self, *, y,  x, theta=None):
