@@ -59,7 +59,7 @@ class BaseModelT(core.ErrorModel):
         self, y:typing.Union[int,float,numpy.ndarray], *, 
         lower:float, upper:float, steps:int=300, 
         hdi_prob:float=1
-    ) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+    ) -> core.NumericPosterior:
         """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
         The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
         This is identical to the posterior with a Uniform (lower,upper) prior. If precentiles are provided, the interval of
@@ -82,19 +82,8 @@ class BaseModelT(core.ErrorModel):
                                 
         Returns
         -------
-        data : collections.namedtuple
-            x : array
-                values of the independent variable in the percentiles or in [lower, upper]
-            pdf : array
-                values of the posterior pdf at positions [x]
-            median : float
-                x-value of the posterior median
-            hdi_prob: float
-                highest density interval probability (0,1]
-            lower : float
-                x-value at the lower bound of the hdi
-            upper : float
-                x-value at the upper bound of the hdi 
+        posterior : NumericPosterior
+            the result of the numeric posterior calculation
         """  
         y = numpy.atleast_1d(y)
 
@@ -149,8 +138,7 @@ class BaseModelT(core.ErrorModel):
         ])
         lower_x = numpy.min(x_dense)
         upper_x = numpy.max(x_dense)
-        Posterior = namedtuple('Posterior', ['x_dense', 'pdf', 'median', 'hdi_prob', 'lower', 'upper'])
-        data = Posterior(x_dense, pdf, median, hdi_prob, lower_x, upper_x)
+        data = core.NumericPosterior(x_dense, pdf, median, hdi_prob, lower_x, upper_x)
         return data
 
 

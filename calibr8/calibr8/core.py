@@ -14,6 +14,22 @@ __version__ = '4.2.0'
 _log = logging.getLogger('calibr8')
 
 
+class NumericPosterior(typing.NamedTuple):
+    """ The result of a numeric infer_independent operation. """
+    x_dense: numpy.ndarray
+    pdf: numpy.ndarray
+    median: float
+    hdi_prob: float
+    lower: float
+    upper: float
+
+    def __repr__(self) -> str:
+        result = str(type(self))
+        for name, value in zip(self._fields, self):
+            result += f"\n    .{name}:\t{type(value).__name__}"
+        return result
+
+
 class ErrorModel:
     """A parent class providing the general structure of an error model."""
     
@@ -97,11 +113,11 @@ class ErrorModel:
         self, y:typing.Union[int,float,numpy.ndarray], *, 
         lower:float, upper:float, steps:int=300, 
         hdi_prob:float=1
-    ) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+    ) -> NumericPosterior:
         """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
-        The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
-        This is identical to the posterior with a Uniform (lower,upper) prior. If precentiles are provided, the interval of
-        the PDF will be shortened.
+        The calculation is done numerically by integrating the likelihood in a certain interval [upper, lower].
+        This is identical to the posterior with a Uniform (lower, upper) prior. If a hdi_prob < 1 is specified,
+        the interval of the PDF will be shortened.
 
         Parameters
         ----------
@@ -120,22 +136,11 @@ class ErrorModel:
                                 
         Returns
         -------
-        data : collections.namedtuple
-            x : array
-                values of the independent variable in the percentiles or in [lower, upper]
-            pdf : array
-                values of the posterior pdf at positions [x]
-            median : float
-                x-value of the posterior median
-            hdi_prob: float
-                highest density interval probability (0,1]
-            lower : float
-                x-value at the lower bound of the hdi
-            upper : float
-                x-value at the upper bound of the hdi 
+        posterior : NumericPosterior
+            the result of the numeric posterior calculation
         """  
         raise NotImplementedError('The infer_independent function should be implemented by the inheriting class.')
-            
+
     def loglikelihood(self, *, y,  x, theta=None):
         """Loglikelihood of dependent variable realizations given assumed independent variables.
 
@@ -148,7 +153,7 @@ class ErrorModel:
             L (float): sum of loglikelihoods
         """
         raise NotImplementedError('The loglikelihood function should be implemented by the inheriting class.')
-        
+
     def objective(self, independent, dependent, minimize=True):
         """Creates an objective function for fitting to data.
         
