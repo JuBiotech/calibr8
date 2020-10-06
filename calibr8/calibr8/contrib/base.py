@@ -36,17 +36,25 @@ class BaseModelT(core.ErrorModel):
             theta = self.theta_fitted
         mu, scale, df = self.predict_dependent(x, theta=theta)
         if utils.istensor(x) or utils.istensor(theta):
-            if not replicate_id:
-                raise  ValueError(f'A replicate_id is required in tensor-mode.')
-            if not dependent_key:
-                raise  ValueError(f'A dependent_key is required in tensor-mode.')
-            L = pm.StudentT(
-                f'{replicate_id}.{dependent_key}',
-                mu=mu,
-                sigma=scale,
-                nu=df,
-                observed=y
-            )
+            if pm.Model.get_context(error_if_none=False) is not None:
+                if not replicate_id:
+                    raise  ValueError(f'A replicate_id is required in tensor-mode.')
+                if not dependent_key:
+                    raise  ValueError(f'A dependent_key is required in tensor-mode.')
+                L = pm.StudentT(
+                    f'{replicate_id}.{dependent_key}',
+                    mu=mu,
+                    sigma=scale,
+                    nu=df,
+                    observed=y
+                )
+            else:
+                # TODO: broadcasting behaviour differs between numpy/theano API of loglikelihood function
+                L = pm.StudentT.dist(
+                    mu=mu,
+                    sigma=scale,
+                    nu=df,
+                ).logp(y).sum()
             return L
         elif isinstance(x, (list, numpy.ndarray)):
             # using t-distributed error in the non-transformed space

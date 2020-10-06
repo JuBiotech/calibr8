@@ -1,11 +1,13 @@
 import datetime
 from  collections.abc import Iterable
+import matplotlib
 from matplotlib import pyplot
 import numpy
 import scipy.stats
 import typing
 
 try:
+    import theano
     import theano.tensor as tt
     HAS_THEANO = True
 except ModuleNotFoundError:
@@ -58,7 +60,7 @@ def istensor(input:object):
         return False
     elif isinstance(input, str):
         return False
-    elif isinstance(input, (tt.TensorVariable, tt.TensorConstant)):
+    elif isinstance(input, (tt.TensorVariable, tt.TensorConstant, theano.gof.graph.Variable)):
         return True
     elif isinstance(input, dict):
         for element in input.values():
@@ -244,20 +246,36 @@ def guess_asymmetric_logistic_bounds(X, Y, *, half_open=True) -> typing.List[typ
     return bounds
 
 
-def plot_model(model):
+def plot_model(
+    model, *,
+    fig:typing.Optional[matplotlib.figure.Figure] = None,
+    axs:typing.Optional[typing.Sequence[matplotlib.axes.Axes]] = None,
+):
     """Makes a plot of the model with its data.
 
-    Args:
-        model (ErrorModel): a fitted error model with data.
-            The predict_dependent method should return a tuple where the mean is the first entry.
+    Parameters
+    ----------
+    model : ErrorModel
+        A fitted error model with data.
+        The predict_dependent method should return a tuple where the mean is the first entry.
+    fig : optional, matplotlib.figure.Figure
+        An existing figure (to be used in combination with [axs] argument).
+    axs : optional, [matplotlib.axes.Axes]
+        matplotlib subplots to use instead of creating new ones.
 
-    Returns:
-        fig, axs (Figure, Axes-array): a matplotlib figure with 3 subplots: x-linear, x-log and residuals (xlog)
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        the (created) figure
+    axs : [matplotlib.axes.Axes]
+        subplots of x-linear, x-log and residuals (xlog)
     """
     X = model.cal_independent
     Y = model.cal_dependent
-    
-    fig, axs = pyplot.subplots(ncols=3, figsize=(14,6), dpi=120)
+
+    fig = None
+    if axs is None:
+        fig, axs = pyplot.subplots(ncols=3, figsize=(14,6), dpi=120)
     left, right, residuals = axs
 
     X_pred = numpy.exp(numpy.linspace(numpy.log(min(X)), numpy.log(max(X)), 1000))
