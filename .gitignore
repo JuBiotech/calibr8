@@ -15,5 +15,6 @@
 .coverage
 /calibr8/build/lib/calibr8
 /calibr8/dist
+calibr8/calibr8/py.typed
 *.json
 Sandbox*.ipynb
