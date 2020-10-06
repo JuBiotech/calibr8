@@ -253,8 +253,8 @@ def logistic(x, theta):
             y (array): dependent variable
         """
         I_x, I_y, Lmax, s = theta[:4]
-        x = numpy.array(x)      
-        y = 2 * I_y - Lmax + (2 * (Lmax - I_y)) / (1 + numpy.exp(-2*s/(Lmax - I_y) * (x - I_x)))  
+        x = numpy.array(x)
+        y = 2 * I_y - Lmax + (2 * (Lmax - I_y)) / (1 + numpy.exp(-2*s/(Lmax - I_y) * (x - I_x)))
         return y
 
 
@@ -300,7 +300,7 @@ def asymmetric_logistic(x, theta):
     s2 = s0 ** (s0 * s1)
     # re-scale the inflection point slope with the interval
     s3 = S / (L_U - L_L)
-    
+
     x = numpy.array(x)
     y = (numpy.exp(s2 * (s3 * (I_x - x) + c / s2)) + 1) ** -s1
     return L_L + (L_U-L_L) * y
@@ -326,6 +326,7 @@ def inverse_asymmetric_logistic(y, theta):
     s = S / (L_U - L_L)
     
     # re-scale into the interval [0, 1]
+    y = numpy.array(y)
     y = (y - L_L) / (L_U - L_L)
     
     x0 = numpy.exp(c)
@@ -385,6 +386,7 @@ def inverse_xlog_asymmetric_logistic(y, theta):
     s = S / (L_U - L_L)
     
     # re-scale into the interval [0, 1]
+    y = numpy.array(y)
     y = (y - L_L) / (L_U - L_L)
     
     x0 = numpy.exp(c)
@@ -412,8 +414,8 @@ def log_log_logistic(x, theta):
         y (array): dependent variable
     """
     I_x, I_y, Lmax, s = theta[:4]
-    x = numpy.log(x)    
-    y = 2 * I_y - Lmax + (2 * (Lmax - I_y)) / (1 + numpy.exp(-2*s/(Lmax - I_y) * (x - I_x)))   
+    x = numpy.log(x)
+    y = 2 * I_y - Lmax + (2 * (Lmax - I_y)) / (1 + numpy.exp(-2*s/(Lmax - I_y) * (x - I_x)))
     return numpy.exp(y)
 
 
@@ -452,8 +454,8 @@ def xlog_logistic(x, theta):
         y (array): dependent variable
     """
     I_x, I_y, Lmax, s = theta[:4]
-    x = numpy.log(x)    
-    y = 2 * I_y - Lmax + (2 * (Lmax - I_y)) / (1 + numpy.exp(-2*s/(Lmax - I_y) * (x - I_x)))     
+    x = numpy.log(x)
+    y = 2 * I_y - Lmax + (2 * (Lmax - I_y)) / (1 + numpy.exp(-2*s/(Lmax - I_y) * (x - I_x)))
     return y
 
 
@@ -492,7 +494,7 @@ def ylog_logistic(x, theta):
         y (array): dependent variables
     """
     I_x, I_y, Lmax, s = theta[:4]
-    x = numpy.array(x) 
+    x = numpy.array(x)
     y = 2 * I_y - Lmax + (2 * (Lmax - I_y)) / (1 + numpy.exp(-2*s/(Lmax - I_y) * (x - I_x)))
     return numpy.exp(y)
 
