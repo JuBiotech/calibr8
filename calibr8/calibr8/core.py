@@ -15,7 +15,23 @@ _log = logging.getLogger('calibr8')
 
 
 class NumericPosterior(typing.NamedTuple):
-    """ The result of a numeric infer_independent operation. """
+    """ The result of a numeric infer_independent operation.
+
+    Attributes
+    ----------
+    x_dense : array
+        values of the independent variable in the percentiles or in [lower, upper]
+    pdf : array
+        values of the posterior pdf at positions [x]
+    median : float
+        x-value of the posterior median
+    hdi_prob: float
+        highest density interval probability (0,1]
+    lower : float
+        x-value at the lower bound of the hdi
+    upper : float
+        x-value at the upper bound of the hdi
+    """
     x_dense: numpy.ndarray
     pdf: numpy.ndarray
     median: float
