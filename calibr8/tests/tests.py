@@ -328,10 +328,10 @@ class TestSymbolicModelFunctions(unittest.TestCase):
         
             # check equivalence of numpy and theano computation
             x_test = [1, 2, 4]
-            self.assertTrue(numpy.array_equal(
+            numpy.testing.assert_almost_equal(
                 f(x_test)[0],
                 function(x_test, theta)
-            ))
+            )
         return
 
     def test_logistic(self):
