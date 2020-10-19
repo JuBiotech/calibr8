@@ -865,7 +865,7 @@ class TestOptimization:
         assert isinstance(history, list)
         numpy.testing.assert_array_equal(em.theta_fitted, theta_fit)
         assert em.theta_bounds is not None
-        assert em.theta_guess is not None
+        assert em.theta_guess is None
         numpy.testing.assert_array_equal(em.cal_independent, x)
         numpy.testing.assert_array_equal(em.cal_dependent, y)
         pass
