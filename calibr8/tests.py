@@ -1,8 +1,8 @@
 import collections
 import datetime
-import unittest
 import numpy
 import pathlib
+import pytest
 import scipy
 import scipy.stats as stats
 
@@ -49,19 +49,19 @@ class _TestLogIndependentLogisticModel(calibr8.BaseLogIndependentAsymmetricLogis
         super().__init__(independent_key='I', dependent_key='D', scale_degree=scale_degree)
 
 
-class TestBasicErrorModel(unittest.TestCase):
+class TestBasicErrorModel:
     def test_init(self):
         em = _TestModel('I', 'D', theta_names=tuple('c,d,e'.split(',')))
-        self.assertEqual(em.independent_key, 'I')
-        self.assertEqual(em.dependent_key, 'D')
+        assert em.independent_key == 'I'
+        assert em.dependent_key == 'D'
         print(em.theta_names)
-        self.assertEqual(em.theta_names, ('c', 'd', 'e'))
-        self.assertIsNone(em.theta_bounds)
-        self.assertIsNone(em.theta_guess)
-        self.assertIsNone(em.theta_fitted)
-        self.assertIsNone(em.theta_timestamp)
-        self.assertIsNone(em.cal_independent)
-        self.assertIsNone(em.cal_dependent)
+        assert em.theta_names == ('c', 'd', 'e')
+        assert em.theta_bounds is None
+        assert em.theta_guess is None
+        assert em.theta_fitted is None
+        assert em.theta_timestamp is None
+        assert em.cal_independent is None
+        assert em.cal_dependent is None
         pass
     
     def test_constructor_signature_check(self):
@@ -73,13 +73,13 @@ class TestBasicErrorModel(unittest.TestCase):
         class EM_args(calibr8.ErrorModel):
             def __init__(self, arg1):
                 super().__init__('I', 'D', theta_names=tuple('abc'))
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             EM_args(arg1=3)
 
         class EM_kwargs(calibr8.ErrorModel):
             def __init__(self, *, kwonly, kwonlydefault=4):
                 super().__init__('I', 'D', theta_names=tuple('abc'))
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             EM_kwargs(kwonly=3)
         
         pass
@@ -90,13 +90,13 @@ class TestBasicErrorModel(unittest.TestCase):
         x = numpy.array([1,2,3])
         y = numpy.array([4,5,6])
         errormodel = _TestModel()
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             _ = errormodel.predict_dependent(x)
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             _ = errormodel.predict_independent(x)
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             _ = errormodel.infer_independent(y, lower=0, upper=10, steps=10, hdi_prob=None)
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             _ = errormodel.loglikelihood(y=y, x=x, theta=[1,2,3])
         pass
 
@@ -124,7 +124,7 @@ class TestBasicErrorModel(unittest.TestCase):
         _TestModel.load('save_load_test.json')
         # change major version
         calibr8.core.__version__ = f'{vactual[0]-1}.{vactual[1]}.{vactual[2]}'
-        with self.assertRaises(calibr8.MajorMismatchException):
+        with pytest.raises(calibr8.MajorMismatchException):
             _TestModel.load('save_load_test.json')
         calibr8.core.__version__ = '.'.join(map(str, vactual))
         
@@ -132,7 +132,7 @@ class TestBasicErrorModel(unittest.TestCase):
         class DifferentEM(calibr8.ErrorModel):
             pass
 
-        with self.assertRaises(calibr8.CompatibilityException):
+        with pytest.raises(calibr8.CompatibilityException):
             DifferentEM.load('save_load_test.json')
         return
 
@@ -153,26 +153,26 @@ class TestBasicErrorModel(unittest.TestCase):
         em.save('save_load_test.json')
         em_loaded = _TestModel.load('save_load_test.json')
 
-        self.assertIsInstance(em_loaded, _TestModel)
-        self.assertEqual(em_loaded.independent_key, em.independent_key)
-        self.assertEqual(em_loaded.dependent_key, em.dependent_key)
-        self.assertEqual(em_loaded.theta_bounds, em.theta_bounds)
-        self.assertEqual(em_loaded.theta_guess, em.theta_guess)
-        self.assertEqual(em_loaded.theta_fitted, em.theta_fitted)
-        self.assertIsNotNone(em_loaded.theta_timestamp)
-        self.assertEqual(em_loaded.theta_timestamp, theta_timestamp)
+        assert isinstance(em_loaded, _TestModel)
+        assert em_loaded.independent_key == em.independent_key
+        assert em_loaded.dependent_key == em.dependent_key
+        assert em_loaded.theta_bounds == em.theta_bounds
+        assert em_loaded.theta_guess == em.theta_guess
+        assert em_loaded.theta_fitted == em.theta_fitted
+        assert em_loaded.theta_timestamp is not None
+        assert em_loaded.theta_timestamp == theta_timestamp
         numpy.testing.assert_array_equal(em_loaded.cal_independent, em.cal_independent)
         numpy.testing.assert_array_equal(em_loaded.cal_dependent, em.cal_dependent)
         pass
 
 
-class TestModelFunctions(unittest.TestCase):
+class TestModelFunctions:
     def test_logistic(self):
         x = numpy.array([1.,2.,4.])
         theta = [2,2,4,1]
         expected = 2*2-4+(2*(4-2))/(1+numpy.exp(-2*1/(4-2)*(x-2)))
         true = calibr8.logistic(x, theta)
-        self.assertTrue(numpy.array_equal(true, expected))
+        assert (numpy.array_equal(true, expected))
         return
 
     def test_inverse_logistic(self):
@@ -180,7 +180,7 @@ class TestModelFunctions(unittest.TestCase):
         theta = [2,2,4,1]
         forward = calibr8.logistic(x, theta)
         reverse = calibr8.inverse_logistic(forward, theta)
-        self.assertTrue(numpy.allclose(x, reverse))
+        assert (numpy.allclose(x, reverse))
         return
 
     def test_asymmetric_logistic(self):
@@ -198,14 +198,15 @@ class TestModelFunctions(unittest.TestCase):
         numpy.testing.assert_array_almost_equal(x_test_reverse, x_test)
         
         # test I_y
-        self.assertEqual(
-            calibr8.asymmetric_logistic(I_x, theta),
+        assert (
+            calibr8.asymmetric_logistic(I_x, theta)
+            ==
             L_L + (L_U - L_L) * (numpy.exp(c) + 1) ** (-numpy.exp(-c))
         )
 
         # test slope at inflection point
         ϵ = 0.0001
-        self.assertAlmostEqual(
+        numpy.testing.assert_almost_equal(
             (calibr8.asymmetric_logistic(I_x + ϵ, theta) - calibr8.asymmetric_logistic(I_x - ϵ, theta)) / (2*ϵ),
             S
         )
@@ -234,8 +235,9 @@ class TestModelFunctions(unittest.TestCase):
         numpy.testing.assert_array_almost_equal(x_test_reverse, x_test)
         
         # test I_y
-        self.assertEqual(
-            calibr8.xlog_asymmetric_logistic(10**log_I_x, theta),
+        assert (
+            calibr8.xlog_asymmetric_logistic(10**log_I_x, theta)
+            ==
             L_L + (L_U - L_L) * (numpy.exp(c) + 1) ** (-numpy.exp(-c))
         )
 
@@ -247,7 +249,7 @@ class TestModelFunctions(unittest.TestCase):
         y_minus = calibr8.xlog_asymmetric_logistic(x_minus, theta)
         # for the xlog model, the slope parameter refers to the 
         dy_dlogx = (y_plus - y_minus) / (numpy.log10(x_plus) - numpy.log10(x_minus))
-        self.assertAlmostEqual(dy_dlogx, S)
+        numpy.testing.assert_almost_equal(dy_dlogx, S)
         return
 
     def test_inverse_xlog_asymmetric_logistic(self):
@@ -263,9 +265,9 @@ class TestModelFunctions(unittest.TestCase):
         theta = [2,2,4,1]
         expected = numpy.exp(2*2-4+(2*(4-2))/(1+numpy.exp(-2*1/(4-2)*(numpy.log(x)-2))))
         true = calibr8.log_log_logistic(x, theta)
-        self.assertTrue(numpy.array_equal(true, expected))
+        assert (numpy.array_equal(true, expected))
         expected = numpy.exp(calibr8.logistic(numpy.log(x), theta))   
-        self.assertTrue(numpy.array_equal(true, expected))
+        assert (numpy.array_equal(true, expected))
         return
 
     def test_inverse_log_log_logistic(self):
@@ -273,7 +275,7 @@ class TestModelFunctions(unittest.TestCase):
         theta = [2,2,4,1]
         forward = calibr8.log_log_logistic(x, theta)
         reverse = calibr8.inverse_log_log_logistic(forward, theta)
-        self.assertTrue(numpy.allclose(x, reverse))
+        assert (numpy.allclose(x, reverse))
         return
 
     def test_xlog_logistic(self):
@@ -281,9 +283,9 @@ class TestModelFunctions(unittest.TestCase):
         theta = [2,2,4,1]
         expected = 2*2-4+(2*(4-2))/(1+numpy.exp(-2*1/(4-2)*(numpy.log(x)-2)))
         true = calibr8.xlog_logistic(x, theta)
-        self.assertTrue(numpy.array_equal(true, expected))
+        assert (numpy.array_equal(true, expected))
         expected = calibr8.logistic(numpy.log(x), theta)
-        self.assertTrue(numpy.array_equal(true, expected))        
+        assert (numpy.array_equal(true, expected))        
         return
         
     def test_inverse_xlog_logistic(self):
@@ -291,7 +293,7 @@ class TestModelFunctions(unittest.TestCase):
         theta = [2,2,4,1]
         forward = calibr8.xlog_logistic(x, theta)
         reverse = calibr8.inverse_xlog_logistic(forward, theta)
-        self.assertTrue(numpy.allclose(x, reverse))
+        assert (numpy.allclose(x, reverse))
         return
 
     def test_ylog_logistic(self):
@@ -299,9 +301,9 @@ class TestModelFunctions(unittest.TestCase):
         theta = [2,2,4,1]
         expected = numpy.exp(2*2-4+(2*(4-2))/(1+numpy.exp(-2*1/(4-2)*(x-2))))
         true = calibr8.ylog_logistic(x, theta)
-        self.assertTrue(numpy.array_equal(true, expected))
+        assert (numpy.array_equal(true, expected))
         expected = numpy.exp(calibr8.logistic(x, theta))
-        self.assertTrue(numpy.array_equal(true, expected))
+        assert (numpy.array_equal(true, expected))
         return
 
     def test_inverse_ylog_logistic(self):
@@ -309,19 +311,19 @@ class TestModelFunctions(unittest.TestCase):
         theta = [2,2,4,1]
         forward = calibr8.ylog_logistic(x, theta)
         reverse = calibr8.inverse_ylog_logistic(forward, theta)
-        self.assertTrue(numpy.allclose(x, reverse))
+        assert (numpy.allclose(x, reverse))
         return
 
 
-@unittest.skipUnless(HAS_PYMC3, 'requires PyMC3')
-class TestSymbolicModelFunctions(unittest.TestCase):
+@pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
+class TestSymbolicModelFunctions:
     def _check_numpy_theano_equivalence(self, function, theta):
         # make sure that test value computation is turned off (pymc3 likes to turn it on)
         with theano.configparser.change_flags(compute_test_value='off'):
             # create computation graph
             x = tt.vector('x', dtype=theano.config.floatX)
             y = function(x, theta)
-            self.assertIsInstance(y, tt.TensorVariable)
+            assert isinstance(y, tt.TensorVariable)
 
             # compile theano function
             f = theano.function([x], [y])
@@ -370,77 +372,80 @@ class TestSymbolicModelFunctions(unittest.TestCase):
         return
 
 
-class TestUtils(unittest.TestCase):
+class TestUtils:
     def test_datetime_parsing(self):
-        self.assertIsNone(calibr8.parse_datetime(None))
-        self.assertEqual(
-            calibr8.parse_datetime('2018-12-01T09:27:30Z'),
+        assert calibr8.parse_datetime(None) is None
+        assert (
+            calibr8.parse_datetime('2018-12-01T09:27:30Z')
+            ==
             datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc)
         )
-        self.assertEqual(
-            calibr8.parse_datetime('2018-12-01T09:27:30+0000'),
+        assert (
+            calibr8.parse_datetime('2018-12-01T09:27:30+0000')
+            ==
             datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc)
         )
 
     def test_datetime_formatting(self):
-        self.assertIsNone(calibr8.format_datetime(None))
-        self.assertEqual(
-            calibr8.format_datetime(datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc)),
+        assert calibr8.format_datetime(None) is None
+        assert (
+            calibr8.format_datetime(datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc))
+            ==
             '2018-12-01T09:27:30Z'
         )
 
-    @unittest.skipIf(HAS_PYMC3, "only if PyMC3 is not imported")
+    @pytest.mark.skipif(HAS_PYMC3, reason='run only if PyMC3 is not installed')
     def test_istensor_without_pymc3(self):
         test_dict = {
             'a': 1, 
             'b': [1,2,3], 
             'c': numpy.array([(1,2), (3,4)])
         }
-        self.assertFalse(calibr8.istensor(test_dict))
-        self.assertFalse(calibr8.istensor(1.2))
-        self.assertFalse(calibr8.istensor(-5))
-        self.assertFalse(calibr8.istensor([1,2,3]))
-        self.assertFalse(calibr8.istensor('hello'))
+        assert not (calibr8.istensor(test_dict))
+        assert not (calibr8.istensor(1.2))
+        assert not (calibr8.istensor(-5))
+        assert not (calibr8.istensor([1,2,3]))
+        assert not (calibr8.istensor('hello'))
 
-    @unittest.skipUnless(HAS_PYMC3, 'requires PyMC3')
+    @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
     def test_istensor_with_pymc3(self):
         test_dict = {
             'a': 1, 
             'b': [1,2,3], 
             'c': numpy.array([(1,2), (3,4)])
         }
-        self.assertFalse(calibr8.istensor(test_dict))
-        self.assertFalse(calibr8.istensor(1.2))
-        self.assertFalse(calibr8.istensor(-5))
-        self.assertFalse(calibr8.istensor([1,2,3]))
-        self.assertFalse(calibr8.istensor('hello'))
+        assert not (calibr8.istensor(test_dict))
+        assert not (calibr8.istensor(1.2))
+        assert not (calibr8.istensor(-5))
+        assert not (calibr8.istensor([1,2,3]))
+        assert not (calibr8.istensor('hello'))
             
         test_dict2 = {
             'a': 1, 
             'b': [1,2,3], 
             'c': numpy.array([(1, tt.TensorVariable([1,2,3])), (3,4)])
         }
-        self.assertTrue(calibr8.istensor(test_dict2))
-        self.assertTrue(calibr8.istensor([1, tt.as_tensor_variable([1,2]), 3]))
-        self.assertTrue(calibr8.istensor([1, tt.TensorVariable([1,2]), 3]))
-        self.assertTrue(calibr8.istensor(numpy.array([1, tt.TensorVariable([1,2]), 3])))
+        assert (calibr8.istensor(test_dict2))
+        assert (calibr8.istensor([1, tt.as_tensor_variable([1,2]), 3]))
+        assert (calibr8.istensor([1, tt.TensorVariable([1,2]), 3]))
+        assert (calibr8.istensor(numpy.array([1, tt.TensorVariable([1,2]), 3])))
 
     def test_import_warner(self):
         dummy = calibr8.utils.ImportWarner('dummy')
-        with self.assertRaises(ImportError):
+        with pytest.raises(ImportError):
             print(dummy.__version__)
         return
 
-    @unittest.skipIf(HAS_PYMC3, 'requires PYMC3')
+    @pytest.mark.skipif(HAS_PYMC3, reason='run only if PyMC3 is not installed')
     def test_has_modules(self):
-        self.assertFalse(calibr8.utils.HAS_THEANO)
-        self.assertFalse(calibr8.utils.HAS_PYMC3)
+        assert not (calibr8.utils.HAS_THEANO)
+        assert not (calibr8.utils.HAS_PYMC3)
         return
 
-    @unittest.skipUnless(HAS_PYMC3, 'only if PyMC3 is not imported')
+    @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
     def test_has_modules(self):
-        self.assertTrue(calibr8.utils.HAS_THEANO)
-        self.assertTrue(calibr8.utils.HAS_PYMC3)
+        assert (calibr8.utils.HAS_THEANO)
+        assert (calibr8.utils.HAS_PYMC3)
         return
 
     def assert_version_match(self):
@@ -455,36 +460,36 @@ class TestUtils(unittest.TestCase):
         calibr8.utils.assert_version_match("1.1.1.2", "1.1.1");
         calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.1");
 
-        with self.assert_raises(MajorMismatchException):
+        with pytest.raises(MajorMismatchException):
             calibr8.utils.assert_version_match("1.1.1.1", "2.1.1.1");
-        with self.assert_raises(MinorMismatchException):
+        with pytest.raises(MinorMismatchException):
             calibr8.utils.assert_version_match("1.1.1.1", "1.2.1.1");
-        with self.assert_raises(PatchMismatchException):
+        with pytest.raises(PatchMismatchException):
             calibr8.utils.assert_version_match("1.1.1.1", "1.1.2.1");
-        with self.assert_raises(BuildMismatchException):
+        with pytest.raises(BuildMismatchException):
             calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.2");
         return
 
     def test_guess_asymmetric_logistic_theta(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             calibr8.guess_asymmetric_logistic_theta([1,2,3], [1,2])
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             calibr8.guess_asymmetric_logistic_theta([1,2], [[1,2],[2,3]])
         L_L, L_U, I_x, S, c = calibr8.guess_asymmetric_logistic_theta(
             X=[0, 1, 2, 3, 4, 5],
             Y=[0, 1, 2, 3, 4, 5],
         )
-        self.assertEqual(L_L, 0)
-        self.assertEqual(L_U, 10)
-        self.assertEqual(I_x, (0+5)/2)
-        self.assertAlmostEqual(S, 1)
-        self.assertEqual(c, -1)
+        assert L_L == 0
+        assert L_U == 10
+        assert I_x == (0+5)/2
+        numpy.testing.assert_almost_equal(S, 1)
+        assert c == -1
         return
 
     def test_guess_asymmetric_logistic_bounds(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             calibr8.guess_asymmetric_logistic_theta([1,2,3], [1,2])
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             calibr8.guess_asymmetric_logistic_theta([1,2], [[1,2],[2,3]])
         
         for half_open in (True, False):
@@ -511,18 +516,18 @@ class TestUtils(unittest.TestCase):
         for half_open in (True, False):
             bounds = calibr8.guess_asymmetric_logistic_bounds(X, Y, half_open=half_open)
             for t, (lb, ub) in zip(theta, bounds):
-                self.assertGreater(t, lb)
-                self.assertLess(t, ub)
+                assert t > lb
+                assert t < ub
         return
 
 
-class TestContribBase(unittest.TestCase):
+class TestContribBase:
     def test_cant_instantiate_base_models(self):
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             calibr8.BaseModelT(independent_key='I', dependent_key='D')
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             calibr8.BaseAsymmetricLogisticT(independent_key='I', dependent_key='D')
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             calibr8.BasePolynomialModelT(independent_key='I', dependent_key='D', mu_degree=1, scale_degree=1)
         pass
 
@@ -533,8 +538,8 @@ class TestContribBase(unittest.TestCase):
             theta = theta_mu + theta_scale + (1,)
 
             em = _TestPolynomialModel(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
-            self.assertEqual(len(em.theta_names), mu_degree+1 + scale_degree+1 + 1)
-            self.assertEqual(len(em.theta_names), len(theta))
+            assert len(em.theta_names) == mu_degree+1 + scale_degree+1 + 1
+            assert len(em.theta_names) == len(theta)
 
             x = numpy.linspace(0, 10, 3)
             mu, scale, df = em.predict_dependent(x, theta=theta)
@@ -557,8 +562,8 @@ class TestContribBase(unittest.TestCase):
 
             em = _TestPolynomialModel(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
             em.theta_fitted = theta
-            self.assertEqual(len(em.theta_names), mu_degree+1 + scale_degree+1 + 1)
-            self.assertEqual(len(em.theta_names), len(theta))
+            assert len(em.theta_names) == mu_degree+1 + scale_degree+1 + 1
+            assert len(em.theta_names) == len(theta)
 
             x = numpy.linspace(0, 10, 7)
             mu, scale, df = em.predict_dependent(x, theta=theta)
@@ -567,7 +572,7 @@ class TestContribBase(unittest.TestCase):
                 x_inverse = em.predict_independent(mu)
                 numpy.testing.assert_array_almost_equal(x_inverse, x)
             else:
-                with self.assertRaises(NotImplementedError):
+                with pytest.raises(NotImplementedError):
                     em.predict_independent(mu)
         pass
 
@@ -578,8 +583,8 @@ class TestContribBase(unittest.TestCase):
             theta = theta_mu + theta_scale + (1,)
 
             em = _TestLogisticModel(independent_key='I', dependent_key='D', scale_degree=scale_degree)
-            self.assertEqual(len(em.theta_names), 5 + scale_degree+1 + 1)
-            self.assertEqual(len(em.theta_names), len(theta))
+            assert len(em.theta_names) == 5 + scale_degree+1 + 1
+            assert len(em.theta_names) == len(theta)
 
             x = numpy.linspace(1, 5, 3)
             mu, scale, df = em.predict_dependent(x, theta=theta)
@@ -616,8 +621,8 @@ class TestContribBase(unittest.TestCase):
             theta = theta_mu + theta_scale + (1,)
 
             em = _TestLogIndependentLogisticModel(independent_key='I', dependent_key='D', scale_degree=scale_degree)
-            self.assertEqual(len(em.theta_names), 5 + scale_degree+1 + 1)
-            self.assertEqual(len(em.theta_names), len(theta))
+            assert len(em.theta_names) == 5 + scale_degree+1 + 1
+            assert len(em.theta_names) == len(theta)
 
             x = numpy.linspace(1, 5, 3)
             mu, scale, df = em.predict_dependent(x, theta=theta)
@@ -648,37 +653,37 @@ class TestContribBase(unittest.TestCase):
         pass
 
 
-class TestBasePolynomialModelT(unittest.TestCase):
+class TestBasePolynomialModelT:
     def test_infer_independent(self):
         em = _TestPolynomialModel(independent_key='S', dependent_key='A365', mu_degree=1, scale_degree=1)
         em.theta_fitted = [0, 2, 0.1, 1]
         x, pdf, median, hdi_prob, lower_x, upper_x = em.infer_independent(y=1, lower=0, upper=20, steps=876)
 
 
-        self.assertEqual(len(x), len(pdf))
-        self.assertEqual(x[0], 0)
-        self.assertEqual(x[-1], 20)
-        self.assertTrue(numpy.isclose(scipy.integrate.cumtrapz(pdf,x)[-1], 1, atol=0.0001))
-        self.assertTrue(lower_x==0)
-        self.assertTrue(upper_x==20)
-        self.assertTrue(hdi_prob==1)
+        assert len(x) == len(pdf)
+        assert x[0] == 0
+        assert x[-1] == 20
+        assert (numpy.isclose(scipy.integrate.cumtrapz(pdf,x)[-1], 1, atol=0.0001))
+        assert (lower_x==0)
+        assert (upper_x==20)
+        assert (hdi_prob==1)
 
         # check trimming to [2.5,97.5] interval
         posterior = em.infer_independent(y=1, lower=0, upper=20, steps=1775, hdi_prob=0.95)
 
-        self.assertTrue(len(posterior)==6)
-        self.assertEqual(len(posterior.x_dense), len(posterior.pdf))
-        self.assertTrue(posterior.hdi_prob==0.95)
-        self.assertTrue(numpy.isclose(scipy.integrate.cumtrapz(posterior.pdf,posterior.x_dense)[-1], 0.95, atol=0.0001))
+        assert (len(posterior)==6)
+        assert len(posterior.x_dense) == len(posterior.pdf)
+        assert (posterior.hdi_prob==0.95)
+        assert (numpy.isclose(scipy.integrate.cumtrapz(posterior.pdf,posterior.x_dense)[-1], 0.95, atol=0.0001))
 
         # check that error are raised by wrong input
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, hdi_prob=(-1))
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, hdi_prob=(97.5))
         pass
     
-    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
+    @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
     def test_symbolic_loglikelihood(self):
         errormodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
         errormodel.theta_fitted = [0, 1, 0.1, 1]
@@ -691,7 +696,7 @@ class TestBasePolynomialModelT(unittest.TestCase):
         with pymc3.Model() as pmodel:
             x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
             L = errormodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
-            self.assertIsInstance(L, tt.TensorVariable)
+            assert isinstance(L, tt.TensorVariable)
         
         # compare the two loglikelihood computation methods
         x_test = numpy.random.normal(x_true, scale=0.1)
@@ -699,7 +704,7 @@ class TestBasePolynomialModelT(unittest.TestCase):
             'x_hat': x_test
         })
         expected = errormodel.loglikelihood(x=x_test, y=y_obs)
-        self.assertAlmostEqual(actual, expected, 6)
+        numpy.testing.assert_almost_equal(actual, expected, 6)
         pass
 
     def test_loglikelihood(self):
@@ -707,14 +712,14 @@ class TestBasePolynomialModelT(unittest.TestCase):
         y = numpy.array([1,2,3])
         errormodel = _TestPolynomialModel(independent_key='S', dependent_key='OD', mu_degree=1, scale_degree=1)
         errormodel.theta_fitted = [0, 1, 0.1, 1.6]
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             _ = errormodel.loglikelihood(y, x=x)
         true = errormodel.loglikelihood(y=y, x=x)
         mu, scale, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
         expected = numpy.sum(stats.t.logpdf(x=y, loc=mu, scale=scale, df=df))
-        self.assertEqual(expected, true)
+        assert expected == true
         x = 'hello'
-        with self.assertRaises(Exception):
+        with pytest.raises(Exception):
             _= errormodel.loglikelihood(y=y, x=x)
         return
     
@@ -722,23 +727,23 @@ class TestBasePolynomialModelT(unittest.TestCase):
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
         errormodel = _TestPolynomialModel(independent_key='Glu', dependent_key='OD', mu_degree=1, scale_degree=1)
-        with self.assertRaises(Exception):
+        with pytest.raises(Exception):
             _= errormodel.loglikelihood(y=y, x=x)
         return
 
 
-class TestBaseAsymmetricLogisticModelT(unittest.TestCase):
+class TestBaseAsymmetricLogisticModelT:
     def test_predict_dependent(self):
         x = numpy.array([1,2,3])
         theta = [0, 4, 2, 1, 1, 0, 2, 1.4]
         errormodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
         errormodel.theta_fitted = theta
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             _ = errormodel.predict_dependent(x, theta)
         mu, scale, df = errormodel.predict_dependent(x)
         numpy.testing.assert_array_equal(mu, calibr8.asymmetric_logistic(x, theta))
         numpy.testing.assert_array_equal(scale, 0 + 2 * mu)
-        self.assertEqual(df, 1.4)
+        assert df == 1.4
         return
     
     def test_predict_independent(self):
@@ -747,10 +752,10 @@ class TestBaseAsymmetricLogisticModelT(unittest.TestCase):
         x_original = numpy.array([4, 5, 6])
         mu, sd, df = errormodel.predict_dependent(x_original)
         x_predicted = errormodel.predict_independent(y=mu)
-        self.assertTrue(numpy.allclose(x_predicted, x_original))
+        assert (numpy.allclose(x_predicted, x_original))
         return
     
-    @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
+    @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
     def test_symbolic_loglikelihood(self):
         errormodel = _TestLogisticModel(independent_key='S', dependent_key='A', scale_degree=1)
         errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.23]
@@ -763,7 +768,7 @@ class TestBaseAsymmetricLogisticModelT(unittest.TestCase):
         with pymc3.Model() as pmodel:
             x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
             L = errormodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
-            self.assertIsInstance(L, tt.TensorVariable)
+            assert isinstance(L, tt.TensorVariable)
         
         # compare the two loglikelihood computation methods
         x_test = numpy.random.normal(x_true, scale=0.1)
@@ -771,7 +776,7 @@ class TestBaseAsymmetricLogisticModelT(unittest.TestCase):
             'x_hat': x_test
         })
         expected = errormodel.loglikelihood(x=x_test, y=y_obs)
-        self.assertAlmostEqual(actual, expected, 6)
+        numpy.testing.assert_almost_equal(actual, expected, 6)
         return
     
     def test_loglikelihood(self):
@@ -779,14 +784,14 @@ class TestBaseAsymmetricLogisticModelT(unittest.TestCase):
         y = numpy.array([1,2,3])
         errormodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
         errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.7]
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             _ = errormodel.loglikelihood(y, x=x)
         true = errormodel.loglikelihood(y=y, x=x)
         mu, scale, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
         expected = numpy.sum(stats.t.logpdf(x=y, loc=mu, scale=scale, df=df))
-        self.assertEqual(expected, true)
+        assert expected == true
         x = 'hello'
-        with self.assertRaises(Exception):
+        with pytest.raises(Exception):
             _= errormodel.loglikelihood(y=y, x=x)
         return
     
@@ -794,12 +799,12 @@ class TestBaseAsymmetricLogisticModelT(unittest.TestCase):
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
         errormodel = _TestLogisticModel(independent_key='Glu', dependent_key='OD', scale_degree=1)
-        with self.assertRaises(Exception):
+        with pytest.raises(Exception):
             _= errormodel.loglikelihood(y=y, x=x)
         return
 
 
-class TestOptimization(unittest.TestCase):
+class TestOptimization:
     def _get_test_model(self):
         theta_mu = (0.5, 1.4)
         theta_scale = (0.2,)
@@ -820,10 +825,10 @@ class TestOptimization(unittest.TestCase):
         common = dict(model=em, independent=x, dependent=y)
         for fit in (calibr8.fit_scipy, calibr8.fit_pygmo):
             # wrong theta
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 fit(**common, theta_guess=numpy.ones(14), theta_bounds=[(-5, 5)]*len(theta))
             # wrong bounds
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 fit(**common, theta_guess=numpy.ones_like(theta), theta_bounds=[(-5, 5)]*14)
         return
 
@@ -838,15 +843,15 @@ class TestOptimization(unittest.TestCase):
         )
         for actual, desired, atol in zip(theta_fit, theta, [0.10, 0.05, 0.2, 2]):
             numpy.testing.assert_allclose(actual, desired, atol=atol)
-        self.assertIsInstance(history, list)
+        assert isinstance(history, list)
         numpy.testing.assert_array_equal(em.theta_fitted, theta_fit)
-        self.assertIsNotNone(em.theta_bounds)
-        self.assertIsNotNone(em.theta_guess)
+        assert em.theta_bounds is not None
+        assert em.theta_guess is not None
         numpy.testing.assert_array_equal(em.cal_independent, x)
         numpy.testing.assert_array_equal(em.cal_dependent, y)
         pass
 
-    @unittest.skipUnless(HAS_PYGMO, 'requires PyGMO')
+    @pytest.mark.skipif(not HAS_PYGMO, reason='requires PyGMO')
     def test_fit_pygmo(self):
         numpy.random.seed(1234)
         theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
@@ -857,10 +862,10 @@ class TestOptimization(unittest.TestCase):
         )
         for actual, desired, atol in zip(theta_fit, theta, [0.10, 0.05, 0.2, 2]):
             numpy.testing.assert_allclose(actual, desired, atol=atol)
-        self.assertIsInstance(history, list)
+        assert isinstance(history, list)
         numpy.testing.assert_array_equal(em.theta_fitted, theta_fit)
-        self.assertIsNotNone(em.theta_bounds)
-        self.assertIsNone(em.theta_guess)
+        assert em.theta_bounds is not None
+        assert em.theta_guess is not None
         numpy.testing.assert_array_equal(em.cal_independent, x)
         numpy.testing.assert_array_equal(em.cal_dependent, y)
         pass

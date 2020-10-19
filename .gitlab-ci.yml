@@ -2,40 +2,31 @@ stages:
   - test
   - release
 
-test-calibr8-py36:
-  stage: test
-  image: python:3.6
-  script:
-    - python setup.py bdist_wheel && pip install dist/*.whl
-    - python -m unittest discover -s tests -v
-    - pip install pymc3
-    - pip install pygmo
-    - python -m unittest discover -s tests -v
-
 test-calibr8-py37:
   stage: test
   image: python:3.7
   script:
-    - python setup.py bdist_wheel && pip install dist/*.whl
-    - python -m unittest discover -s tests -v
+    - pip install -e . && pip install pytest pytest-cov
+    - pytest --cov=./calibr8 --cov-append --cov-report term-missing calibr8/tests.py
     - pip install pymc3
     - pip install pygmo
-    - python -m unittest discover -s tests -v
+    - pytest --cov=./calibr8 --cov-append --cov-report term-missing calibr8/tests.py
+    - coverage report -m
 
-coverage-calibr8:
+test-calibr8-py38:
   stage: test
-  image: python:3.6
+  image: python:3.8
   script:
-    - python setup.py develop
-    - pip install coverage
-    - coverage run --parallel --source=calibr8 tests/tests.py 
+    - pip install -e . && pip install pytest pytest-cov
+    - pytest --cov=./calibr8 --cov-append --cov-report term-missing calibr8/tests.py
     - pip install pymc3
     - pip install pygmo
-    - coverage run --parallel --source=calibr8 tests/tests.py && coverage combine && coverage report -m
+    - pytest --cov=./calibr8 --cov-append --cov-report term-missing calibr8/tests.py
+    - coverage report -m
 
 release-calibr8:
   stage: release
-  image: python:3.6
+  image: python:3.7
   script:
     - python setup.py bdist_wheel && cp dist/*.whl ..
   artifacts:
