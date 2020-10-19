@@ -49,7 +49,7 @@ class _TestLogIndependentLogisticModel(calibr8.BaseLogIndependentAsymmetricLogis
         super().__init__(independent_key='I', dependent_key='D', scale_degree=scale_degree)
 
 
-class ErrorModelTest(unittest.TestCase):
+class TestBasicErrorModel(unittest.TestCase):
     def test_init(self):
         em = _TestModel('I', 'D', theta_names=tuple('c,d,e'.split(',')))
         self.assertEqual(em.independent_key, 'I')
@@ -370,7 +370,7 @@ class TestSymbolicModelFunctions(unittest.TestCase):
         return
 
 
-class UtilsTest(unittest.TestCase):
+class TestUtils(unittest.TestCase):
     def test_datetime_parsing(self):
         self.assertIsNone(calibr8.parse_datetime(None))
         self.assertEqual(
@@ -648,9 +648,9 @@ class TestContribBase(unittest.TestCase):
         pass
 
 
-class TestLinearGlucoseModel(unittest.TestCase):
+class TestBasePolynomialModelT(unittest.TestCase):
     def test_infer_independent(self):
-        em = calibr8.LinearGlucoseErrorModelV1(independent_key='S', dependent_key='A365')
+        em = _TestPolynomialModel(independent_key='S', dependent_key='A365', mu_degree=1, scale_degree=1)
         em.theta_fitted = [0, 2, 0.1, 1]
         x, pdf, median, hdi_prob, lower_x, upper_x = em.infer_independent(y=1, lower=0, upper=20, steps=876)
 
@@ -680,7 +680,7 @@ class TestLinearGlucoseModel(unittest.TestCase):
     
     @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_symbolic_loglikelihood(self):
-        errormodel = calibr8.LinearGlucoseErrorModelV1(independent_key='S', dependent_key='A')
+        errormodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
         errormodel.theta_fitted = [0, 1, 0.1, 1]
        
         # create test data
@@ -705,7 +705,7 @@ class TestLinearGlucoseModel(unittest.TestCase):
     def test_loglikelihood(self):
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = calibr8.LinearGlucoseErrorModelV1(independent_key='S', dependent_key='OD')
+        errormodel = _TestPolynomialModel(independent_key='S', dependent_key='OD', mu_degree=1, scale_degree=1)
         errormodel.theta_fitted = [0, 1, 0.1, 1.6]
         with self.assertRaises(TypeError):
             _ = errormodel.loglikelihood(y, x=x)
@@ -721,17 +721,17 @@ class TestLinearGlucoseModel(unittest.TestCase):
     def test_loglikelihood_without_fit(self):
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = calibr8.LinearGlucoseErrorModelV1(independent_key='Glu', dependent_key='OD')
+        errormodel = _TestPolynomialModel(independent_key='Glu', dependent_key='OD', mu_degree=1, scale_degree=1)
         with self.assertRaises(Exception):
             _= errormodel.loglikelihood(y=y, x=x)
         return
 
 
-class TestLogisticGlucoseModel(unittest.TestCase):
+class TestBaseAsymmetricLogisticModelT(unittest.TestCase):
     def test_predict_dependent(self):
         x = numpy.array([1,2,3])
         theta = [0, 4, 2, 1, 1, 0, 2, 1.4]
-        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='OD')
+        errormodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
         errormodel.theta_fitted = theta
         with self.assertRaises(TypeError):
             _ = errormodel.predict_dependent(x, theta)
@@ -742,7 +742,7 @@ class TestLogisticGlucoseModel(unittest.TestCase):
         return
     
     def test_predict_independent(self):
-        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='OD')
+        errormodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
         errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.43]
         x_original = numpy.array([4, 5, 6])
         mu, sd, df = errormodel.predict_dependent(x_original)
@@ -752,7 +752,7 @@ class TestLogisticGlucoseModel(unittest.TestCase):
     
     @unittest.skipUnless(HAS_PYMC3, "requires PyMC3")
     def test_symbolic_loglikelihood(self):
-        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='A')
+        errormodel = _TestLogisticModel(independent_key='S', dependent_key='A', scale_degree=1)
         errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.23]
        
         # create test data
@@ -777,7 +777,7 @@ class TestLogisticGlucoseModel(unittest.TestCase):
     def test_loglikelihood(self):
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='S', dependent_key='OD')
+        errormodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
         errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.7]
         with self.assertRaises(TypeError):
             _ = errormodel.loglikelihood(y, x=x)
@@ -793,7 +793,7 @@ class TestLogisticGlucoseModel(unittest.TestCase):
     def test_loglikelihood_without_fit(self):
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = calibr8.LogisticGlucoseErrorModelV1(independent_key='Glu', dependent_key='OD')
+        errormodel = _TestLogisticModel(independent_key='Glu', dependent_key='OD', scale_degree=1)
         with self.assertRaises(Exception):
             _= errormodel.loglikelihood(y=y, x=x)
         return
