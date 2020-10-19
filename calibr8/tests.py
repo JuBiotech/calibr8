@@ -869,7 +869,3 @@ class TestOptimization:
         numpy.testing.assert_array_equal(em.cal_independent, x)
         numpy.testing.assert_array_equal(em.cal_dependent, y)
         pass
-
-
-if __name__ == '__main__':
-    unittest.main()
