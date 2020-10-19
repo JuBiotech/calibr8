@@ -4,6 +4,7 @@ import inspect
 import json
 import logging
 import numpy
+import os
 import scipy.optimize
 import typing
 
@@ -49,13 +50,17 @@ class NumericPosterior(typing.NamedTuple):
 class ErrorModel:
     """A parent class providing the general structure of an error model."""
     
-    def __init__(self, independent_key:str, dependent_key:str, *, theta_names:tuple):
+    def __init__(self, independent_key:str, dependent_key:str, *, theta_names:typing.Tuple[str]):
         """Creates an ErrorModel object.
 
-        Args:
-            independent_key: key of predicted Timeseries (independent variable of the error model)
-            dependent_key: key of observed Timeseries (dependent variable of the error model)
-            theta_names (tuple): names of the model parameters
+        Attributes
+        ----------
+        independent_key : str
+            name of the independent variable
+        dependent_key : str
+            name of the dependent variable
+        theta_names : optional, tuple of str
+            names of the model parameters
         """
         # make sure that the inheriting type has no required constructor (kw)args
         args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults, annotations = inspect.getfullargspec(type(self).__init__)
@@ -115,13 +120,19 @@ class ErrorModel:
         raise NotImplementedError('The predict_dependent function should be implemented by the inheriting class.')
     
     def predict_independent(self, y):
-        """Predict the most likely value of the independent variable using the calibrated error model in inverse direction.
+        """Predict the independent variable using the inverse trend model.
 
-        Args:
-            y (array): realizations of the dependent variable
+        Arguments
+        ---------
+        y : array-like
+            observations
+        theta : optional, array-like
+            parameter vector of the error model
 
-        Returns:
-            x (array): predicted mode of the independent variable
+        Returns
+        -------
+        x : array-like
+            predicted independent values given the observations
         """
         raise NotImplementedError('The predict_independent function should be implemented by the inheriting class.')
 
@@ -131,6 +142,7 @@ class ErrorModel:
         hdi_prob:float=1
     ) -> NumericPosterior:
         """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
+
         The calculation is done numerically by integrating the likelihood in a certain interval [upper, lower].
         This is identical to the posterior with a Uniform (lower, upper) prior. If a hdi_prob < 1 is specified,
         the interval of the PDF will be shortened.
@@ -158,28 +170,45 @@ class ErrorModel:
         raise NotImplementedError('The infer_independent function should be implemented by the inheriting class.')
 
     def loglikelihood(self, *, y,  x, theta=None):
-        """Loglikelihood of dependent variable realizations given assumed independent variables.
+        """Loglikelihood of observation (dependent variable) given the independent variable
 
-        Args:
-            y (array): realizations of the dependent variable
-            x (array): assumptions of the independent variable
-            theta: model parameters (defaults to self.theta_fitted)
-        
-        Return:
-            L (float): sum of loglikelihoods
+        Arguments
+        ---------
+        y : array-like
+            observed measurements (dependent variable)
+        x : array-like or TensorVariable
+            assumed independent variable
+        replicate_id : optional, str
+            unique identifier for replicate (necessary for pymc3 likelihood)
+        dependent_key : optional, str
+            key of the dependent variable (necessary for pymc3 likelihood)
+        theta : optional, array-like
+            model parameters
+
+        Returns
+        -------
+        L : float or TensorVariable
+            sum of log-likelihoods
         """
         raise NotImplementedError('The loglikelihood function should be implemented by the inheriting class.')
 
-    def objective(self, independent, dependent, minimize=True):
+    def objective(self, independent, dependent, minimize=True) -> typing.Callable:
         """Creates an objective function for fitting to data.
         
-        Args:
-            independent (array): desired values of the independent variable or measured values of the same
-            dependent (array): observations of dependent variable
-            minimize (bool): wheter to create the objective for minimization or maximization
+        Arguments
+        ---------
+        independent : array-like
+            numeric or symbolic values of the independent variable
+        dependent : array-like
+            observations of dependent variable
+        minimize : bool
+            switches between creation of a minimization (True) or maximization (False) objective function
         
-        Returns:
-            obj (callable): objective function
+        Returns
+        -------
+        objective : callable
+            takes a numeric or symbolic parameter vector and returns the
+            (negative) log-likelihood
         """
         def obj(x):
             L = self.loglikelihood(x=independent, y=dependent, theta=x)
@@ -189,11 +218,13 @@ class ErrorModel:
                 return L
         return obj
 
-    def save(self, filepath:str):
+    def save(self, filepath: os.PathLike):
         """Save key properties of the error model to a JSON file.
 
-        Args:
-            filepath (str): path to the output file
+        Arguments
+        ---------
+        filepath : path-like
+            path to the output file
         """
         data = dict(
             calibr8_version=__version__,
@@ -213,15 +244,25 @@ class ErrorModel:
         return
 
     @classmethod
-    def load(cls, filepath):
+    def load(cls, filepath: os.PathLike):
         """Instantiates a model from a JSON file of key properties.
 
-        Args:
-            filepath (str): path to the input file
+        Arguments
+        ---------
+        filepath : path-like
+            path to the input file
 
-        Raises:
-            MajorMismatchException: when the major calibr8 version is different
-            CompatibilityException: when the model type does not match with the savefile
+        Raises
+        ------
+        MajorMismatchException
+            when the major calibr8 version is different
+        CompatibilityException
+            when the model type does not match with the savefile
+
+        Returns
+        -------
+        errormodel : ErrorModel
+            the instantiated error model
         """
         with open(filepath, 'r') as jfile:
             data = json.load(jfile)
@@ -257,16 +298,21 @@ class ErrorModel:
 def logistic(x, theta):
         """4-parameter logistic model.
         
-        Args:
-            x (array): independent variable
-            theta (array): parameters of the logistic model
+        Attributes
+        ----------
+        x : array-like
+            independent variable
+        theta : array-like
+            parameters of the logistic model
                 I_x: x-value at inflection point
                 I_y: y-value at inflection point
                 Lmax: maximum value
                 s: slope at the inflection point
         
-        Returns:
-            y (array): dependent variable
+        Returns
+        -------
+        y : array-like
+            dependent variable
         """
         I_x, I_y, Lmax, s = theta[:4]
         x = numpy.array(x)
@@ -277,16 +323,21 @@ def logistic(x, theta):
 def inverse_logistic(y, theta):
     """Inverse 4-parameter logistic model.
     
-    Args:
-        y (array): dependent variables
-        theta (array): parameters of the logistic model
+    Attributes
+    ----------
+    y : array-like
+            dependent variables
+    theta : array-like
+        parameters of the logistic model
             I_x: x-value at inflection point
             I_y: y-value at inflection point
             Lmax: maximum value
             s: slope at the inflection point
     
-    Returns:
-        x (array): independent variable
+    Returns
+    -------
+    x : array-like
+        independent variable
     """
     I_x, I_y, Lmax, s = theta[:4]
     y = numpy.array(y)
@@ -297,17 +348,22 @@ def inverse_logistic(y, theta):
 def asymmetric_logistic(x, theta):
     """5-parameter asymmetric logistic model.
     
-    Args:
-        x (array): independent variable
-        theta (array): parameters of the logistic model
+    Attributes
+    ----------
+    x : array-like
+        independent variable
+    theta : array-like
+        parameters of the logistic model
             L_L: lower asymptote
             L_U: upper asymptote
             I_x: x-value at inflection point
             S: slope at the inflection point
             c: symmetry parameter (0 is symmetric)
     
-    Returns:
-        y (array): dependent variable
+    Returns
+    -------
+    y : array-like
+        dependent variable
     """
     L_L, L_U, I_x, S, c = theta[:5]
     # common subexpressions
@@ -325,17 +381,22 @@ def asymmetric_logistic(x, theta):
 def inverse_asymmetric_logistic(y, theta):
     """Inverse 5-parameter asymmetric logistic model.
     
-    Args:
-        y (array): dependent variable
-        theta (array): parameters of the logistic model
+    Attributes
+    ----------
+    y : array-like
+        dependent variable
+    theta : array-like
+        parameters of the logistic model
             L_L: lower asymptote
             L_U: upper asymptote
             I_x: x-value at inflection point
             S: slope at the inflection point
             c: symmetry parameter (0 is symmetric)
     
-    Returns:
-        x (array): independent variable
+    Returns
+    -------
+    x : array-like
+        independent variable
     """
     L_L, L_U, I_x, S, c = theta[:5]
     # re-scale the inflection point slope with the interval
@@ -357,17 +418,22 @@ def inverse_asymmetric_logistic(y, theta):
 def xlog_asymmetric_logistic(x, theta):
     """5-parameter asymmetric logistic model on log10 independent value.
     
-    Args:
-        x (array): independent variable
-        theta (array): parameters of the logistic model
+    Attributes
+    ----------
+    x : array-like
+        independent variable
+    theta : array-like
+        parameters of the logistic model
             L_L: lower asymptote
             L_U: upper asymptote
             log_I_x: log10(x)-value at x-logarithmic inflection point
             S: slope at the inflection point (Δy/Δlog10(x))
             c: symmetry parameter (0 is symmetric)
     
-    Returns:
-        y (array): dependent variable
+    Returns
+    -------
+    y : array-like
+        dependent variable
     """
     L_L, L_U, log_I_x, S, c = theta[:5]
     # common subexpressions
@@ -385,17 +451,22 @@ def xlog_asymmetric_logistic(x, theta):
 def inverse_xlog_asymmetric_logistic(y, theta):
     """Inverse 5-parameter asymmetric logistic model on log10 independent value.
     
-    Args:
-        y (array): dependent variable
-        theta (array): parameters of the logistic model
+    Attributes
+    ----------
+    y : array-like
+        dependent variable
+    theta : array-like
+        parameters of the logistic model
             L_L: lower asymptote
             L_U: upper asymptote
             log_I_x: log10(x)-value at x-logarithmic inflection point
             S: slope at the inflection point (Δy/Δlog10(x))
             c: symmetry parameter (0 is symmetric)
     
-    Returns:
-        x (array): independent variable
+    Returns
+    -------
+    x : array-like
+        independent variable
     """
     L_L, L_U, log_I_x, S, c = theta[:5]
     # re-scale the inflection point slope with the interval
@@ -418,16 +489,21 @@ def inverse_xlog_asymmetric_logistic(y, theta):
 def log_log_logistic(x, theta):
     """4-parameter log-log logistic model.
     
-    Args:
-        x (array): independent variable
-        theta (array): parameters of the log-log logistic model
+    Attributes
+    ----------
+    x : array-like
+        independent variable
+    theta : array-like
+        parameters of the log-log logistic model
             I_x: inflection point (ln(x))
             I_y: inflection point (ln(y))
             Lmax: logarithmic maximum value
             s: slope at the inflection point
     
-    Returns:
-        y (array): dependent variable
+    Returns
+    -------
+    y : array-like
+        dependent variable
     """
     I_x, I_y, Lmax, s = theta[:4]
     x = numpy.log(x)
@@ -438,16 +514,21 @@ def log_log_logistic(x, theta):
 def inverse_log_log_logistic(y, theta):
     """4-parameter log-log logistic model.
         
-    Args:
-        y (array): dependent variable
-        theta (array): parameters of the logistic model
+    Attributes
+    ----------
+    y : array-like
+        dependent variable
+    theta : array-like
+        parameters of the logistic model
             I_x: x-value at inflection point (ln(x))
             I_y: y-value at inflection point (ln(y))
             Lmax: maximum value in log space
             s: slope at the inflection point
     
-    Returns:
-        x (array): independent variable
+    Returns
+    -------
+    x : array-like
+        independent variable
     """
     I_x, I_y, Lmax, s = theta[:4]
     y = numpy.log(y)
@@ -458,16 +539,21 @@ def inverse_log_log_logistic(y, theta):
 def xlog_logistic(x, theta):
     """4-parameter x-log logistic model.
     
-    Args:
-        x (array): independent variable
-        theta (array): parameters of the log-log logistic model
+    Attributes
+    ----------
+    x : array-like
+        independent variable
+    theta : array-like
+        parameters of the log-log logistic model
             I_x: inflection point (ln(x))
             I_y: inflection point (y)
             Lmax: maximum value
             s: slope at the inflection point
     
-    Returns:
-        y (array): dependent variable
+    Returns
+    -------
+    y : array-like
+        dependent variable
     """
     I_x, I_y, Lmax, s = theta[:4]
     x = numpy.log(x)
@@ -478,16 +564,21 @@ def xlog_logistic(x, theta):
 def inverse_xlog_logistic(y, theta):
     """Inverse 4-parameter x-log logistic model.
         
-    Args:
-        y (array): dependent variable
-        theta (array): parameters of the logistic model
+    Attributes
+    ----------
+    y : array-like
+        dependent variable
+    theta : array-like
+        parameters of the logistic model
             I_x: x-value at inflection point (ln(x))
             I_y: y-value at inflection point
             Lmax: maximum value
             s: slope at the inflection point
     
-    Returns:
-        x (array): independent variable
+    Returns
+    -------
+    x : array-like
+        independent variable
     """
     I_x, I_y, Lmax, s = theta[:4]
     y = numpy.array(y)
@@ -498,16 +589,21 @@ def inverse_xlog_logistic(y, theta):
 def ylog_logistic(x, theta):
     """4-parameter y-log logistic model.
     
-    Args:
-        x (array): independent variable
-        theta (array): parameters of the log-log logistic model
+    Attributes
+    ----------
+    x : array-like
+        independent variable
+    theta : array-like
+        parameters of the log-log logistic model
             I_x: inflection point (x)
             I_y: inflection point (ln(y))
             Lmax: maximum value in log sapce
             s: slope at the inflection point
     
-    Returns:
-        y (array): dependent variables
+    Returns
+    -------
+    y : array-like
+        dependent variables
     """
     I_x, I_y, Lmax, s = theta[:4]
     x = numpy.array(x)
@@ -518,16 +614,21 @@ def ylog_logistic(x, theta):
 def inverse_ylog_logistic(y, theta):
     """Inverse 4-parameter y-log logistic model.
         
-    Args:
-        y (array): dependent variable
-        theta (array): parameters of the logistic model
+    Attributes
+    ----------
+    y : array-like
+        dependent variable
+    theta : array-like
+        parameters of the logistic model
             I_x: x-value at inflection point
             I_y: y-value at inflection point (ln(y))
             Lmax: maximum value in log space
             s: slope at the inflection point
     
-    Returns:
-        x (array): independent variable
+    Returns
+    -------
+    x : array-like
+        independent variable
     """
     I_x, I_y, Lmax, s = theta[:4]
     y = numpy.log(y)
@@ -538,12 +639,17 @@ def inverse_ylog_logistic(y, theta):
 def polynomial(x, theta):
     """Variable-degree polynomical model.
 
-    Args:
-        x (array): independent variable
-        theta (array): polynomial coefficients (lowest degree first)
+    Attributes
+    ----------
+    x : array-like
+        independent variable
+    theta : array-like
+        polynomial coefficients (lowest degree first)
 
-    Returns:
-        y (array) dependent variable
+    Returns
+    -------
+    y : array-like
+        dependent variable
     """
     # Numpy's polynomial function wants to get the highest degree first
     return numpy.polyval(theta[::-1], x)

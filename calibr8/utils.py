@@ -46,15 +46,19 @@ def format_datetime(dt: typing.Optional[datetime.datetime]) -> typing.Optional[s
     return dt.astimezone(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S%z').replace('+0000', 'Z')
 
 
-def istensor(input:object):
+def istensor(input:object) -> bool:
     """"Convenience function to test whether an input is a TensorVariable
         or if an input array or list contains TensorVariables.
     
-    Args:
-        input: object to be tested
+    Arguments
+    ---------
+    input : object
+        an object shat shall be analyzed
     
-    Return: 
-        result(bool): Indicates if the object is or in any instance contains a TensorVariable.
+    Return
+    ------
+    result : bool
+        Indicates if the object is or contains a TensorVariable.
     """
     if not HAS_THEANO:
         return False
@@ -90,14 +94,21 @@ class ImportWarner:
 def plot_norm_band(ax, independent, mu, scale):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a Normal distribution.
     
-    Args:
-        ax (matplotlib.Axes): subplot object to plot into
-        independent (array-like): x-values for the plot
-        mu (array-like): mu parameter of the Normal distribution
-        scale (array-like): scale parameter of the Normal distribution
+    Arguments
+    ---------
+    ax : matplotlib.Axes
+        subplot object to plot into
+    independent : array-like
+        x-values for the plot
+    mu : array-like
+        mu parameter of the Normal distribution
+    scale : array-like
+        scale parameter of the Normal distribution
 
-    Returns:
-        artists (list of matplotlib.Artist): the created artists (1x Line2D, 6x PolyCollection (alternating plot & legend))
+    Returns
+    -------
+    artists : list of matplotlib.Artist
+        the created artists (1x Line2D, 6x PolyCollection (alternating plot & legend))
     """
     artists = ax.plot(independent, mu, color='green')
     for q, c in zip([97.5, 95, 84], ['#d9ecd9', '#b8dbb8', '#9ccd9c']):
@@ -119,15 +130,23 @@ def plot_norm_band(ax, independent, mu, scale):
 def plot_t_band(ax, independent, mu, scale, df):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a t-distribution.
     
-    Args:
-        ax (matplotlib.Axes): subplot object to plot into
-        independent (array-like): x-values for the plot
-        mu (array-like): mu parameter of the t-distribution
-        scale (array-like): scale parameter of the t-distribution
-        df (array-like): density parameter of the t-distribution
+    Arguments
+    ---------
+    ax : matplotlib.Axes
+        subplot object to plot into
+    independent : array-like
+        x-values for the plot
+    mu : array-like
+        mu parameter of the t-distribution
+    scale : array-like
+        scale parameter of the t-distribution
+    df : array-like
+        density parameter of the t-distribution
 
-    Returns:
-        artists (list of matplotlib.Artist): the created artists (1x Line2D, 6x PolyCollection (alternating plot & legend))
+    Returns
+    -------
+    artists : list of matplotlib.Artist
+        the created artists (1x Line2D, 6x PolyCollection (alternating plot & legend))
     """
     artists = ax.plot(independent, mu, color='green')
     for q, c in zip([97.5, 95, 84], ['#d9ecd9', '#b8dbb8', '#9ccd9c']):
@@ -169,15 +188,23 @@ class BuildMismatchException(CompatibilityException):
 def assert_version_match(vA:str, vB:str):
     """Compares two version numbers and raises exceptions that indicate where they missmatch.
 
-    Args:
-        vA (str): first version number
-        vB (str): second version number
+    Arguments
+    ---------
+    vA : str
+        first version number
+    vB : str
+        second version number
 
-    Raises:
-        MajorMismatchException: difference on the first level
-        MinorMismatchException: difference on the second level
-        PatchMismatchException: difference on the third level
-        BuildMismatchException: difference on the fourth level
+    Raises
+    ------
+    MajorMismatchException
+        difference on the first level
+    MinorMismatchException
+        difference on the second level
+    PatchMismatchException
+        difference on the third level
+    BuildMismatchException
+        difference on the fourth level
     """
     level_exceptions = (
         MajorMismatchException,
@@ -196,12 +223,17 @@ def assert_version_match(vA:str, vB:str):
 def guess_asymmetric_logistic_theta(X, Y) -> typing.List[float]:
     """Creates an initial guess for the parameter vector of an `asymmetric_logistic` function.
     
-    Args:
-        X (array-like): independent values of the data points
-        Y (array-like): dependent values (observations)
+    Arguments
+    ---------
+    X : array-like
+        independent values of the data points
+    Y : array-like
+        dependent values (observations)
         
-    Returns:
-        [L_L, L_U, I_x, S, c] (list): guess of the `asymmetric_logistic` parameters
+    Returns
+    -------
+    guess : list
+        guess of the `asymmetric_logistic` parameters [L_L, L_U, I_x, S, c]
     """
     X = numpy.array(X)
     Y = numpy.array(Y)
@@ -218,13 +250,19 @@ def guess_asymmetric_logistic_theta(X, Y) -> typing.List[float]:
 def guess_asymmetric_logistic_bounds(X, Y, *, half_open=True) -> typing.List[typing.Tuple[float, float]]:
     """Creates bounds for the parameter vector of an `asymmetric_logistic` function.
     
-    Args:
-        X (array-like): independent values of the data points
-        Y (array-like): dependent values (observations)
-        half_open (bool): sets whether the half-open bounds are allowed (e.g. for L_L and L_U)
-        
-    Returns:
-        bounds (list): bounds for the `asymmetric_logistic` parameters
+    Arguments
+    ---------
+    X : array-like
+        independent values of the data points
+    Y : array-like
+        dependent values (observations)
+    half_open : bool
+        sets whether the half-open bounds are allowed (e.g. for L_L and L_U)    
+
+    Returns
+    -------
+    bounds : list
+        bounds for the `asymmetric_logistic` parameters
     """
     X = numpy.array(X)
     Y = numpy.array(Y)
