@@ -20,8 +20,8 @@ class BaseModelT(core.ErrorModel):
     def loglikelihood(self, *, y,  x, replicate_id: str=None, dependent_key: str=None, theta=None):
         """Loglikelihood of observation (dependent variable) given the independent variable
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         y : array-like
             observed measurements (dependent variable)
         x : array-like or TensorVariable
@@ -167,8 +167,8 @@ class BasePolynomialModelT(BaseModelT):
     ):
         """ Template for a model with polynomial trend (mu) and scale (as a function of mu).
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         independent_key : str
             name of the independent variable
         dependent_key : str
@@ -198,8 +198,8 @@ class BasePolynomialModelT(BaseModelT):
         """Predicts the parameters mu and scale of a student-t-distribution which
         characterizes the dependent variable given values of the independent variable.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         x : array-like
             values of the independent variable
         theta : optional, array-like
@@ -230,8 +230,8 @@ class BasePolynomialModelT(BaseModelT):
     def predict_independent(self, y, *, theta=None):
         """Predict the independent variable using the inverse trend model.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         y : array-like
             observations
         theta : optional, array-like
@@ -259,8 +259,8 @@ class BaseAsymmetricLogisticT(BaseModelT):
     ):
         """ Template for a model with asymmetric logistic trend (mu) and scale (as a function of mu).
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         independent_key : str
             name of the independent variable
         dependent_key : str
@@ -282,8 +282,8 @@ class BaseAsymmetricLogisticT(BaseModelT):
         """Predicts the parameters mu and scale of a student-t-distribution which
         characterizes the dependent variable given values of the independent variable.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         x : array-like
             values of the independent variable
         theta : optional, array-like
@@ -314,8 +314,8 @@ class BaseAsymmetricLogisticT(BaseModelT):
     def predict_independent(self, y, *, theta=None):
         """Predict the independent variable using the inverse trend model.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         y : array-like
             observations
         theta : optional, array-like
@@ -340,8 +340,8 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
     ):
         """ Template for a model with asymmetric logistic trend (mu) and scale (as a function of mu).
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         independent_key : str
             name of the independent variable
         dependent_key : str
@@ -363,8 +363,8 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
         """Predicts the parameters mu and scale of a student-t-distribution which
         characterizes the dependent variable given values of the independent variable.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         x : array-like
             values of the independent variable
         theta : optional, array-like
@@ -395,8 +395,8 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
     def predict_independent(self, y, *, theta=None):
         """Predict the independent variable using the inverse trend model.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         y : array-like
             observations
         theta : optional, array-like

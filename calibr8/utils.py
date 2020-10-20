@@ -50,8 +50,8 @@ def istensor(input:object) -> bool:
     """"Convenience function to test whether an input is a TensorVariable
         or if an input array or list contains TensorVariables.
     
-    Arguments
-    ---------
+    Parameters
+    ----------
     input : object
         an object shat shall be analyzed
     
@@ -94,8 +94,8 @@ class ImportWarner:
 def plot_norm_band(ax, independent, mu, scale):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a Normal distribution.
     
-    Arguments
-    ---------
+    Parameters
+    ----------
     ax : matplotlib.Axes
         subplot object to plot into
     independent : array-like
@@ -130,8 +130,8 @@ def plot_norm_band(ax, independent, mu, scale):
 def plot_t_band(ax, independent, mu, scale, df):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a t-distribution.
     
-    Arguments
-    ---------
+    Parameters
+    ----------
     ax : matplotlib.Axes
         subplot object to plot into
     independent : array-like
@@ -188,8 +188,8 @@ class BuildMismatchException(CompatibilityException):
 def assert_version_match(vA:str, vB:str):
     """Compares two version numbers and raises exceptions that indicate where they missmatch.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     vA : str
         first version number
     vB : str
@@ -223,8 +223,8 @@ def assert_version_match(vA:str, vB:str):
 def guess_asymmetric_logistic_theta(X, Y) -> typing.List[float]:
     """Creates an initial guess for the parameter vector of an `asymmetric_logistic` function.
     
-    Arguments
-    ---------
+    Parameters
+    ----------
     X : array-like
         independent values of the data points
     Y : array-like
@@ -250,8 +250,8 @@ def guess_asymmetric_logistic_theta(X, Y) -> typing.List[float]:
 def guess_asymmetric_logistic_bounds(X, Y, *, half_open=True) -> typing.List[typing.Tuple[float, float]]:
     """Creates bounds for the parameter vector of an `asymmetric_logistic` function.
     
-    Arguments
-    ---------
+    Parameters
+    ----------
     X : array-like
         independent values of the data points
     Y : array-like
@@ -292,7 +292,7 @@ def plot_model(
     """Makes a plot of the model with its data.
 
     Parameters
-    ----------
+    -----------
     model : ErrorModel
         A fitted error model with data.
         The predict_dependent method should return a tuple where the mean is the first entry.

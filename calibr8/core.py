@@ -53,7 +53,7 @@ class ErrorModel:
     def __init__(self, independent_key:str, dependent_key:str, *, theta_names:typing.Tuple[str]):
         """Creates an ErrorModel object.
 
-        Attributes
+        Parameters
         ----------
         independent_key : str
             name of the independent variable
@@ -122,7 +122,7 @@ class ErrorModel:
     def predict_independent(self, y):
         """Predict the independent variable using the inverse trend model.
 
-        Arguments
+        Parameters
         ---------
         y : array-like
             observations
@@ -172,8 +172,8 @@ class ErrorModel:
     def loglikelihood(self, *, y,  x, theta=None):
         """Loglikelihood of observation (dependent variable) given the independent variable
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         y : array-like
             observed measurements (dependent variable)
         x : array-like or TensorVariable
@@ -195,8 +195,8 @@ class ErrorModel:
     def objective(self, independent, dependent, minimize=True) -> typing.Callable:
         """Creates an objective function for fitting to data.
         
-        Arguments
-        ---------
+        Parameters
+        ----------
         independent : array-like
             numeric or symbolic values of the independent variable
         dependent : array-like
@@ -221,8 +221,8 @@ class ErrorModel:
     def save(self, filepath: os.PathLike):
         """Save key properties of the error model to a JSON file.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         filepath : path-like
             path to the output file
         """
@@ -247,8 +247,8 @@ class ErrorModel:
     def load(cls, filepath: os.PathLike):
         """Instantiates a model from a JSON file of key properties.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         filepath : path-like
             path to the input file
 
@@ -296,34 +296,34 @@ class ErrorModel:
 
 
 def logistic(x, theta):
-        """4-parameter logistic model.
+    """4-parameter logistic model.
         
-        Attributes
-        ----------
-        x : array-like
-            independent variable
-        theta : array-like
-            parameters of the logistic model
-                I_x: x-value at inflection point
-                I_y: y-value at inflection point
-                Lmax: maximum value
-                s: slope at the inflection point
+    Parameters
+    ----------
+    x : array-like
+        independent variable
+    theta : array-like
+        parameters of the logistic model
+            I_x: x-value at inflection point
+            I_y: y-value at inflection point
+            Lmax: maximum value
+            s: slope at the inflection point
         
-        Returns
-        -------
-        y : array-like
-            dependent variable
-        """
-        I_x, I_y, Lmax, s = theta[:4]
-        x = numpy.array(x)
-        y = 2 * I_y - Lmax + (2 * (Lmax - I_y)) / (1 + numpy.exp(-2*s/(Lmax - I_y) * (x - I_x)))
-        return y
+    Returns
+    -------
+    y : array-like
+        dependent variable
+    """
+    I_x, I_y, Lmax, s = theta[:4]
+    x = numpy.array(x)
+    y = 2 * I_y - Lmax + (2 * (Lmax - I_y)) / (1 + numpy.exp(-2*s/(Lmax - I_y) * (x - I_x)))
+    return y
 
 
 def inverse_logistic(y, theta):
     """Inverse 4-parameter logistic model.
     
-    Attributes
+    Parameters
     ----------
     y : array-like
             dependent variables
@@ -348,7 +348,7 @@ def inverse_logistic(y, theta):
 def asymmetric_logistic(x, theta):
     """5-parameter asymmetric logistic model.
     
-    Attributes
+    Parameters
     ----------
     x : array-like
         independent variable
@@ -381,7 +381,7 @@ def asymmetric_logistic(x, theta):
 def inverse_asymmetric_logistic(y, theta):
     """Inverse 5-parameter asymmetric logistic model.
     
-    Attributes
+    Parameters
     ----------
     y : array-like
         dependent variable
@@ -418,7 +418,7 @@ def inverse_asymmetric_logistic(y, theta):
 def xlog_asymmetric_logistic(x, theta):
     """5-parameter asymmetric logistic model on log10 independent value.
     
-    Attributes
+    Parameters
     ----------
     x : array-like
         independent variable
@@ -451,7 +451,7 @@ def xlog_asymmetric_logistic(x, theta):
 def inverse_xlog_asymmetric_logistic(y, theta):
     """Inverse 5-parameter asymmetric logistic model on log10 independent value.
     
-    Attributes
+    Parameters
     ----------
     y : array-like
         dependent variable
@@ -489,7 +489,7 @@ def inverse_xlog_asymmetric_logistic(y, theta):
 def log_log_logistic(x, theta):
     """4-parameter log-log logistic model.
     
-    Attributes
+    Parameters
     ----------
     x : array-like
         independent variable
@@ -514,7 +514,7 @@ def log_log_logistic(x, theta):
 def inverse_log_log_logistic(y, theta):
     """4-parameter log-log logistic model.
         
-    Attributes
+    Parameters
     ----------
     y : array-like
         dependent variable
@@ -539,7 +539,7 @@ def inverse_log_log_logistic(y, theta):
 def xlog_logistic(x, theta):
     """4-parameter x-log logistic model.
     
-    Attributes
+    Parameters
     ----------
     x : array-like
         independent variable
@@ -564,7 +564,7 @@ def xlog_logistic(x, theta):
 def inverse_xlog_logistic(y, theta):
     """Inverse 4-parameter x-log logistic model.
         
-    Attributes
+    Parameters
     ----------
     y : array-like
         dependent variable
@@ -589,7 +589,7 @@ def inverse_xlog_logistic(y, theta):
 def ylog_logistic(x, theta):
     """4-parameter y-log logistic model.
     
-    Attributes
+    Parameters
     ----------
     x : array-like
         independent variable
@@ -614,7 +614,7 @@ def ylog_logistic(x, theta):
 def inverse_ylog_logistic(y, theta):
     """Inverse 4-parameter y-log logistic model.
         
-    Attributes
+    Parameters
     ----------
     y : array-like
         dependent variable
@@ -639,7 +639,7 @@ def inverse_ylog_logistic(y, theta):
 def polynomial(x, theta):
     """Variable-degree polynomical model.
 
-    Attributes
+    Parameters
     ----------
     x : array-like
         independent variable

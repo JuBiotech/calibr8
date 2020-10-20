@@ -17,8 +17,8 @@ _log = logging.getLogger('calibr8.optimization')
 def _warn_hit_bounds(theta, bounds, theta_names) -> bool:
     """ Helper function that logs a warning for every parameter that hits a bound.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     theta : array-like
         parameters
     bounds : list of (lb, ub)
@@ -46,8 +46,8 @@ def _warn_hit_bounds(theta, bounds, theta_names) -> bool:
 def fit_scipy(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:numpy.ndarray, theta_guess:list, theta_bounds:list, minimize_kwargs:dict=None):
     """Function to fit the error model with observed data.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     model : calibr8.ErrorModel
         the error model to fit (inplace)
     independent : array-like
@@ -106,8 +106,8 @@ def fit_pygmo(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
 
     Reference: https://esa.github.io/pygmo2/index.html
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     model : calibr8.ErrorModel
         the error model to fit (inplace)
     independent : array-like
