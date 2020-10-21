@@ -210,13 +210,13 @@ class ErrorModel:
             takes a numeric or symbolic parameter vector and returns the
             (negative) log-likelihood
         """
-        def obj(x):
+        def objective(x):
             L = self.loglikelihood(x=independent, y=dependent, theta=x)
             if minimize:
                 return -L
             else:
                 return L
-        return obj
+        return objective
 
     def save(self, filepath: os.PathLike):
         """Save key properties of the error model to a JSON file.

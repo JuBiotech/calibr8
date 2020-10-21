@@ -161,8 +161,8 @@ class BaseModelT(core.ErrorModel):
 class BasePolynomialModelT(BaseModelT):
     def __init__(
         self, *,
-        independent_key:str, dependent_key:str,
-        mu_degree:int, scale_degree:int=0,
+        independent_key: str, dependent_key: str,
+        mu_degree: int, scale_degree: int=0,
         theta_names: typing.Optional[typing.Tuple[str]]=None,
     ):
         """ Template for a model with polynomial trend (mu) and scale (as a function of mu).
