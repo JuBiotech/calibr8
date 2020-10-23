@@ -1,3 +1,7 @@
+"""
+The optimization module implements convenience functions for maximum
+likelihood estimation of error model parameters.
+"""
 import fastprogress
 import numpy
 import logging

@@ -1,3 +1,7 @@
+"""
+This module implements helper functions for a variety of tasks, including
+imports, timestamp parsing and plotting.
+"""
 import datetime
 from  collections.abc import Iterable
 import matplotlib

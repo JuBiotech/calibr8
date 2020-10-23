@@ -1,3 +1,7 @@
+"""
+This module implements generic, reusable error models that can be subclassed to
+implement custom error models.
+"""
 from collections import namedtuple
 import numpy  
 import scipy

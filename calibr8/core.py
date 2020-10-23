@@ -1,3 +1,9 @@
+"""
+This module contains type definitions that generalize across all applications.
+
+Also, it implements a variety of modeling functions such as polynomials,
+or (asymmetric) logistic functions and their corresponding inverse functions.
+"""
 import abc
 import datetime
 import inspect
@@ -110,12 +116,18 @@ class ErrorModel:
         """Predicts the parameters of a probability distribution which characterises 
            the dependent variable given values of the independent variable.
 
-        Args:
-            x (array): independent variable
-            theta: parameters of functions describing the mode and standard deviation of the PDF
+        Parameters
+        ----------
+        x : array-like
+            numeric or symbolic independent variable
+        theta : optional, array-like
+            parameters of functions that model the parameters of the dependent variable distribution
+            (defaults to self.theta_fitted)
 
-        Returns:
-           parameters (array): parameters characterising a distribution for the dependent variable
+        Returns
+        -------
+        parameters : array-like
+            parameters characterizing the dependent variable distribution
         """
         raise NotImplementedError('The predict_dependent function should be implemented by the inheriting class.')
     
@@ -123,7 +135,7 @@ class ErrorModel:
         """Predict the independent variable using the inverse trend model.
 
         Parameters
-        ---------
+        ----------
         y : array-like
             observations
         theta : optional, array-like
