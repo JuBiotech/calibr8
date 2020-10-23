@@ -17,18 +17,26 @@ except ModuleNotFoundError:
 
 
 class BaseModelT(core.ErrorModel):
-    def loglikelihood(self, *, y,  x, replicate_id=None, dependent_key=None, theta=None):
+    def loglikelihood(self, *, y,  x, replicate_id: str=None, dependent_key: str=None, theta=None):
         """Loglikelihood of observation (dependent variable) given the independent variable
 
-        Args:
-            y (array): observed measurements (dependent variable)
-            x (array or TensorVariable): assumed independent variable
-            replicate_id(str): unique identifier for replicate (necessary for pymc3 likelihood)
-            dependent_key(str): key of the dependent variable (necessary for pymc3 likelihood)
-            theta: model parameters
+        Parameters
+        ----------
+        y : array-like
+            observed measurements (dependent variable)
+        x : array-like or TensorVariable
+            assumed independent variable
+        replicate_id : optional, str
+            unique identifier for replicate (necessary for pymc3 likelihood)
+        dependent_key : optional, str
+            key of the dependent variable (necessary for pymc3 likelihood)
+        theta : optional, array-like
+            model parameters
 
-        Returns:
-            L (float or TensorVariable): sum of log-likelihoods
+        Returns
+        -------
+        L : float or TensorVariable
+            sum of log-likelihoods
         """
         if theta is None:
             if self.theta_fitted is None:
@@ -151,7 +159,27 @@ class BaseModelT(core.ErrorModel):
 
 
 class BasePolynomialModelT(BaseModelT):
-    def __init__(self, *, independent_key:str, dependent_key:str, mu_degree:int, scale_degree:int=0, theta_names=None):
+    def __init__(
+        self, *,
+        independent_key: str, dependent_key: str,
+        mu_degree: int, scale_degree: int=0,
+        theta_names: typing.Optional[typing.Tuple[str]]=None,
+    ):
+        """ Template for a model with polynomial trend (mu) and scale (as a function of mu).
+
+        Parameters
+        ----------
+        independent_key : str
+            name of the independent variable
+        dependent_key : str
+            name of the dependent variable
+        mu_degree : int
+            degree of the polynomial model describing the trend (mu)
+        scale_degree : optional, int
+            degree of the polynomial model describing the scale as a function of mu
+        theta_names : optional, tuple of str
+            may be used to set the names of the model parameters
+        """
         if mu_degree == 0:
             raise Exception('0-degree (constant) mu error models are useless.')
         self.mu_degree = mu_degree
@@ -167,20 +195,27 @@ class BasePolynomialModelT(BaseModelT):
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
-        """Predicts the parameters mu and scale of a student-t-distribution which characterises the dependent variable
-           given values of the independent variable.
+        """Predicts the parameters mu and scale of a student-t-distribution which
+        characterizes the dependent variable given values of the independent variable.
 
-        Args:
-            x (array): values of the independent variable
-            theta (array): parameter vector of the error model:
+        Parameters
+        ----------
+        x : array-like
+            values of the independent variable
+        theta : optional, array-like
+            parameter vector of the error model:
                 [mu_degree] parameters for mu (lowest degree first)
                 [scale_degree]  parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
 
-        Returns:
-            mu (array): values for the mu parameter of a student-t-distribution describing the dependent variable
-            scale (scalar): values for the scale parameter of a student-t-distribution describing the dependent variable
-            df (scalar): degree of freedom of student-t-distribution
+        Returns
+        -------
+        mu : array-like
+            values for the mu parameter of a student-t-distribution describing the dependent variable
+        scale : array-like or float
+            values for the scale parameter of a student-t-distribution describing the dependent variable
+        df : float
+            degree of freedom of student-t-distribution
         """
         if theta is None:
             theta = self.theta_fitted
@@ -193,14 +228,19 @@ class BasePolynomialModelT(BaseModelT):
         return mu, scale, df
 
     def predict_independent(self, y, *, theta=None):
-        """Predict the most likely value of the independent variable using the calibrated error model in inverse direction.
+        """Predict the independent variable using the inverse trend model.
 
-        Args:
-            y (array): observations
-            theta (array): parameter vector of the error model
+        Parameters
+        ----------
+        y : array-like
+            observations
+        theta : optional, array-like
+            parameter vector of the error model
 
-        Returns:
-            mu (array): predicted independent values given the observations
+        Returns
+        -------
+        x : array-like
+            predicted independent values given the observations
         """
         if theta is None:
             theta = self.theta_fitted
@@ -211,7 +251,25 @@ class BasePolynomialModelT(BaseModelT):
 
 
 class BaseAsymmetricLogisticT(BaseModelT):
-    def __init__(self, *, independent_key:str, dependent_key:str, scale_degree:int=0, theta_names=None):
+    def __init__(
+        self, *,
+        independent_key:str, dependent_key:str,
+        scale_degree:int=0,
+        theta_names: typing.Optional[typing.Tuple[str]]=None,
+    ):
+        """ Template for a model with asymmetric logistic trend (mu) and scale (as a function of mu).
+
+        Parameters
+        ----------
+        independent_key : str
+            name of the independent variable
+        dependent_key : str
+            name of the dependent variable
+        scale_degree : optional, int
+            degree of the polynomial model describing the scale as a function of mu
+        theta_names : optional, tuple of str
+            may be used to set the names of the model parameters
+        """
         self.scale_degree = scale_degree
         if theta_names is None:
             theta_names = tuple('L_L,L_U,I_x,S,c'.split(',')) + tuple(
@@ -221,21 +279,27 @@ class BaseAsymmetricLogisticT(BaseModelT):
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
-        """
-        Predicts the parameters mu, scale, df of a student-t-distribution which characterises
-        the dependent variable given values of the independent variable.
+        """Predicts the parameters mu and scale of a student-t-distribution which
+        characterizes the dependent variable given values of the independent variable.
 
-        Args:
-            x (array): values of the independent variable
-            theta (array): parameter vector of the error model:
-                5 parameters of asymmetric logistic model (mu)
-                scale_degree parameters of for scale
+        Parameters
+        ----------
+        x : array-like
+            values of the independent variable
+        theta : optional, array-like
+            parameter vector of the error model:
+                5 parameters of asymmetric logistic model for mu
+                [scale_degree]  parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
 
-        Returns:
-            mu (array): values for the mu parameter of a student-t-distribution describing the dependent variable
-            scale (scalar): values for the scale parameter of a student-t-distribution describing the dependent variable
-            df (scalar): degree of freedom of student-t-distribution
+        Returns
+        -------
+        mu : array-like
+            values for the mu parameter of a student-t-distribution describing the dependent variable
+        scale : array-like or float
+            values for the scale parameter of a student-t-distribution describing the dependent variable
+        df : float
+            degree of freedom of student-t-distribution
         """
         if theta is None:
             theta = self.theta_fitted
@@ -248,14 +312,19 @@ class BaseAsymmetricLogisticT(BaseModelT):
         return mu, scale, df
 
     def predict_independent(self, y, *, theta=None):
-        """Predict the most likely value of the independent variable using the calibrated error model in inverse direction.
+        """Predict the independent variable using the inverse trend model.
 
-        Args:
-            y (array): observed measurements (dependent variable)
-            theta (array): parameter vector of the error model
+        Parameters
+        ----------
+        y : array-like
+            observations
+        theta : optional, array-like
+            parameter vector of the error model
 
-        Returns:
-            x (array): most likely values (independent variable)
+        Returns
+        -------
+        x : array-like
+            predicted independent values given the observations
         """
         if theta is None:
             theta = self.theta_fitted
@@ -263,7 +332,25 @@ class BaseAsymmetricLogisticT(BaseModelT):
 
 
 class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
-    def __init__(self, *, independent_key:str, dependent_key:str, scale_degree:int=0, theta_names=None):
+    def __init__(
+        self, *,
+        independent_key:str, dependent_key:str,
+        scale_degree:int=0,
+        theta_names: typing.Optional[typing.Tuple[str]]=None,
+    ):
+        """ Template for a model with asymmetric logistic trend (mu) and scale (as a function of mu).
+
+        Parameters
+        ----------
+        independent_key : str
+            name of the independent variable
+        dependent_key : str
+            name of the dependent variable
+        scale_degree : optional, int
+            degree of the polynomial model describing the scale as a function of mu
+        theta_names : optional, tuple of str
+            may be used to set the names of the model parameters
+        """
         self.scale_degree = scale_degree
         if theta_names is None:
             theta_names = tuple('L_L,L_U,log_I_x,S,c'.split(',')) + tuple(
@@ -273,21 +360,27 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
-        """
-        Predicts the parameters mu, scale, df of a student-t-distribution which characterises
-        the dependent variable given values of the independent variable.
+        """Predicts the parameters mu and scale of a student-t-distribution which
+        characterizes the dependent variable given values of the independent variable.
 
-        Args:
-            x (array): values of the independent variable
-            theta (array): parameter vector of the error model:
-                5 parameters of log-independent asymmetric logistic model (mu)
-                scale_degree parameters of for scale
+        Parameters
+        ----------
+        x : array-like
+            values of the independent variable
+        theta : optional, array-like
+            parameter vector of the error model:
+                5 parameters of log-independent asymmetric logistic model for mu
+                [scale_degree]  parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
 
-        Returns:
-            mu (array): values for the mu parameter of a student-t-distribution describing the dependent variable
-            scale (scalar): values for the scale parameter of a student-t-distribution describing the dependent variable
-            df (scalar): degree of freedom of student-t-distribution
+        Returns
+        -------
+        mu : array-like
+            values for the mu parameter of a student-t-distribution describing the dependent variable
+        scale : array-like or float
+            values for the scale parameter of a student-t-distribution describing the dependent variable
+        df : float
+            degree of freedom of student-t-distribution
         """
         if theta is None:
             theta = self.theta_fitted
@@ -300,14 +393,19 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
         return mu, scale, df
 
     def predict_independent(self, y, *, theta=None):
-        """Predict the most likely value of the independent variable using the calibrated error model in inverse direction.
+        """Predict the independent variable using the inverse trend model.
 
-        Args:
-            y (array): observed measurements (dependent variable)
-            theta (array): parameter vector of the error model
+        Parameters
+        ----------
+        y : array-like
+            observations
+        theta : optional, array-like
+            parameter vector of the error model
 
-        Returns:
-            x (array): most likely values (independent variable)
+        Returns
+        -------
+        x : array-like
+            predicted independent values given the observations
         """
         if theta is None:
             theta = self.theta_fitted

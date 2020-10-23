@@ -14,7 +14,23 @@ except ModuleNotFoundError:
 _log = logging.getLogger('calibr8.optimization')
 
 
-def _warn_hit_bounds(theta, bounds, theta_names):
+def _warn_hit_bounds(theta, bounds, theta_names) -> bool:
+    """ Helper function that logs a warning for every parameter that hits a bound.
+
+    Parameters
+    ----------
+    theta : array-like
+        parameters
+    bounds : list of (lb, ub)
+        bounds
+    theta_names : tuple
+        corresponding parameter names
+
+    Returns
+    -------
+    bound_hit : bool
+        is True if at least one parameter was close to a bound
+    """
     bound_hit = False
     for (ip, p), (lb, ub) in zip(enumerate(theta), bounds):
         pname = f'{ip+1}' if not theta_names else theta_names[ip]
@@ -27,18 +43,30 @@ def _warn_hit_bounds(theta, bounds, theta_names):
     return bound_hit
 
 
-def fit_scipy(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:numpy.ndarray, theta_guess:list, theta_bounds:list=None, minimize_kwargs:dict=None):
+def fit_scipy(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:numpy.ndarray, theta_guess:list, theta_bounds:list, minimize_kwargs:dict=None):
     """Function to fit the error model with observed data.
 
-    Args:
-        independent (array): desired values of the independent variable or measured values of the same
-        dependent (array): observations of dependent variable
-        theta_guess: initial guess for parameters describing the mode and standard deviation of a PDF of the dependent variable
-        theta_bounds: bounds to fit the parameters
+    Parameters
+    ----------
+    model : calibr8.ErrorModel
+        the error model to fit (inplace)
+    independent : array-like
+        desired values of the independent variable or measured values of the same
+    dependent : array-like
+        observations of dependent variable
+    theta_guess : array-like
+        initial guess for parameters describing the mode and standard deviation of a PDF of the dependent variable
+    theta_bounds : array-like
+        bounds to fit the parameters
+    minimize_kwargs : dict
+        keyword-arguments for scipy.optimize.minimize
 
-    Returns:
-        theta: best found parameter vector
-        history (list): history of the optimization
+    Returns
+    -------
+    theta : array-like
+        best found parameter vector
+    history : list
+        history of the optimization
     """
     n_theta = len(model.theta_names)
     if len(theta_guess) != n_theta:
@@ -78,16 +106,27 @@ def fit_pygmo(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
 
     Reference: https://esa.github.io/pygmo2/index.html
 
-    Args:
-        model (ErrorModel): the error model that shall be fitted
-        independent (array): desired values of the independent variable or measured values of the same
-        dependent (array): observations of dependent variable
-        theta_bounds: bounds for the model parameters - must not be half-open!
-        theta_guess: (optional) initial guess for model parameters
+    Parameters
+    ----------
+    model : calibr8.ErrorModel
+        the error model to fit (inplace)
+    independent : array-like
+        desired values of the independent variable or measured values of the same
+    dependent : array-like
+        observations of dependent variable
+    theta_guess : array-like
+        initial guess for parameters describing the mode and standard deviation of a PDF of the dependent variable
+    theta_bounds : optional, array-like
+        bounds to fit the parameters - must not be half-open!
+    minimize_kwargs : dict
+        keyword-arguments for scipy.optimize.minimize
 
-    Returns:
-        theta: best found parameter vector
-        history (list): history of the optimization
+    Returns
+    -------
+    theta : array-like
+        best found parameter vector
+    history : list
+        history of the optimization
     """
     n_theta = len(model.theta_names)
     if theta_guess is not None and len(theta_guess) != n_theta:
