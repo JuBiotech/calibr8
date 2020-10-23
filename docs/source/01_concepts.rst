@@ -1,3 +1,0 @@
-Concepts
---------
-Some content
