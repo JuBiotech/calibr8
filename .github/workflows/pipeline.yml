@@ -26,33 +26,19 @@ jobs:
         flake8 . --count --exit-zero --statistics
     - name: Test with pytest
       run: |
-        pytest --cov=./calibr8 --cov-append --cov-report term-missing calibr8/tests.py
-        coverage report -m
-    - name: Run dedicated coverage step
-      if: matrix.python-version == 3.8
+        pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
+    - name: Install PyMC3 and PyGMO
       run: |
-        export NUMBA_DISABLE_JIT=1
-        pytest --cov=./calibr8 --cov-report xml --cov-report term-missing calibr8/test.py
+        pip install pymc3 
+        pip install pygmo
+    - name: Test with PyMC3 and PyGMO
+      run: |
+        pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
     - name: Upload coverage
       uses: codecov/codecov-action@v1
       if: matrix.python-version == 3.8
       with:
         file: ./coverage.xml
-        fail_ci_if_error: true
-    - name: Test with PyMC3 and PyGMO
-      run: |
-        pip install pymc3 
-        pip install pygmo
-    - name: Run dedicated coverage step
-      if: matrix.python-version == 3.8
-      run: |
-        export NUMBA_DISABLE_JIT=1
-        pytest --cov=./calibr8 --cov-report xml --cov-report term-missing calibr8/test.py
-    - name: Upload coverage
-      uses: codecov/codecov-action@v1
-      if: matrix.python-version == 3.8
-      with:
-        file: ./coverage-pymc3-pygmo.xml
     - name: Test Wheel install and import
       run: |
         python setup.py bdist_wheel

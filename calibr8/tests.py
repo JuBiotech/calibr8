@@ -448,26 +448,26 @@ class TestUtils:
         assert (calibr8.utils.HAS_PYMC3)
         return
 
-    def assert_version_match(self):
+    def test_assert_version_match(self):
         # fist shorter
-        calibr8.utils.assert_version_match("1", "1.2.2.2");
-        calibr8.utils.assert_version_match("1.1", "1.1.2.2");
-        calibr8.utils.assert_version_match("1.1.1", "1.1.1.2");
-        calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.1");
+        calibr8.utils.assert_version_match("1", "1.2.2.2")
+        calibr8.utils.assert_version_match("1.1", "1.1.2.2")
+        calibr8.utils.assert_version_match("1.1.1", "1.1.1.2")
+        calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.1")
         # second shorter
-        calibr8.utils.assert_version_match("1.2.2.2", "1");
-        calibr8.utils.assert_version_match("1.1.2.2", "1.1");
-        calibr8.utils.assert_version_match("1.1.1.2", "1.1.1");
-        calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.1");
+        calibr8.utils.assert_version_match("1.2.2.2", "1")
+        calibr8.utils.assert_version_match("1.1.2.2", "1.1")
+        calibr8.utils.assert_version_match("1.1.1.2", "1.1.1")
+        calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.1")
 
-        with pytest.raises(MajorMismatchException):
-            calibr8.utils.assert_version_match("1.1.1.1", "2.1.1.1");
-        with pytest.raises(MinorMismatchException):
-            calibr8.utils.assert_version_match("1.1.1.1", "1.2.1.1");
-        with pytest.raises(PatchMismatchException):
-            calibr8.utils.assert_version_match("1.1.1.1", "1.1.2.1");
-        with pytest.raises(BuildMismatchException):
-            calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.2");
+        with pytest.raises(calibr8.MajorMismatchException):
+            calibr8.utils.assert_version_match("1.1.1.1", "2.1.1.1")
+        with pytest.raises(calibr8.MinorMismatchException):
+            calibr8.utils.assert_version_match("1.1.1.1", "1.2.1.1")
+        with pytest.raises(calibr8.PatchMismatchException):
+            calibr8.utils.assert_version_match("1.1.1.1", "1.1.2.1")
+        with pytest.raises(calibr8.BuildMismatchException):
+            calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.2")
         return
 
     def test_guess_asymmetric_logistic_theta(self):
