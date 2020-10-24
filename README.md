@@ -1,6 +1,7 @@
 [![PyPI version](https://badge.fury.io/py/calibr8.svg)](https://badge.fury.io/py/calibr8)
 [![pipeline](https://github.com/michaelosthege/calibr8/workflows/pipeline/badge.svg)](https://github.com/michaelosthege/calibr8/actions)
 [![coverage](https://codecov.io/gh/michaelosthege/calibr8/branch/master/graph/badge.svg)](https://codecov.io/gh/michaelosthege/calibr8)
+[![docs](https://readthedocs.org/projects/calibr8/badge/?version=latest)](https://calibr8.readthedocs.io/en/latest/?badge=latest)
 
 
 # `calibr8`
@@ -9,6 +10,7 @@ To see implementation examples & excercises, you can go to [notebooks/](notebook
 
 # Installation
 `calibr8` is released on [PyPI](https://pypi.org/project/calibr8/):
+
 ```
 pip install calibr8
 ```
