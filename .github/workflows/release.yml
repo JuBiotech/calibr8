@@ -20,7 +20,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -e . 
-        pip install flake8 pytest pytest-cov codecov wheel
+        pip install flake8 pytest pytest-cov twine wheel
     - name: Test with pytest
       run: |
         pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
