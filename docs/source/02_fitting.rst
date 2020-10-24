@@ -4,7 +4,7 @@ How to estimate error model parameters
 After implementing a custom error model class, the next step is to estimate
 the parameters of the error model by maximum likelihood.
 
-In addition to measurement results corresponding to measurement standards, this
+In addition to measurement results obtained from measurement standards, this
 optimization step requires an initial guess and bounds for the error model parameters.
 
 The `calibr8.optimization <calibr8_optimization.html>`__ module implements convenience functions such as

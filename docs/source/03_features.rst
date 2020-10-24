@@ -7,7 +7,7 @@ Saving & Loading
 After fitting, error models can be saved to JSON files with :code:`errormodel.save("my_errormodel.json")`.
 This facilitates their re-use across different notebooks and analysis sessions.
 
-To load and error model, you'll need to reference the ``class`` definition of the model:
+To load an error model, you'll need to reference the ``class`` definition of the model:
 
 .. code-block:: python
 

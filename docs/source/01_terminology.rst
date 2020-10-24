@@ -18,4 +18,4 @@ over the dependent variable and its measurement uncertainties.
 The parameters of the error model describe how this probability distribution changes in dependence on the independent variable.
 
 With ``calibr8``, we provide a Python package to effortlessly construct and apply error models independent of the application domain.
-On the following pages, you can read about the concepts of ``calibr8`` and learn how to build you own error models for calibration and modeling.
+On the following pages, you can read about the concepts of ``calibr8`` and learn how to build your own error models for calibration and modeling.
