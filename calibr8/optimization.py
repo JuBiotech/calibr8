@@ -59,7 +59,7 @@ def fit_scipy(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
     dependent : array-like
         observations of dependent variable
     theta_guess : array-like
-        initial guess for parameters describing the mode and standard deviation of a PDF of the dependent variable
+        initial guess for parameters describing the PDF of the dependent variable
     theta_bounds : array-like
         bounds to fit the parameters
     minimize_kwargs : dict
@@ -119,7 +119,7 @@ def fit_pygmo(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
     dependent : array-like
         observations of dependent variable
     theta_guess : array-like
-        initial guess for parameters describing the mode and standard deviation of a PDF of the dependent variable
+        initial guess for parameters describing the PDF of the dependent variable
     theta_bounds : optional, array-like
         bounds to fit the parameters - must not be half-open!
     minimize_kwargs : dict

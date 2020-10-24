@@ -127,11 +127,11 @@ class ErrorModel:
         Returns
         -------
         parameters : array-like
-            parameters characterizing the dependent variable distribution
+            parameters characterizing the dependent variable distribution for given [x]
         """
         raise NotImplementedError('The predict_dependent function should be implemented by the inheriting class.')
     
-    def predict_independent(self, y):
+    def predict_independent(self, y, *, theta=None):
         """Predict the independent variable using the inverse trend model.
 
         Parameters
@@ -139,7 +139,8 @@ class ErrorModel:
         y : array-like
             observations
         theta : optional, array-like
-            parameter vector of the error model
+            parameters of functions that model the parameters of the dependent variable distribution
+            (defaults to self.theta_fitted)
 
         Returns
         -------
@@ -167,7 +168,7 @@ class ErrorModel:
             lower limit for uniform distribution of prior
         upper : float
             upper limit for uniform distribution of prior
-        steps : int            
+        steps : int
             steps between lower and upper or steps between the percentiles (default 300)
         hdi_prob : float
             if 1 (default), the complete interval [upper,lower] will be returned, 
@@ -181,7 +182,7 @@ class ErrorModel:
         """  
         raise NotImplementedError('The infer_independent function should be implemented by the inheriting class.')
 
-    def loglikelihood(self, *, y,  x, theta=None):
+    def loglikelihood(self, *, y, x, theta=None):
         """Loglikelihood of observation (dependent variable) given the independent variable
 
         Parameters
