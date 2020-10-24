@@ -1,0 +1,49 @@
+name: release-pipeline
+
+on:
+  release:
+    types:
+      - created
+
+
+jobs:
+  release-job:
+    runs-on: ubuntu-latest
+    env:
+      PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: |
+        pip install -e . 
+        pip install flake8 pytest pytest-cov codecov wheel
+    - name: Test with pytest
+      run: |
+        pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
+    - name: Install PyMC3 and PyGMO
+      run: |
+        pip install pymc3 
+        pip install pygmo
+    - name: Test with PyMC3 and PyGMO
+      run: |
+        pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
+    - name: Build package
+      run: |
+        python setup.py sdist bdist_wheel
+    - name: Check version number match
+      run: |
+        echo "GITHUB_REF: ${GITHUB_REF}"
+        # Make sure the package version is the same as the tag
+        grep -Rq "^Version: ${GITHUB_REF:11}$" calibr8.egg-info/PKG-INFO
+    - name: Publish to PyPI
+      run: |
+        twine check dist/*
+        twine upload --repository pypi --username __token__ --password ${PYPI_TOKEN} dist/*
+    - name: Test installation
+      run: |
+        sleep 120
+        pip install calibr8==${GITHUB_REF:11}

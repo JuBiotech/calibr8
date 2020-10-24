@@ -1,0 +1,4 @@
+fastprogress
+matplotlib
+numpy
+scipy
