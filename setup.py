@@ -4,11 +4,12 @@ import pathlib
 import re
 
 __packagename__ = 'calibr8'
+ROOT = pathlib.Path(__file__).parent
 
 
 def package_files(directory):
     assert os.path.exists(directory)
-    fp_typed = pathlib.Path(pathlib.Path(__file__).parent, __packagename__, 'py.typed')
+    fp_typed = pathlib.Path(ROOT, __packagename__, 'py.typed')
     fp_typed.touch()
     paths = [str(fp_typed.absolute())]
     for (path, directories, filenames) in os.walk(directory):
