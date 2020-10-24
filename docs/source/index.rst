@@ -1,7 +1,9 @@
 Welcome to the ``calibr8`` documentation!
-=============================================
+=========================================
 
 With ``calibr8`` we take a fresh perspective on calibration and error modeling.
+
+You can download the latest version from `GitHub <https://github.com/michaelosthege/calibr8>`_ or install it via ``pip install calibr8``.
 
 In the following chapters, we introduce the terminology, basic concepts and most important features.
 

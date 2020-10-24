@@ -14,5 +14,8 @@ To see implementation examples & excercises, you can go to [notebooks/](notebook
 ```
 pip install calibr8
 ```
+# Documentation
+Read the package documentation [here](https://calibr8.readthedocs.io/en/latest/?badge=latest).
+
 # Usage and Citing
 `calibr8` is licensed under the [GNU Affero General Public License v3.0](https://github.com/michaelosthege/calibr8/blob/master/LICENSE).
