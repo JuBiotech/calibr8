@@ -6,4 +6,4 @@ This package provides templates and functions for performing likelihood-based er
 
 To download a recent release, go to [Repository/tags](https://jugit.fz-juelich.de/IBG-1/micropro/calibr8/-/tags).
 
-To see implementation examples & excercises, you can go to [examples/](https://jugit.fz-juelich.de/IBG-1/micropro/calibr8/tree/master/examples).
+To see implementation examples & excercises, you can go to [notebooks/](notebooks).

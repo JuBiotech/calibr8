@@ -1,5 +1,9 @@
+"""
+This module implements generic, reusable error models that can be subclassed to
+implement custom error models.
+"""
 from collections import namedtuple
-import numpy  
+import numpy
 import scipy
 import typing
 
@@ -17,7 +21,7 @@ except ModuleNotFoundError:
 
 
 class BaseModelT(core.ErrorModel):
-    def loglikelihood(self, *, y,  x, replicate_id: str=None, dependent_key: str=None, theta=None):
+    def loglikelihood(self, *, y, x, replicate_id: str=None, dependent_key: str=None, theta=None):
         """Loglikelihood of observation (dependent variable) given the independent variable
 
         Parameters
@@ -46,9 +50,9 @@ class BaseModelT(core.ErrorModel):
         if utils.istensor(x) or utils.istensor(theta):
             if pm.Model.get_context(error_if_none=False) is not None:
                 if not replicate_id:
-                    raise  ValueError(f'A replicate_id is required in tensor-mode.')
+                    raise ValueError(f'A replicate_id is required in tensor-mode.')
                 if not dependent_key:
-                    raise  ValueError(f'A dependent_key is required in tensor-mode.')
+                    raise ValueError(f'A dependent_key is required in tensor-mode.')
                 L = pm.StudentT(
                     f'{replicate_id}.{dependent_key}',
                     mu=mu,
@@ -89,7 +93,7 @@ class BaseModelT(core.ErrorModel):
             lower limit for uniform distribution of prior
         upper : float
             upper limit for uniform distribution of prior
-        steps : int            
+        steps : int
             steps between lower and upper or steps between the percentiles (default 300)
         hdi_prob : float
             if 1 (default), the complete interval [upper,lower] will be returned, 
@@ -205,7 +209,7 @@ class BasePolynomialModelT(BaseModelT):
         theta : optional, array-like
             parameter vector of the error model:
                 [mu_degree] parameters for mu (lowest degree first)
-                [scale_degree]  parameters for scale (lowest degree first)
+                [scale_degree] parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
 
         Returns
@@ -235,7 +239,10 @@ class BasePolynomialModelT(BaseModelT):
         y : array-like
             observations
         theta : optional, array-like
-            parameter vector of the error model
+            parameter vector of the error model:
+                [mu_degree] parameters for mu (lowest degree first)
+                [scale_degree] parameters for scale (lowest degree first)
+                1 parameter for degree of freedom
 
         Returns
         -------
@@ -245,7 +252,7 @@ class BasePolynomialModelT(BaseModelT):
         if theta is None:
             theta = self.theta_fitted
         if self.mu_degree > 1:
-            raise NotImplementedError('Inverse prediction of higher order polynomials are not implemented.')        
+            raise NotImplementedError('Inverse prediction of higher order polynomials are not implemented.')      
         a, b = theta[:2]
         return (y - a) / b
 
@@ -257,7 +264,7 @@ class BaseAsymmetricLogisticT(BaseModelT):
         scale_degree:int=0,
         theta_names: typing.Optional[typing.Tuple[str]]=None,
     ):
-        """ Template for a model with asymmetric logistic trend (mu) and scale (as a function of mu).
+        """ Template for a model with asymmetric logistic trend (mu) and polynomial scale (as a function of mu).
 
         Parameters
         ----------
@@ -289,7 +296,7 @@ class BaseAsymmetricLogisticT(BaseModelT):
         theta : optional, array-like
             parameter vector of the error model:
                 5 parameters of asymmetric logistic model for mu
-                [scale_degree]  parameters for scale (lowest degree first)
+                [scale_degree] parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
 
         Returns
@@ -318,8 +325,11 @@ class BaseAsymmetricLogisticT(BaseModelT):
         ----------
         y : array-like
             observations
-        theta : optional, array-like
-            parameter vector of the error model
+         theta : optional, array-like
+            parameter vector of the error model:
+                5 parameters of asymmetric logistic model for mu
+                [scale_degree] parameters for scale (lowest degree first)
+                1 parameter for degree of freedom
 
         Returns
         -------
@@ -338,7 +348,7 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
         scale_degree:int=0,
         theta_names: typing.Optional[typing.Tuple[str]]=None,
     ):
-        """ Template for a model with asymmetric logistic trend (mu) and scale (as a function of mu).
+        """ Template for a model with asymmetric logistic trend (mu) and polynomial scale (as a function of mu).
 
         Parameters
         ----------
@@ -370,7 +380,7 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
         theta : optional, array-like
             parameter vector of the error model:
                 5 parameters of log-independent asymmetric logistic model for mu
-                [scale_degree]  parameters for scale (lowest degree first)
+                [scale_degree] parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
 
         Returns
@@ -400,7 +410,10 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
         y : array-like
             observations
         theta : optional, array-like
-            parameter vector of the error model
+            parameter vector of the error model:
+                5 parameters of log-independent asymmetric logistic model for mu
+                [scale_degree] parameters for scale (lowest degree first)
+                1 parameter for degree of freedom
 
         Returns
         -------
