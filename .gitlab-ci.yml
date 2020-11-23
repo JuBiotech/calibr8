@@ -28,7 +28,7 @@ release-calibr8:
   stage: release
   image: python:3.7
   script:
-    - python setup.py bdist_wheel && cp dist/*.whl ..
+    - python setup.py bdist_wheel && cp dist/*.whl .
   artifacts:
     paths:
       - ./*.whl
