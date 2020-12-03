@@ -52,6 +52,16 @@ class NumericPosterior(typing.NamedTuple):
             result += f"\n    .{name}:\t{type(value).__name__}"
         return result
 
+    @property
+    def lower_hdi(self) -> float:
+        """ Lower bound of the HDI. This is the first value in `x_dense`. """
+        return self.x_dense[0]
+
+    @property
+    def upper_hdi(self) -> float:
+        """ Upper bound of the HDI. This is the last value in `x_dense`. """
+        return self.x_dense[-1]
+
 
 class ErrorModel:
     """A parent class providing the general structure of an error model."""
