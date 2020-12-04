@@ -1,5 +1,6 @@
 import collections
 import datetime
+import logging
 import numpy
 import pathlib
 import pytest
@@ -675,6 +676,8 @@ class TestBasePolynomialModelT:
         assert len(posterior.x_dense) == len(posterior.pdf)
         assert (posterior.hdi_prob==0.95)
         assert (numpy.isclose(scipy.integrate.cumtrapz(posterior.pdf,posterior.x_dense)[-1], 0.95, atol=0.0001))
+        assert posterior.lower_hdi == posterior.x_dense[0]
+        assert posterior.upper_hdi == posterior.x_dense[-1]
 
         # check that error are raised by wrong input
         with pytest.raises(ValueError):
@@ -820,6 +823,34 @@ class TestOptimization:
         em = _TestPolynomialModel()
         return theta_mu, theta_scale, theta, em, x, y
 
+    def test_finite_masking(self, caplog):
+        x = numpy.random.normal(size=5)
+        y = x ** 2
+        result = calibr8.optimization._mask_and_warn_inf_or_nan(x, y)
+        numpy.testing.assert_array_equal(result[0], x)
+        numpy.testing.assert_array_equal(result[1], y)
+
+        x[2] = float("nan")
+        with caplog.at_level(logging.WARNING):
+            result = calibr8.optimization._mask_and_warn_inf_or_nan(x, y, on="x")
+        numpy.testing.assert_array_equal(result[0], x[~numpy.isnan(x)])
+        numpy.testing.assert_array_equal(result[1], y[~numpy.isnan(x)])
+        assert "1 elements" in caplog.text
+
+        y[[0, 3]] = float("nan")
+        with caplog.at_level(logging.WARNING):
+            result = calibr8.optimization._mask_and_warn_inf_or_nan(x, y, on="y")
+        numpy.testing.assert_array_equal(result[0], x[~numpy.isnan(y)])
+        numpy.testing.assert_array_equal(result[1], y[~numpy.isnan(y)])
+        assert "2 elements" in caplog.text
+
+        with caplog.at_level(logging.WARNING):
+            result = calibr8.optimization._mask_and_warn_inf_or_nan(x, y)
+        assert not numpy.any(numpy.isnan(result[0]))
+        assert not numpy.any(numpy.isnan(result[1]))
+        assert "3 elements" in caplog.text
+        pass
+
     def test_fit_checks_guess_and_bounds_count(self):
         theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         common = dict(model=em, independent=x, dependent=y)
@@ -832,7 +863,7 @@ class TestOptimization:
                 fit(**common, theta_guess=numpy.ones_like(theta), theta_bounds=[(-5, 5)]*14)
         return
 
-    def test_fit_scipy(self):
+    def test_fit_scipy(self, caplog):
         numpy.random.seed(1234)
         theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         theta_fit, history = calibr8.fit_scipy(
@@ -849,16 +880,31 @@ class TestOptimization:
         assert em.theta_guess is not None
         numpy.testing.assert_array_equal(em.cal_independent, x)
         numpy.testing.assert_array_equal(em.cal_dependent, y)
+
+        with caplog.at_level(logging.WARNING):
+            x[0] = float("nan")
+            y[-1] = numpy.inf
+            calibr8.fit_scipy(
+                em,
+                independent=x, dependent=y,
+                theta_guess=numpy.ones_like(theta),
+                theta_bounds=[(-5, 5)]*len(theta_mu) + [(0.02, 1), (1, 20)]
+            )
+        assert "2 elements" in caplog.text
+        # inf/nan should only be ignored for fitting
+        numpy.testing.assert_array_equal(em.cal_independent, x)
+        numpy.testing.assert_array_equal(em.cal_dependent, y)
         pass
 
     @pytest.mark.skipif(not HAS_PYGMO, reason='requires PyGMO')
-    def test_fit_pygmo(self):
+    def test_fit_pygmo(self, caplog):
         numpy.random.seed(1234)
         theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         theta_fit, history = calibr8.fit_pygmo(
             em,
             independent=x, dependent=y,
-            theta_bounds=[(-5, 5)]*len(theta_mu) + [(0.02, 1), (1, 20)]
+            theta_bounds=[(-5, 5)]*len(theta_mu) + [(0.02, 1), (1, 20)],
+            evolutions=5,
         )
         for actual, desired, atol in zip(theta_fit, theta, [0.10, 0.05, 0.2, 2]):
             numpy.testing.assert_allclose(actual, desired, atol=atol)
@@ -866,6 +912,20 @@ class TestOptimization:
         numpy.testing.assert_array_equal(em.theta_fitted, theta_fit)
         assert em.theta_bounds is not None
         assert em.theta_guess is None
+        numpy.testing.assert_array_equal(em.cal_independent, x)
+        numpy.testing.assert_array_equal(em.cal_dependent, y)
+
+        with caplog.at_level(logging.WARNING):
+            x[0] = -numpy.inf
+            y[-1] = float("nan")
+            calibr8.fit_pygmo(
+                em,
+                independent=x, dependent=y,
+                theta_bounds=[(-5, 5)]*len(theta_mu) + [(0.02, 1), (1, 20)],
+                evolutions=5,
+            )
+        assert "2 elements" in caplog.text
+        # inf/nan should only be ignored for fitting
         numpy.testing.assert_array_equal(em.cal_independent, x)
         numpy.testing.assert_array_equal(em.cal_dependent, y)
         pass

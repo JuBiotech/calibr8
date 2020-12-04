@@ -6,6 +6,7 @@ import fastprogress
 import numpy
 import logging
 import scipy.optimize
+import typing
 
 from . import core
 from . import utils
@@ -16,6 +17,34 @@ except ModuleNotFoundError:
     pygmo = utils.ImportWarner('pygmo')
 
 _log = logging.getLogger('calibr8.optimization')
+
+
+def _mask_and_warn_inf_or_nan(x: numpy.ndarray, y: numpy.ndarray, on: typing.Optional[str]=None):
+    """ Filters `x` and `y` such that only finite elements remain.
+
+    Parameters
+    ----------
+    x : ndarray
+        1-dimensional array of values, same shape as y
+    y : ndarray
+        1-dimensional array of values, same shape as x
+    on : [None, "x", "y"]
+        May be passed to filter on only x, or y instead of both (None, default).
+
+    Returns
+    -------
+    x : array
+    y : array
+    """
+    if on == "y":
+        mask = numpy.isfinite(y)
+    elif on =="x":
+        mask = numpy.isfinite(x)
+    else:
+        mask = numpy.logical_and(numpy.isfinite(x), numpy.isfinite(y))
+    if numpy.any(~mask):
+        _log.warning("%d elements in x and y where dropped because they were inf or nan.", sum(~mask))
+    return x[mask], y[mask]
 
 
 def _warn_hit_bounds(theta, bounds, theta_names) -> bool:
@@ -81,9 +110,11 @@ def fit_scipy(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
     if not minimize_kwargs:
         minimize_kwargs = {}
 
+    independent_finite, dependent_finite = _mask_and_warn_inf_or_nan(independent, dependent)
+
     history = []
     fit = scipy.optimize.minimize(
-        model.objective(independent=independent, dependent=dependent, minimize=True),
+        model.objective(independent=independent_finite, dependent=dependent_finite, minimize=True),
         x0=theta_guess,
         bounds=theta_bounds,
         callback=lambda x: history.append(x),
@@ -105,7 +136,7 @@ def fit_scipy(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
     return fit.x, history
 
 
-def fit_pygmo(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:numpy.ndarray, theta_bounds:list, theta_guess:list=None, algos:list=None):
+def fit_pygmo(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:numpy.ndarray, theta_bounds:list, theta_guess:list=None, algos:list=None, evolutions:int=50):
     """Use PyGMO to fit an error model.
 
     Reference: https://esa.github.io/pygmo2/index.html
@@ -122,8 +153,10 @@ def fit_pygmo(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
         initial guess for parameters describing the PDF of the dependent variable
     theta_bounds : optional, array-like
         bounds to fit the parameters - must not be half-open!
-    minimize_kwargs : dict
-        keyword-arguments for scipy.optimize.minimize
+    algos : list of PyGMO algorithms
+        defaults to differential evolution, particle swam and simulated annealing
+    evolutions : int
+        number of evolutions of the pygmo archipelago
 
     Returns
     -------
@@ -138,10 +171,12 @@ def fit_pygmo(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
     if len(theta_bounds) != n_theta:
         raise ValueError(f'The length of theta_bounds ({len(theta_bounds)}) does not match the number of model parameters ({n_theta}).')
 
+    independent_finite, dependent_finite = _mask_and_warn_inf_or_nan(independent, dependent)
+
     bounds = tuple(numpy.array(theta_bounds).T)
-    
+
     # problem specification
-    objective = model.objective(independent=independent, dependent=dependent, minimize=True)
+    objective = model.objective(independent=independent_finite, dependent=dependent_finite, minimize=True)
     class ObjectiveWrapper:
         def get_bounds(self):
             return bounds
@@ -182,7 +217,6 @@ def fit_pygmo(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
     archipel.wait_check()
 
     # Run the evolutions and follow the progress
-    evolutions = 50
     history = []
     for i in fastprogress.progress_bar(range(evolutions)):
         archipel.evolve(n=1)
