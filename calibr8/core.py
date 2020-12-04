@@ -53,12 +53,12 @@ class NumericPosterior(typing.NamedTuple):
         return result
 
     @property
-    def lower_hdi(self) -> float:
+    def hdi_lower(self) -> float:
         """ Lower bound of the HDI. This is the first value in `x_dense`. """
         return self.x_dense[0]
 
     @property
-    def upper_hdi(self) -> float:
+    def hdi_upper(self) -> float:
         """ Upper bound of the HDI. This is the last value in `x_dense`. """
         return self.x_dense[-1]
 

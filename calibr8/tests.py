@@ -676,8 +676,8 @@ class TestBasePolynomialModelT:
         assert len(posterior.x_dense) == len(posterior.pdf)
         assert (posterior.hdi_prob==0.95)
         assert (numpy.isclose(scipy.integrate.cumtrapz(posterior.pdf,posterior.x_dense)[-1], 0.95, atol=0.0001))
-        assert posterior.lower_hdi == posterior.x_dense[0]
-        assert posterior.upper_hdi == posterior.x_dense[-1]
+        assert posterior.hdi_lower == posterior.x_dense[0]
+        assert posterior.hdi_upper == posterior.x_dense[-1]
 
         # check that error are raised by wrong input
         with pytest.raises(ValueError):
