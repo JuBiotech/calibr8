@@ -8,6 +8,7 @@ import scipy
 import scipy.stats as stats
 
 import calibr8
+import calibr8.utils
 
 
 try:
@@ -375,22 +376,22 @@ class TestSymbolicModelFunctions:
 
 class TestUtils:
     def test_datetime_parsing(self):
-        assert calibr8.parse_datetime(None) is None
+        assert calibr8.utils.parse_datetime(None) is None
         assert (
-            calibr8.parse_datetime('2018-12-01T09:27:30Z')
+            calibr8.utils.parse_datetime('2018-12-01T09:27:30Z')
             ==
             datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc)
         )
         assert (
-            calibr8.parse_datetime('2018-12-01T09:27:30+0000')
+            calibr8.utils.parse_datetime('2018-12-01T09:27:30+0000')
             ==
             datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc)
         )
 
     def test_datetime_formatting(self):
-        assert calibr8.format_datetime(None) is None
+        assert calibr8.utils.format_datetime(None) is None
         assert (
-            calibr8.format_datetime(datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc))
+            calibr8.utils.format_datetime(datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc))
             ==
             '2018-12-01T09:27:30Z'
         )
