@@ -5,7 +5,7 @@ from .contrib.base import (
     BasePolynomialModelT,
 )
 from .core import (
-    ErrorModel,
+    CalibrationModel,
     NumericPosterior,
     __version__,
     asymmetric_logistic,
@@ -36,3 +36,14 @@ from .utils import (
     plot_norm_band,
     plot_t_band,
 )
+
+
+class ErrorModel(CalibrationModel):
+    def __init__(self, *args, **kwargs):
+        import warnings
+
+        warnings.warn(
+            "The `ErrorModel` class was renamed to `CalibrationModel`. It will be removed in a future release.",
+            DeprecationWarning,
+        )
+        super().__init__(*args, **kwargs)

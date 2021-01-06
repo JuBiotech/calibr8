@@ -6,7 +6,7 @@
 
 
 # `calibr8`
-This package provides templates and functions for performing likelihood-based error modeling.
+This package provides templates and functions for performing likelihood-based calibration modeling.
 To see implementation examples & excercises, you can go to [notebooks/](notebooks).
 
 # Installation

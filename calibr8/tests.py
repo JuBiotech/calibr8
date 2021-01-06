@@ -29,7 +29,7 @@ except ModuleNotFoundError:
 dir_testfiles = pathlib.Path(pathlib.Path(__file__).absolute().parent, 'testfiles')
 
 
-class _TestModel(calibr8.ErrorModel):
+class _TestModel(calibr8.CalibrationModel):
     def __init__(self, independent_key=None, dependent_key=None, theta_names=None):
         if theta_names is None:
             theta_names = tuple('a,b,c'.split(','))
@@ -51,7 +51,7 @@ class _TestLogIndependentLogisticModel(calibr8.BaseLogIndependentAsymmetricLogis
         super().__init__(independent_key='I', dependent_key='D', scale_degree=scale_degree)
 
 
-class TestBasicErrorModel:
+class TestBasicCalibrationModel:
     def test_init(self):
         em = _TestModel('I', 'D', theta_names=tuple('c,d,e'.split(',')))
         assert em.independent_key == 'I'
@@ -67,18 +67,18 @@ class TestBasicErrorModel:
         pass
     
     def test_constructor_signature_check(self):
-        class EM_OK(calibr8.ErrorModel):
+        class EM_OK(calibr8.CalibrationModel):
             def __init__(self, arg1=1, *, kwonly=2, kwonlydefault=4):
                 super().__init__('I', 'D', theta_names=tuple('abc'))
         EM_OK()
 
-        class EM_args(calibr8.ErrorModel):
+        class EM_args(calibr8.CalibrationModel):
             def __init__(self, arg1):
                 super().__init__('I', 'D', theta_names=tuple('abc'))
         with pytest.raises(TypeError):
             EM_args(arg1=3)
 
-        class EM_kwargs(calibr8.ErrorModel):
+        class EM_kwargs(calibr8.CalibrationModel):
             def __init__(self, *, kwonly, kwonlydefault=4):
                 super().__init__('I', 'D', theta_names=tuple('abc'))
         with pytest.raises(TypeError):
@@ -91,15 +91,15 @@ class TestBasicErrorModel:
         dependent = 'BS'
         x = numpy.array([1,2,3])
         y = numpy.array([4,5,6])
-        errormodel = _TestModel()
+        cmodel = _TestModel()
         with pytest.raises(NotImplementedError):
-            _ = errormodel.predict_dependent(x)
+            _ = cmodel.predict_dependent(x)
         with pytest.raises(NotImplementedError):
-            _ = errormodel.predict_independent(x)
+            _ = cmodel.predict_independent(x)
         with pytest.raises(NotImplementedError):
-            _ = errormodel.infer_independent(y, lower=0, upper=10, steps=10, hdi_prob=None)
+            _ = cmodel.infer_independent(y, lower=0, upper=10, steps=10, hdi_prob=None)
         with pytest.raises(NotImplementedError):
-            _ = errormodel.loglikelihood(y=y, x=x, theta=[1,2,3])
+            _ = cmodel.loglikelihood(y=y, x=x, theta=[1,2,3])
         pass
 
     def test_save_and_load_version_check(self):
@@ -131,7 +131,7 @@ class TestBasicErrorModel:
         calibr8.core.__version__ = '.'.join(map(str, vactual))
         
         # load with the wrong model
-        class DifferentEM(calibr8.ErrorModel):
+        class DifferentEM(calibr8.CalibrationModel):
             pass
 
         with pytest.raises(calibr8.CompatibilityException):
@@ -689,17 +689,17 @@ class TestBasePolynomialModelT:
     
     @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
     def test_symbolic_loglikelihood(self):
-        errormodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
-        errormodel.theta_fitted = [0, 1, 0.1, 1]
+        cmodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
+        cmodel.theta_fitted = [0, 1, 0.1, 1]
        
         # create test data
         x_true = numpy.array([1,2,3,4,5])
-        y_obs = errormodel.predict_dependent(x_true)[0]
+        y_obs = cmodel.predict_dependent(x_true)[0]
 
-        # create a pymc3 model using the error model
+        # create a pymc3 model using the calibration model
         with pymc3.Model() as pmodel:
             x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
-            L = errormodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
+            L = cmodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
             assert isinstance(L, tt.TensorVariable)
         
         # compare the two loglikelihood computation methods
@@ -707,32 +707,32 @@ class TestBasePolynomialModelT:
         actual = L.logp({
             'x_hat': x_test
         })
-        expected = errormodel.loglikelihood(x=x_test, y=y_obs)
+        expected = cmodel.loglikelihood(x=x_test, y=y_obs)
         numpy.testing.assert_almost_equal(actual, expected, 6)
         pass
 
     def test_loglikelihood(self):
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = _TestPolynomialModel(independent_key='S', dependent_key='OD', mu_degree=1, scale_degree=1)
-        errormodel.theta_fitted = [0, 1, 0.1, 1.6]
+        cmodel = _TestPolynomialModel(independent_key='S', dependent_key='OD', mu_degree=1, scale_degree=1)
+        cmodel.theta_fitted = [0, 1, 0.1, 1.6]
         with pytest.raises(TypeError):
-            _ = errormodel.loglikelihood(y, x=x)
-        true = errormodel.loglikelihood(y=y, x=x)
-        mu, scale, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
+            _ = cmodel.loglikelihood(y, x=x)
+        true = cmodel.loglikelihood(y=y, x=x)
+        mu, scale, df = cmodel.predict_dependent(x, theta=cmodel.theta_fitted)
         expected = numpy.sum(stats.t.logpdf(x=y, loc=mu, scale=scale, df=df))
         assert expected == true
         x = 'hello'
         with pytest.raises(Exception):
-            _= errormodel.loglikelihood(y=y, x=x)
+            _= cmodel.loglikelihood(y=y, x=x)
         return
     
     def test_loglikelihood_without_fit(self):
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = _TestPolynomialModel(independent_key='Glu', dependent_key='OD', mu_degree=1, scale_degree=1)
+        cmodel = _TestPolynomialModel(independent_key='Glu', dependent_key='OD', mu_degree=1, scale_degree=1)
         with pytest.raises(Exception):
-            _= errormodel.loglikelihood(y=y, x=x)
+            _= cmodel.loglikelihood(y=y, x=x)
         return
 
 
@@ -740,38 +740,38 @@ class TestBaseAsymmetricLogisticModelT:
     def test_predict_dependent(self):
         x = numpy.array([1,2,3])
         theta = [0, 4, 2, 1, 1, 0, 2, 1.4]
-        errormodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
-        errormodel.theta_fitted = theta
+        cmodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
+        cmodel.theta_fitted = theta
         with pytest.raises(TypeError):
-            _ = errormodel.predict_dependent(x, theta)
-        mu, scale, df = errormodel.predict_dependent(x)
+            _ = cmodel.predict_dependent(x, theta)
+        mu, scale, df = cmodel.predict_dependent(x)
         numpy.testing.assert_array_equal(mu, calibr8.asymmetric_logistic(x, theta))
         numpy.testing.assert_array_equal(scale, 0 + 2 * mu)
         assert df == 1.4
         return
     
     def test_predict_independent(self):
-        errormodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
-        errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.43]
+        cmodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
+        cmodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.43]
         x_original = numpy.array([4, 5, 6])
-        mu, sd, df = errormodel.predict_dependent(x_original)
-        x_predicted = errormodel.predict_independent(y=mu)
+        mu, sd, df = cmodel.predict_dependent(x_original)
+        x_predicted = cmodel.predict_independent(y=mu)
         assert (numpy.allclose(x_predicted, x_original))
         return
     
     @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
     def test_symbolic_loglikelihood(self):
-        errormodel = _TestLogisticModel(independent_key='S', dependent_key='A', scale_degree=1)
-        errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.23]
+        cmodel = _TestLogisticModel(independent_key='S', dependent_key='A', scale_degree=1)
+        cmodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.23]
        
         # create test data
         x_true = numpy.array([1,2,3,4,5])
-        y_obs = errormodel.predict_dependent(x_true)[0]
+        y_obs = cmodel.predict_dependent(x_true)[0]
 
-        # create a pymc3 model using the error model
+        # create a pymc3 model using the calibration model
         with pymc3.Model() as pmodel:
             x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
-            L = errormodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
+            L = cmodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
             assert isinstance(L, tt.TensorVariable)
         
         # compare the two loglikelihood computation methods
@@ -779,32 +779,32 @@ class TestBaseAsymmetricLogisticModelT:
         actual = L.logp({
             'x_hat': x_test
         })
-        expected = errormodel.loglikelihood(x=x_test, y=y_obs)
+        expected = cmodel.loglikelihood(x=x_test, y=y_obs)
         numpy.testing.assert_almost_equal(actual, expected, 6)
         return
     
     def test_loglikelihood(self):
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
-        errormodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.7]
+        cmodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
+        cmodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.7]
         with pytest.raises(TypeError):
-            _ = errormodel.loglikelihood(y, x=x)
-        true = errormodel.loglikelihood(y=y, x=x)
-        mu, scale, df = errormodel.predict_dependent(x, theta=errormodel.theta_fitted)
+            _ = cmodel.loglikelihood(y, x=x)
+        true = cmodel.loglikelihood(y=y, x=x)
+        mu, scale, df = cmodel.predict_dependent(x, theta=cmodel.theta_fitted)
         expected = numpy.sum(stats.t.logpdf(x=y, loc=mu, scale=scale, df=df))
         assert expected == true
         x = 'hello'
         with pytest.raises(Exception):
-            _= errormodel.loglikelihood(y=y, x=x)
+            _= cmodel.loglikelihood(y=y, x=x)
         return
     
     def test_loglikelihood_without_fit(self):
         x = numpy.array([1,2,3])
         y = numpy.array([1,2,3])
-        errormodel = _TestLogisticModel(independent_key='Glu', dependent_key='OD', scale_degree=1)
+        cmodel = _TestLogisticModel(independent_key='Glu', dependent_key='OD', scale_degree=1)
         with pytest.raises(Exception):
-            _= errormodel.loglikelihood(y=y, x=x)
+            _= cmodel.loglikelihood(y=y, x=x)
         return
 
 
