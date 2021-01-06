@@ -425,12 +425,11 @@ class TestUtils:
         test_dict2 = {
             'a': 1, 
             'b': [1,2,3], 
-            'c': numpy.array([(1, tt.TensorVariable([1,2,3])), (3,4)])
+            'c': numpy.array([(1, tt.as_tensor_variable([1,2,3])), (3,4)])
         }
         assert (calibr8.istensor(test_dict2))
         assert (calibr8.istensor([1, tt.as_tensor_variable([1,2]), 3]))
-        assert (calibr8.istensor([1, tt.TensorVariable([1,2]), 3]))
-        assert (calibr8.istensor(numpy.array([1, tt.TensorVariable([1,2]), 3])))
+        assert (calibr8.istensor(numpy.array([1, tt.as_tensor_variable([1,2]), 3])))
 
     def test_import_warner(self):
         dummy = calibr8.utils.ImportWarner('dummy')
@@ -897,6 +896,7 @@ class TestOptimization:
         numpy.testing.assert_array_equal(em.cal_dependent, y)
         pass
 
+    @pytest.mark.xfail(reason="PyGMO and PyMC3 have dependencies (cloudpickle/dill) that are currently incompatible. See https://github.com/uqfoundation/dill/issues/383")
     @pytest.mark.skipif(not HAS_PYGMO, reason='requires PyGMO')
     def test_fit_pygmo(self, caplog):
         numpy.random.seed(1234)
