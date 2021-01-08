@@ -35,7 +35,7 @@ setuptools.setup(
     name=__packagename__,
     packages=setuptools.find_packages(),
     version=__version__,
-    description='Toolbox for non-linear calibration and error modeling.',
+    description='Toolbox for non-linear calibration modeling.',
     long_description=open(pathlib.Path(ROOT, 'README.md')).read(),
     long_description_content_type='text/markdown',
     url='https://github.com/michaelosthege/calibr8',

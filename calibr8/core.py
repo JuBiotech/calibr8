@@ -63,11 +63,11 @@ class NumericPosterior(typing.NamedTuple):
         return self.x_dense[-1]
 
 
-class ErrorModel:
-    """A parent class providing the general structure of an error model."""
+class CalibrationModel:
+    """A parent class providing the general structure of a calibration model."""
     
     def __init__(self, independent_key:str, dependent_key:str, *, theta_names:typing.Tuple[str]):
-        """Creates an ErrorModel object.
+        """Creates a CalibrationModel object.
 
         Parameters
         ----------
@@ -242,7 +242,7 @@ class ErrorModel:
         return objective
 
     def save(self, filepath: os.PathLike):
-        """Save key properties of the error model to a JSON file.
+        """Save key properties of the calibration model to a JSON file.
 
         Parameters
         ----------
@@ -284,8 +284,8 @@ class ErrorModel:
 
         Returns
         -------
-        errormodel : ErrorModel
-            the instantiated error model
+        calibrationmodel : CalibrationModel
+            the instantiated calibration model
         """
         with open(filepath, 'r') as jfile:
             data = json.load(jfile)

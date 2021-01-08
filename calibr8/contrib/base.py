@@ -1,6 +1,6 @@
 """
-This module implements generic, reusable error models that can be subclassed to
-implement custom error models.
+This module implements generic, reusable calibration models that can be subclassed to
+implement custom calibration models.
 """
 from collections import namedtuple
 import numpy
@@ -20,7 +20,7 @@ except ModuleNotFoundError:
     pm = utils.ImportWarner('pymc3')
 
 
-class BaseModelT(core.ErrorModel):
+class BaseModelT(core.CalibrationModel):
     def loglikelihood(self, *, y, x, replicate_id: str=None, dependent_key: str=None, theta=None):
         """Loglikelihood of observation (dependent variable) given the independent variable
 
@@ -69,7 +69,7 @@ class BaseModelT(core.ErrorModel):
                 ).logp(y).sum()
             return L
         elif isinstance(x, (list, numpy.ndarray)):
-            # using t-distributed error in the non-transformed space
+            # using t-distributed noise in the non-transformed space
             loglikelihoods = scipy.stats.t.logpdf(x=y, loc=mu, scale=scale, df=df)
             return numpy.sum(loglikelihoods)
         else:
@@ -185,7 +185,7 @@ class BasePolynomialModelT(BaseModelT):
             may be used to set the names of the model parameters
         """
         if mu_degree == 0:
-            raise Exception('0-degree (constant) mu error models are useless.')
+            raise Exception('0-degree (constant) mu calibration models are useless.')
         self.mu_degree = mu_degree
         self.scale_degree = scale_degree
         if theta_names is None:
@@ -207,7 +207,7 @@ class BasePolynomialModelT(BaseModelT):
         x : array-like
             values of the independent variable
         theta : optional, array-like
-            parameter vector of the error model:
+            parameter vector of the calibration model:
                 [mu_degree] parameters for mu (lowest degree first)
                 [scale_degree] parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
@@ -239,7 +239,7 @@ class BasePolynomialModelT(BaseModelT):
         y : array-like
             observations
         theta : optional, array-like
-            parameter vector of the error model:
+            parameter vector of the calibration model:
                 [mu_degree] parameters for mu (lowest degree first)
                 [scale_degree] parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
@@ -294,7 +294,7 @@ class BaseAsymmetricLogisticT(BaseModelT):
         x : array-like
             values of the independent variable
         theta : optional, array-like
-            parameter vector of the error model:
+            parameter vector of the calibration model:
                 5 parameters of asymmetric logistic model for mu
                 [scale_degree] parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
@@ -326,7 +326,7 @@ class BaseAsymmetricLogisticT(BaseModelT):
         y : array-like
             observations
          theta : optional, array-like
-            parameter vector of the error model:
+            parameter vector of the calibration model:
                 5 parameters of asymmetric logistic model for mu
                 [scale_degree] parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
@@ -378,7 +378,7 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
         x : array-like
             values of the independent variable
         theta : optional, array-like
-            parameter vector of the error model:
+            parameter vector of the calibration model:
                 5 parameters of log-independent asymmetric logistic model for mu
                 [scale_degree] parameters for scale (lowest degree first)
                 1 parameter for degree of freedom
@@ -410,7 +410,7 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
         y : array-like
             observations
         theta : optional, array-like
-            parameter vector of the error model:
+            parameter vector of the calibration model:
                 5 parameters of log-independent asymmetric logistic model for mu
                 [scale_degree] parameters for scale (lowest degree first)
                 1 parameter for degree of freedom

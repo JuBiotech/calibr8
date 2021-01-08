@@ -1,6 +1,6 @@
 """
 The optimization module implements convenience functions for maximum
-likelihood estimation of error model parameters.
+likelihood estimation of calibration model parameters.
 """
 import fastprogress
 import numpy
@@ -76,13 +76,13 @@ def _warn_hit_bounds(theta, bounds, theta_names) -> bool:
     return bound_hit
 
 
-def fit_scipy(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:numpy.ndarray, theta_guess:list, theta_bounds:list, minimize_kwargs:dict=None):
-    """Function to fit the error model with observed data.
+def fit_scipy(model:core.CalibrationModel, *, independent:numpy.ndarray, dependent:numpy.ndarray, theta_guess:list, theta_bounds:list, minimize_kwargs:dict=None):
+    """Function to fit the calibration model with observed data.
 
     Parameters
     ----------
-    model : calibr8.ErrorModel
-        the error model to fit (inplace)
+    model : calibr8.CalibrationModel
+        the calibration model to fit (inplace)
     independent : array-like
         desired values of the independent variable or measured values of the same
     dependent : array-like
@@ -136,15 +136,15 @@ def fit_scipy(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:num
     return fit.x, history
 
 
-def fit_pygmo(model:core.ErrorModel, *, independent:numpy.ndarray, dependent:numpy.ndarray, theta_bounds:list, theta_guess:list=None, algos:list=None, evolutions:int=50):
-    """Use PyGMO to fit an error model.
+def fit_pygmo(model:core.CalibrationModel, *, independent:numpy.ndarray, dependent:numpy.ndarray, theta_bounds:list, theta_guess:list=None, algos:list=None, evolutions:int=50):
+    """Use PyGMO to fit a calibration model.
 
     Reference: https://esa.github.io/pygmo2/index.html
 
     Parameters
     ----------
-    model : calibr8.ErrorModel
-        the error model to fit (inplace)
+    model : calibr8.CalibrationModel
+        the calibration model to fit (inplace)
     independent : array-like
         desired values of the independent variable or measured values of the same
     dependent : array-like

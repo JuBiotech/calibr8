@@ -7,7 +7,7 @@ Welcome to the ``calibr8`` documentation!
 .. image:: https://zenodo.org/badge/306862348.svg
    :target: https://zenodo.org/badge/latestdoi/306862348
 
-With ``calibr8`` we take a fresh perspective on calibration and error modeling.
+With ``calibr8`` we take a fresh perspective on calibration modeling.
 
 You can download the latest version from `GitHub <https://github.com/michaelosthege/calibr8>`_ or install it via ``pip install calibr8``.
 

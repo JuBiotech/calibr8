@@ -297,8 +297,8 @@ def plot_model(
 
     Parameters
     -----------
-    model : ErrorModel
-        A fitted error model with data.
+    model : CalibrationModel
+        A fitted calibration model with data.
         The predict_dependent method should return a tuple where the mean is the first entry.
     fig : optional, matplotlib.figure.Figure
         An existing figure (to be used in combination with [axs] argument).

@@ -10,12 +10,12 @@ In a second step, the relation between the two can be used to obtain quantity va
 
 .. image:: 01_terminology_fig1.png
    :scale: 50 %
-   :alt: 3D plot of error model intuition
+   :alt: 3D plot of calibration model intuition
    
-We use the term *error model* to describe the relationship between independent and dependent variable in a data-generating process. 
+We use the term *calibration model* to describe the relationship between independent and dependent variable in a data-generating process. 
 The underlying assumption is that for each quantity value of the independent variable, we can describe a probability distribution
 over the dependent variable and its measurement uncertainties.
-The parameters of the error model describe how this probability distribution changes in dependence on the independent variable.
+The parameters of the calibration model describe how this probability distribution changes in dependence on the independent variable.
 
-With ``calibr8``, we provide a Python package to effortlessly construct and apply error models independent of the application domain.
-On the following pages, you can read about the concepts of ``calibr8`` and learn how to build your own error models for calibration and modeling.
+With ``calibr8``, we provide a Python package to effortlessly construct and apply calibration models independent of the application domain.
+On the following pages, you can read about the concepts of ``calibr8`` and learn how to build your own calibration models.
