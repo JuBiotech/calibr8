@@ -14,6 +14,13 @@ try:
     import theano
     import theano.tensor as tt
     HAS_THEANO = True
+    tensor_types = (
+        tt.TensorVariable,
+        tt.TensorConstant,
+        theano.graph.basic.Variable
+        if not hasattr(theano, "gof") else
+        theano.gof.graph.Variable
+    )
 except ModuleNotFoundError:
     HAS_THEANO = False
 
@@ -68,7 +75,7 @@ def istensor(input:object) -> bool:
         return False
     elif isinstance(input, str):
         return False
-    elif isinstance(input, (tt.TensorVariable, tt.TensorConstant, theano.gof.graph.Variable)):
+    elif isinstance(input, tensor_types):
         return True
     elif isinstance(input, dict):
         for element in input.values():
