@@ -4,7 +4,6 @@ This module contains type definitions that generalize across all applications.
 Also, it implements a variety of modeling functions such as polynomials,
 or (asymmetric) logistic functions and their corresponding inverse functions.
 """
-import abc
 import datetime
 import inspect
 import json
@@ -17,50 +16,86 @@ import typing
 from . import utils
 
 
-__version__ = '5.0.3'
+__version__ = '6.0.0'
 _log = logging.getLogger('calibr8')
 
 
-class NumericPosterior(typing.NamedTuple):
-    """ The result of a numeric infer_independent operation.
+class NumericPosterior:
+    """ The result of a numeric infer_independent operation. """
+    def __init__(
+        self,
+        median: float,
+        eti_x: numpy.ndarray,
+        eti_pdf: numpy.ndarray,
+        eti_prob: float,
+        hdi_x: numpy.ndarray,
+        hdi_pdf: numpy.ndarray,
+        hdi_prob: float,
+    ) -> None:
+        """ The result of a numeric infer_independent operation.
 
-    Attributes
-    ----------
-    x_dense : array
-        values of the independent variable in the percentiles or in [lower, upper]
-    pdf : array
-        values of the posterior pdf at positions [x]
-    median : float
-        x-value of the posterior median
-    hdi_prob: float
-        highest density interval probability (0,1]
-    lower : float
-        x-value at the lower bound of the hdi
-    upper : float
-        x-value at the upper bound of the hdi
-    """
-    x_dense: numpy.ndarray
-    pdf: numpy.ndarray
-    median: float
-    hdi_prob: float
-    lower: float
-    upper: float
+        Parameters
+        ----------
+        median : float
+            x-value of the posterior median
+        eti_x : array
+            Values of the independent variable in [eti_lower, eti_upper]
+        eti_pdf : array
+            Values of the posterior pdf at positions [eti_x]
+        eti_prob : float
+            Probability mass in the ETI
+        hdi_x : array
+            Values of the independent variable in [hdi_lower, hdi_upper]
+        hdi_pdf : array
+            Values of the posterior pdf at positions [hdi_x]
+        hdi_prob : float
+            Probability mass in the HDI
+        """
+        self.median = median
+        self.eti_x = eti_x
+        self.eti_pdf = eti_pdf
+        self.eti_prob = eti_prob
+        self.hdi_x = hdi_x
+        self.hdi_pdf = hdi_pdf
+        self.hdi_prob = hdi_prob
 
     def __repr__(self) -> str:
-        result = str(type(self))
-        for name, value in zip(self._fields, self):
-            result += f"\n    .{name}:\t{type(value).__name__}"
+        result = (
+            str(type(self))
+            + f"\n    ETI ({round(self.eti_prob, 3) * 100:.1f} %): [{round(self.eti_lower, 4)}, {round(self.eti_upper, 4)}] Δ={round(self.eti_width, 4)}"
+            + f"\n    HDI ({round(self.hdi_prob, 3) * 100:.1f} %): [{round(self.hdi_lower, 4)}, {round(self.hdi_upper, 4)}] Δ={round(self.hdi_width, 4)}"
+        )
         return result
 
     @property
+    def eti_lower(self) -> float:
+        """ Lower bound of the ETI. This is the first value in `eti_x`. """
+        return self.eti_x[0]
+
+    @property
+    def eti_upper(self) -> float:
+        """ Upper bound of the ETI. This is the last value in `eti_x`. """
+        return self.eti_x[-1]
+
+    @property
+    def eti_width(self) -> float:
+        """ Width of the ETI. """
+        return self.eti_upper - self.eti_lower
+
+    @property
     def hdi_lower(self) -> float:
-        """ Lower bound of the HDI. This is the first value in `x_dense`. """
-        return self.x_dense[0]
+        """ Lower bound of the HDI. This is the first value in `hdi_x`. """
+        return self.hdi_x[0]
 
     @property
     def hdi_upper(self) -> float:
-        """ Upper bound of the HDI. This is the last value in `x_dense`. """
-        return self.x_dense[-1]
+        """ Upper bound of the HDI. This is the last value in `hdi_x`. """
+        return self.hdi_x[-1]
+
+    @property
+    def hdi_width(self) -> float:
+        """ Width of the HDI. """
+        return self.hdi_upper - self.hdi_lower
 
 
 class CalibrationModel:

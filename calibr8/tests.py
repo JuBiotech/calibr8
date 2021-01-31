@@ -658,32 +658,38 @@ class TestBasePolynomialModelT:
     def test_infer_independent(self):
         em = _TestPolynomialModel(independent_key='S', dependent_key='A365', mu_degree=1, scale_degree=1)
         em.theta_fitted = [0, 2, 0.1, 1]
-        x, pdf, median, hdi_prob, lower_x, upper_x = em.infer_independent(y=1, lower=0, upper=20, steps=876)
+        pst = em.infer_independent(y=1, lower=0, upper=20, steps=876)
 
-
-        assert len(x) == len(pdf)
-        assert x[0] == 0
-        assert x[-1] == 20
-        assert (numpy.isclose(scipy.integrate.cumtrapz(pdf,x)[-1], 1, atol=0.0001))
-        assert (lower_x==0)
-        assert (upper_x==20)
-        assert (hdi_prob==1)
+        assert len(pst.eti_x) == len(pst.eti_pdf)
+        assert len(pst.hdi_x) == len(pst.hdi_pdf)
+        assert tuple(pst.eti_x[[0, -1]]) == (0, 20)
+        assert tuple(pst.hdi_x[[0, -1]]) == (0, 20)
+        assert (numpy.isclose(scipy.integrate.cumtrapz(pst.eti_pdf, pst.eti_x)[-1], 1, atol=0.0001))
+        assert (numpy.isclose(scipy.integrate.cumtrapz(pst.hdi_pdf, pst.hdi_x)[-1], 1, atol=0.0001))
+        assert pst.eti_lower == pst.hdi_lower == 0
+        assert pst.eti_upper == pst.hdi_upper == 20
+        assert pst.eti_prob == 1
+        assert pst.hdi_prob == 1
 
         # check trimming to [2.5,97.5] interval
-        posterior = em.infer_independent(y=1, lower=0, upper=20, steps=1775, hdi_prob=0.95)
+        pst = em.infer_independent(y=1, lower=0, upper=20, steps=1775, ci_prob=0.95)
 
-        assert (len(posterior)==6)
-        assert len(posterior.x_dense) == len(posterior.pdf)
-        assert (posterior.hdi_prob==0.95)
-        assert (numpy.isclose(scipy.integrate.cumtrapz(posterior.pdf,posterior.x_dense)[-1], 0.95, atol=0.0001))
-        assert posterior.hdi_lower == posterior.x_dense[0]
-        assert posterior.hdi_upper == posterior.x_dense[-1]
+        assert len(pst.eti_x) == len(pst.eti_pdf)
+        assert len(pst.hdi_x) == len(pst.hdi_pdf)
+        assert numpy.isclose(pst.eti_prob, 0.95, atol=0.0001)
+        assert numpy.isclose(pst.hdi_prob, 0.95, atol=0.0001)
+        assert numpy.isclose(scipy.integrate.cumtrapz(pst.eti_pdf, pst.eti_x)[-1], 0.95, atol=0.0001)
+        assert numpy.isclose(scipy.integrate.cumtrapz(pst.hdi_pdf, pst.hdi_x)[-1], 0.95, atol=0.0001)
+        assert pst.eti_lower == pst.eti_x[0]
+        assert pst.eti_upper == pst.eti_x[-1]
+        assert pst.hdi_lower == pst.hdi_x[0]
+        assert pst.hdi_upper == pst.hdi_x[-1]
 
         # check that error are raised by wrong input
         with pytest.raises(ValueError):
-            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, hdi_prob=(-1))
+            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, ci_prob=(-1))
         with pytest.raises(ValueError):
-            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, hdi_prob=(97.5))
+            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, ci_prob=(97.5))
         pass
     
     @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
