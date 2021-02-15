@@ -471,56 +471,6 @@ class TestUtils:
             calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.2")
         return
 
-    def test_guess_asymmetric_logistic_theta(self):
-        with pytest.raises(ValueError):
-            calibr8.guess_asymmetric_logistic_theta([1,2,3], [1,2])
-        with pytest.raises(ValueError):
-            calibr8.guess_asymmetric_logistic_theta([1,2], [[1,2],[2,3]])
-        L_L, L_U, I_x, S, c = calibr8.guess_asymmetric_logistic_theta(
-            X=[0, 1, 2, 3, 4, 5],
-            Y=[0, 1, 2, 3, 4, 5],
-        )
-        assert L_L == 0
-        assert L_U == 10
-        assert I_x == (0+5)/2
-        numpy.testing.assert_almost_equal(S, 1)
-        assert c == -1
-        return
-
-    def test_guess_asymmetric_logistic_bounds(self):
-        with pytest.raises(ValueError):
-            calibr8.guess_asymmetric_logistic_theta([1,2,3], [1,2])
-        with pytest.raises(ValueError):
-            calibr8.guess_asymmetric_logistic_theta([1,2], [[1,2],[2,3]])
-        
-        for half_open in (True, False):
-            L_L, L_U, I_x, S, c = calibr8.guess_asymmetric_logistic_bounds(
-                X=[0, 1, 2, 3, 4, 5],
-                Y=[0, 1, 2, 3, 4, 5],
-                half_open=half_open
-            )
-            if half_open:
-                numpy.testing.assert_allclose(L_L, (-numpy.inf, 2.5))
-                numpy.testing.assert_allclose(L_U, (2.5, numpy.inf))
-            else:
-                numpy.testing.assert_allclose(L_L, (0-100*5, 2.5))
-                numpy.testing.assert_allclose(L_U, (2.5, 5+100*5))
-            numpy.testing.assert_allclose(I_x, (-15, 20))
-            numpy.testing.assert_allclose(S, (0, 10))
-            numpy.testing.assert_allclose(c, (-5, 5))
-        return
-
-    def test_guess_asymmetric_logistic_theta_in_bounds(self):
-        X = numpy.linspace(0, 50, 42)
-        Y = numpy.random.normal(X, scale=0.4)
-        theta = calibr8.guess_asymmetric_logistic_theta(X, Y)
-        for half_open in (True, False):
-            bounds = calibr8.guess_asymmetric_logistic_bounds(X, Y, half_open=half_open)
-            for t, (lb, ub) in zip(theta, bounds):
-                assert t > lb
-                assert t < ub
-        return
-
 
 class TestContribBase:
     def test_cant_instantiate_base_models(self):
