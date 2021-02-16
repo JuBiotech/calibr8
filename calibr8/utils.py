@@ -138,7 +138,7 @@ def plot_norm_band(ax, independent, mu, scale):
     return artists
 
 
-def plot_t_band(ax, independent, mu, scale, df):
+def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optional[str]=None):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a t-distribution.
     
     Parameters
@@ -153,20 +153,42 @@ def plot_t_band(ax, independent, mu, scale, df):
         scale parameter of the t-distribution
     df : array-like
         density parameter of the t-distribution
+    residual_type : str, optional
+        One of { None, "absolute", "relative" }.
+        Specifies if bands are for no, absolute or relative residuals.
 
     Returns
     -------
     artists : list of matplotlib.Artist
         the created artists (1x Line2D, 6x PolyCollection (alternating plot & legend))
     """
-    artists = ax.plot(independent, mu, color='green')
+    if residual_type:
+        artists = ax.plot(independent, numpy.repeat(0, len(independent)), color='green')
+    else:
+        artists = ax.plot(independent, mu, color='green')
     for q, c in zip([97.5, 95, 84], ['#d9ecd9', '#b8dbb8', '#9ccd9c']):
         percent = q - (100 - q)
+        
+        if residual_type == 'absolute':
+            mu = numpy.repeat(0, len(independent))
+            
+        lower = scipy.stats.t.ppf(1-q/100, loc=mu, scale=scale, df=df)
+        upper = scipy.stats.t.ppf(q/100, loc=mu, scale=scale, df=df)
+        
+        if residual_type == 'relative':
+            lower = (lower-mu)/mu
+            upper = (upper-mu)/mu
+            
+        elif residual_type=='absolute' or residual_type is None:
+            pass
+        else:
+            raise Exception(f'Only "relative" or "absolute" residuals supported. You passed {residual_type}')
+            
         artists.append(ax.fill_between(independent,
             # by using the Percent Point Function (PPF), which is the inverse of the CDF,
             # the visualization will show symmetric intervals of <percent> probability
-            scipy.stats.t.ppf(1-q/100, loc=mu, scale=scale, df=df),
-            scipy.stats.t.ppf(q/100, loc=mu, scale=scale, df=df),
+            lower,
+            upper,
             alpha=.15, color='green'
         ))
         artists.append(ax.fill_between(
@@ -231,74 +253,11 @@ def assert_version_match(vA:str, vB:str):
     return
 
 
-def guess_asymmetric_logistic_theta(X, Y) -> typing.List[float]:
-    """Creates an initial guess for the parameter vector of an `asymmetric_logistic` function.
-    
-    Parameters
-    ----------
-    X : array-like
-        independent values of the data points
-    Y : array-like
-        dependent values (observations)
-        
-    Returns
-    -------
-    guess : list
-        guess of the `asymmetric_logistic` parameters [L_L, L_U, I_x, S, c]
-    """
-    X = numpy.array(X)
-    Y = numpy.array(Y)
-    if not X.shape == Y.shape and len(X.shape) == 1:
-        raise ValueError('X and Y must have the same 1-dimensional shape.')
-    L_L = numpy.min(Y)
-    L_U = numpy.max(Y) + numpy.ptp(Y)
-    I_x = (min(X) + max(X)) / 2
-    S, _ = numpy.polyfit(X, Y, deg=1)
-    c = -1
-    return [L_L, L_U, I_x, S, c]
-
-
-def guess_asymmetric_logistic_bounds(X, Y, *, half_open=True) -> typing.List[typing.Tuple[float, float]]:
-    """Creates bounds for the parameter vector of an `asymmetric_logistic` function.
-    
-    Parameters
-    ----------
-    X : array-like
-        independent values of the data points
-    Y : array-like
-        dependent values (observations)
-    half_open : bool
-        sets whether the half-open bounds are allowed (e.g. for L_L and L_U)    
-
-    Returns
-    -------
-    bounds : list
-        bounds for the `asymmetric_logistic` parameters
-    """
-    X = numpy.array(X)
-    Y = numpy.array(Y)
-    if not X.shape == Y.shape and len(X.shape) == 1:
-        raise ValueError('X and Y must have the same 1-dimensional shape.')
-    slope, _ = numpy.polyfit(X, Y, deg=1)
-    bounds = [
-        # L_L
-        (-numpy.inf if half_open else min(Y) - numpy.ptp(Y)*100, numpy.median(Y)),
-        # L_U
-        (numpy.median(Y), numpy.inf if half_open else max(Y) + numpy.ptp(Y)*100),
-        # I_x
-        (min(X) - 3 * numpy.ptp(X), max(X) + 3 * numpy.ptp(X)),
-        # S
-        (0, 10 * slope) if slope > 0 else (10 * slope, 0),
-        # c
-        (-5, 5)
-    ]
-    return bounds
-
-
 def plot_model(
     model, *,
     fig:typing.Optional[matplotlib.figure.Figure] = None,
     axs:typing.Optional[typing.Sequence[matplotlib.axes.Axes]] = None,
+    residual_type='absolute'
 ):
     """Makes a plot of the model with its data.
 
@@ -311,6 +270,8 @@ def plot_model(
         An existing figure (to be used in combination with [axs] argument).
     axs : optional, [matplotlib.axes.Axes]
         matplotlib subplots to use instead of creating new ones.
+    residual_type : optional, str
+        Specifies if residuals are plotted absolutesly or relatively.
 
     Returns
     -------
@@ -329,13 +290,20 @@ def plot_model(
 
     X_pred = numpy.exp(numpy.linspace(numpy.log(min(X)), numpy.log(max(X)), 1000))
     Y_pred = model.predict_dependent(X_pred)
-    plot_t_band(left, X_pred, *Y_pred)
-    plot_t_band(right, X_pred, *Y_pred)
-    plot_t_band(residuals, X_pred, numpy.repeat(0, len(X_pred)), *Y_pred[1:])
+    plot_t_band(left, X_pred, *Y_pred, residual_type=None)
+    plot_t_band(right, X_pred, *Y_pred, residual_type=None)
+    plot_t_band(residuals, X_pred, *Y_pred, residual_type=residual_type)
 
     left.scatter(X, Y)
     right.scatter(X, Y)
-    residuals.scatter(X, Y - model.predict_dependent(X)[0])
+    if residual_type == 'relative':
+        residuals.scatter(X, (Y - model.predict_dependent(X)[0]) / model.predict_dependent(X)[0])
+        residuals.set_ylabel('relative residuals')
+    else:
+        if residual_type != 'absolute':
+            raise ValueError('Residual type must be "absolsute" or "relative".')
+        residuals.scatter(X, Y - model.predict_dependent(X)[0])
+        residuals.set_ylabel('residuals')
 
     left.set_ylabel(model.dependent_key)
     left.set_xlabel(model.independent_key)
@@ -347,5 +315,4 @@ def plot_model(
         residuals.set_xscale('log')
         residuals.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
     residuals.set_xlabel(model.independent_key)
-    residuals.set_ylabel('residuals')
     return fig, axs

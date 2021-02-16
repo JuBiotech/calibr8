@@ -471,56 +471,6 @@ class TestUtils:
             calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.2")
         return
 
-    def test_guess_asymmetric_logistic_theta(self):
-        with pytest.raises(ValueError):
-            calibr8.guess_asymmetric_logistic_theta([1,2,3], [1,2])
-        with pytest.raises(ValueError):
-            calibr8.guess_asymmetric_logistic_theta([1,2], [[1,2],[2,3]])
-        L_L, L_U, I_x, S, c = calibr8.guess_asymmetric_logistic_theta(
-            X=[0, 1, 2, 3, 4, 5],
-            Y=[0, 1, 2, 3, 4, 5],
-        )
-        assert L_L == 0
-        assert L_U == 10
-        assert I_x == (0+5)/2
-        numpy.testing.assert_almost_equal(S, 1)
-        assert c == -1
-        return
-
-    def test_guess_asymmetric_logistic_bounds(self):
-        with pytest.raises(ValueError):
-            calibr8.guess_asymmetric_logistic_theta([1,2,3], [1,2])
-        with pytest.raises(ValueError):
-            calibr8.guess_asymmetric_logistic_theta([1,2], [[1,2],[2,3]])
-        
-        for half_open in (True, False):
-            L_L, L_U, I_x, S, c = calibr8.guess_asymmetric_logistic_bounds(
-                X=[0, 1, 2, 3, 4, 5],
-                Y=[0, 1, 2, 3, 4, 5],
-                half_open=half_open
-            )
-            if half_open:
-                numpy.testing.assert_allclose(L_L, (-numpy.inf, 2.5))
-                numpy.testing.assert_allclose(L_U, (2.5, numpy.inf))
-            else:
-                numpy.testing.assert_allclose(L_L, (0-100*5, 2.5))
-                numpy.testing.assert_allclose(L_U, (2.5, 5+100*5))
-            numpy.testing.assert_allclose(I_x, (-15, 20))
-            numpy.testing.assert_allclose(S, (0, 10))
-            numpy.testing.assert_allclose(c, (-5, 5))
-        return
-
-    def test_guess_asymmetric_logistic_theta_in_bounds(self):
-        X = numpy.linspace(0, 50, 42)
-        Y = numpy.random.normal(X, scale=0.4)
-        theta = calibr8.guess_asymmetric_logistic_theta(X, Y)
-        for half_open in (True, False):
-            bounds = calibr8.guess_asymmetric_logistic_bounds(X, Y, half_open=half_open)
-            for t, (lb, ub) in zip(theta, bounds):
-                assert t > lb
-                assert t < ub
-        return
-
 
 class TestContribBase:
     def test_cant_instantiate_base_models(self):
@@ -658,32 +608,38 @@ class TestBasePolynomialModelT:
     def test_infer_independent(self):
         em = _TestPolynomialModel(independent_key='S', dependent_key='A365', mu_degree=1, scale_degree=1)
         em.theta_fitted = [0, 2, 0.1, 1]
-        x, pdf, median, hdi_prob, lower_x, upper_x = em.infer_independent(y=1, lower=0, upper=20, steps=876)
+        pst = em.infer_independent(y=1, lower=0, upper=20, steps=876)
 
-
-        assert len(x) == len(pdf)
-        assert x[0] == 0
-        assert x[-1] == 20
-        assert (numpy.isclose(scipy.integrate.cumtrapz(pdf,x)[-1], 1, atol=0.0001))
-        assert (lower_x==0)
-        assert (upper_x==20)
-        assert (hdi_prob==1)
+        assert len(pst.eti_x) == len(pst.eti_pdf)
+        assert len(pst.hdi_x) == len(pst.hdi_pdf)
+        assert tuple(pst.eti_x[[0, -1]]) == (0, 20)
+        assert tuple(pst.hdi_x[[0, -1]]) == (0, 20)
+        assert (numpy.isclose(scipy.integrate.cumtrapz(pst.eti_pdf, pst.eti_x)[-1], 1, atol=0.0001))
+        assert (numpy.isclose(scipy.integrate.cumtrapz(pst.hdi_pdf, pst.hdi_x)[-1], 1, atol=0.0001))
+        assert pst.eti_lower == pst.hdi_lower == 0
+        assert pst.eti_upper == pst.hdi_upper == 20
+        assert pst.eti_prob == 1
+        assert pst.hdi_prob == 1
 
         # check trimming to [2.5,97.5] interval
-        posterior = em.infer_independent(y=1, lower=0, upper=20, steps=1775, hdi_prob=0.95)
+        pst = em.infer_independent(y=1, lower=0, upper=20, steps=1775, ci_prob=0.95)
 
-        assert (len(posterior)==6)
-        assert len(posterior.x_dense) == len(posterior.pdf)
-        assert (posterior.hdi_prob==0.95)
-        assert (numpy.isclose(scipy.integrate.cumtrapz(posterior.pdf,posterior.x_dense)[-1], 0.95, atol=0.0001))
-        assert posterior.hdi_lower == posterior.x_dense[0]
-        assert posterior.hdi_upper == posterior.x_dense[-1]
+        assert len(pst.eti_x) == len(pst.eti_pdf)
+        assert len(pst.hdi_x) == len(pst.hdi_pdf)
+        assert numpy.isclose(pst.eti_prob, 0.95, atol=0.0001)
+        assert numpy.isclose(pst.hdi_prob, 0.95, atol=0.0001)
+        assert numpy.isclose(scipy.integrate.cumtrapz(pst.eti_pdf, pst.eti_x)[-1], 0.95, atol=0.0001)
+        assert numpy.isclose(scipy.integrate.cumtrapz(pst.hdi_pdf, pst.hdi_x)[-1], 0.95, atol=0.0001)
+        assert pst.eti_lower == pst.eti_x[0]
+        assert pst.eti_upper == pst.eti_x[-1]
+        assert pst.hdi_lower == pst.hdi_x[0]
+        assert pst.hdi_upper == pst.hdi_x[-1]
 
         # check that error are raised by wrong input
         with pytest.raises(ValueError):
-            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, hdi_prob=(-1))
+            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, ci_prob=(-1))
         with pytest.raises(ValueError):
-            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, hdi_prob=(97.5))
+            _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, ci_prob=(97.5))
         pass
     
     @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')

@@ -29,8 +29,6 @@ from .utils import (
     MajorMismatchException,
     MinorMismatchException,
     PatchMismatchException,
-    guess_asymmetric_logistic_bounds,
-    guess_asymmetric_logistic_theta,
     istensor,
     plot_model,
     plot_norm_band,

@@ -2,7 +2,7 @@
 This module implements generic, reusable calibration models that can be subclassed to
 implement custom calibration models.
 """
-from collections import namedtuple
+from collections import defaultdict
 import numpy
 import scipy
 import typing
@@ -19,6 +19,117 @@ try:
 except ModuleNotFoundError:
     pm = utils.ImportWarner('pymc3')
 
+
+def _interval_prob(x_cdf: numpy.ndarray, cdf: numpy.ndarray, a: float, b: float):
+    """Calculates the probability in the interval [a, b]."""
+    ia = numpy.argmin(numpy.abs(x_cdf - a))
+    ib = numpy.argmin(numpy.abs(x_cdf - b))
+    return (cdf[ib] - cdf[ia])
+
+
+def _get_eti(
+    x_cdf: numpy.ndarray,
+    cdf: numpy.ndarray,
+    ci_prob: float
+) -> typing.Tuple[float, float]:
+    """ Find the equal tailed interval (ETI) corresponding to a certain credible interval probability level.
+
+    Parameters
+    ----------
+    x_cdf : numpy.ndarray
+        Coordinates where the cumulative density function was evaluated
+    cdf : numpy.ndarray
+        Values of the cumulative density function at `x_cdf`
+    ci_prob : float
+        Desired probability level
+
+    Returns
+    -------
+    eti_lower : float
+        Lower bound of the ETI
+    eti_upper : float
+        Upper bound of the ETI
+    """
+    i_lower = numpy.argmin(numpy.abs(cdf - (1 - ci_prob) / 2))
+    i_upper = numpy.argmin(numpy.abs(cdf - (1 + ci_prob) / 2))
+    eti_lower = x_cdf[i_lower]
+    eti_upper = x_cdf[i_upper]
+    return eti_lower, eti_upper
+
+
+def _get_hdi(
+    x_cdf: numpy.ndarray,
+    cdf: numpy.ndarray,
+    ci_prob: float,
+    guess_lower: float,
+    guess_upper: float,
+    *,
+    history: typing.Optional[typing.DefaultDict[str, typing.List]]=None
+) -> typing.Tuple[float]:
+    """ Find the highest density interval (HDI) corresponding to a certain credible interval probability level.
+
+    Parameters
+    ----------
+    x_cdf : numpy.ndarray
+        Coordinates where the cumulative density function was evaluated
+    cdf : numpy.ndarray
+        Values of the cumulative density function at `x_cdf`
+    ci_prob : float
+        Desired probability level
+    guess_lower : float
+        Initial guess for the lower bound of the HDI
+    guess_upper : float
+        Initial guess for the upper bound of the HDI
+    history : defaultdict of list, optional
+        A defaultdict(list) may be passed to capture intermediate parameter and loss values
+        during the optimization. Helps to understand, diagnose and test.
+
+    Returns
+    -------
+    hdi_lower : float
+        Lower bound of the HDI
+    hdi_upper : float
+        Upper bound of the HDI
+    """
+    def hdi_objective(x):
+        a, d = x
+        b = a + d
+
+        prob = _interval_prob(x_cdf, cdf, a, b)
+        delta_prob = numpy.abs(prob - ci_prob)
+
+        if prob < ci_prob:
+            # do not allow shrinking below the desired level
+            L_prob = numpy.inf
+            L_delta = 0
+        else:
+            # above the desired level penalize the interval width
+            L_prob = 0
+            L_delta = d
+
+        L = L_prob + L_delta
+
+        if history is not None:
+            history["prob"].append(prob)
+            history["delta_prob"].append(delta_prob)
+            history["a"].append(a)
+            history["b"].append(b)
+            history["d"].append(d)
+            history["L_prob"].append(L_prob)
+            history["L_delta"].append(L_delta)
+            history["L"].append(L)
+        return L
+
+    fit = scipy.optimize.fmin(
+        hdi_objective,
+        # parametrize as b=a+d
+        x0=[guess_lower, guess_upper - guess_lower],
+        xtol=numpy.ptp(x_cdf) / len(x_cdf),
+        disp=False
+    )
+    hdi_lower, hdi_width = fit
+    hdi_upper = hdi_lower + hdi_width
+    return hdi_lower, hdi_upper
 
 class BaseModelT(core.CalibrationModel):
     def loglikelihood(self, *, y, x, replicate_id: str=None, dependent_key: str=None, theta=None):
@@ -78,7 +189,7 @@ class BaseModelT(core.CalibrationModel):
     def infer_independent(
         self, y:typing.Union[int,float,numpy.ndarray], *, 
         lower:float, upper:float, steps:int=300, 
-        hdi_prob:float=1
+        ci_prob:float=1
     ) -> core.NumericPosterior:
         """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
         The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
@@ -95,7 +206,8 @@ class BaseModelT(core.CalibrationModel):
             upper limit for uniform distribution of prior
         steps : int
             steps between lower and upper or steps between the percentiles (default 300)
-        hdi_prob : float
+        ci_prob : float
+            The probability for equal tailed interval (ETI) and highest density interval (HDI).
             if 1 (default), the complete interval [upper,lower] will be returned, 
             else pdf will be trimmed to the according probability interval; 
             float must be in the interval (0,1]
@@ -116,7 +228,7 @@ class BaseModelT(core.CalibrationModel):
             ]
             # sum them and exp them (numerically better than numpy.prod of pdfs)
             return numpy.exp(numpy.sum(logpdfs, axis=0))
-        
+
         # high resolution x-coordinates for integration
 
         likelihood_integral, _ = scipy.integrate.quad(
@@ -131,35 +243,47 @@ class BaseModelT(core.CalibrationModel):
                 args=(y,)
             )
 
-        x_integrate = numpy.linspace(lower, upper, 100_000)
-        area_by_x = scipy.integrate.cumtrapz(likelihood(x_integrate, y), x_integrate, initial=0)
-        prob_by_x = area_by_x / area_by_x[-1]
-        
-        if hdi_prob != 1:
-            if not (0 < hdi_prob <= 1):
-                raise ValueError(f'Unexpected `hdi_prob` value of {hdi_prob}. Expected float in interval (0, 1].')
+        # the first integration is just to find the peak
+        x_integrate = numpy.linspace(lower, upper, 10_000)
+        area = scipy.integrate.cumtrapz(likelihood(x_integrate, y), x_integrate, initial=0)
+        cdf = area / area[-1]
 
-            i_lower = numpy.argmax(prob_by_x > (1 - hdi_prob)/2)
-            i_upper = numpy.argmax(prob_by_x > (1 + hdi_prob)/2)
-            x_dense = numpy.linspace(
-                x_integrate[i_lower],
-                x_integrate[i_upper-1],
-                steps
-            )       
+        # now we find a high-resolution CDF for (1-shrink) of the probability mass
+        shrink = 0.00001
+        xfrom, xto = _get_eti(x_integrate, cdf, 1 - shrink)
+        x_integrate = numpy.linspace(xfrom, xto, 100_000)
+        area = scipy.integrate.cumtrapz(likelihood(x_integrate, y), x_integrate, initial=0)
+        cdf = (area / area[-1]) * (1 - shrink) + shrink / 2
+
+        # TODO: create a smart x-vector from the CDF with varying stepsize
+
+        if ci_prob != 1:
+            if not (0 < ci_prob <= 1):
+                raise ValueError(f'Unexpected `ci_prob` value of {ci_prob}. Expected float in interval (0, 1].')
+
+            # determine the interval bounds from the high-resolution CDF
+            eti_lower, eti_upper = _get_eti(x_integrate, cdf, ci_prob)
+            hdi_lower, hdi_upper = _get_hdi(x_integrate, cdf, ci_prob, eti_lower, eti_upper, history=None)
+
+            eti_x = numpy.linspace(eti_lower, eti_upper, steps)
+            hdi_x = numpy.linspace(hdi_lower, hdi_upper, steps)
+            eti_pdf = likelihood(eti_x, y) / likelihood_integral
+            hdi_pdf = likelihood(hdi_x, y) / likelihood_integral
+            eti_prob = _interval_prob(x_integrate, cdf, eti_lower, eti_upper)
+            hdi_prob = _interval_prob(x_integrate, cdf, hdi_lower, hdi_upper)
         else:
-            x_dense = numpy.linspace(lower, upper, steps)
+            x = numpy.linspace(lower, upper, steps)
+            eti_x = hdi_x = x
+            eti_pdf = hdi_pdf = likelihood(x, y) / likelihood_integral
+            eti_prob = hdi_prob = 1
 
-        pdf = likelihood(x_dense, y) / likelihood_integral
-        # find indices for median
-        i_501 = numpy.argmax(prob_by_x > 0.5)
-        median = numpy.mean([
-            x_integrate[i_501],
-            x_integrate[i_501-1]
-        ])
-        lower_x = numpy.min(x_dense)
-        upper_x = numpy.max(x_dense)
-        data = core.NumericPosterior(x_dense, pdf, median, hdi_prob, lower_x, upper_x)
-        return data
+        median = x_integrate[numpy.argmin(numpy.abs(cdf - 0.5))]
+
+        return core.NumericPosterior(
+            median,
+            eti_x, eti_pdf, eti_prob,
+            hdi_x, hdi_pdf, hdi_prob,
+        )
 
 
 class BasePolynomialModelT(BaseModelT):
