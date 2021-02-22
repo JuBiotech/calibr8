@@ -713,54 +713,6 @@ class TestBaseAsymmetricLogisticModelT:
         x_predicted = cmodel.predict_independent(y=mu)
         assert (numpy.allclose(x_predicted, x_original))
         return
-    
-    @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
-    def test_symbolic_loglikelihood(self):
-        cmodel = _TestLogisticModel(independent_key='S', dependent_key='A', scale_degree=1)
-        cmodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.23]
-       
-        # create test data
-        x_true = numpy.array([1,2,3,4,5])
-        y_obs = cmodel.predict_dependent(x_true)[0]
-
-        # create a pymc3 model using the calibration model
-        with pymc3.Model() as pmodel:
-            x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
-            L = cmodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
-            assert isinstance(L, tt.TensorVariable)
-        
-        # compare the two loglikelihood computation methods
-        x_test = numpy.random.normal(x_true, scale=0.1)
-        actual = L.logp({
-            'x_hat': x_test
-        })
-        expected = cmodel.loglikelihood(x=x_test, y=y_obs)
-        numpy.testing.assert_almost_equal(actual, expected, 6)
-        return
-    
-    def test_loglikelihood(self):
-        x = numpy.array([1,2,3])
-        y = numpy.array([1,2,3])
-        cmodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
-        cmodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.7]
-        with pytest.raises(TypeError):
-            _ = cmodel.loglikelihood(y, x=x)
-        true = cmodel.loglikelihood(y=y, x=x)
-        mu, scale, df = cmodel.predict_dependent(x, theta=cmodel.theta_fitted)
-        expected = numpy.sum(stats.t.logpdf(x=y, loc=mu, scale=scale, df=df))
-        assert expected == true
-        x = 'hello'
-        with pytest.raises(Exception):
-            _= cmodel.loglikelihood(y=y, x=x)
-        return
-    
-    def test_loglikelihood_without_fit(self):
-        x = numpy.array([1,2,3])
-        y = numpy.array([1,2,3])
-        cmodel = _TestLogisticModel(independent_key='Glu', dependent_key='OD', scale_degree=1)
-        with pytest.raises(Exception):
-            _= cmodel.loglikelihood(y=y, x=x)
-        return
 
 
 class TestOptimization:
