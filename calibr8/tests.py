@@ -671,23 +671,24 @@ class TestBasePolynomialModelT:
         y = numpy.array([1,2,3])
         cmodel = _TestPolynomialModel(independent_key='S', dependent_key='OD', mu_degree=1, scale_degree=1)
         cmodel.theta_fitted = [0, 1, 0.1, 1.6]
-        with pytest.raises(TypeError):
-            _ = cmodel.loglikelihood(y, x=x)
+
         true = cmodel.loglikelihood(y=y, x=x)
         mu, scale, df = cmodel.predict_dependent(x, theta=cmodel.theta_fitted)
         expected = numpy.sum(stats.t.logpdf(x=y, loc=mu, scale=scale, df=df))
         assert expected == true
-        x = 'hello'
-        with pytest.raises(Exception):
-            _= cmodel.loglikelihood(y=y, x=x)
         return
-    
-    def test_loglikelihood_without_fit(self):
-        x = numpy.array([1,2,3])
-        y = numpy.array([1,2,3])
-        cmodel = _TestPolynomialModel(independent_key='Glu', dependent_key='OD', mu_degree=1, scale_degree=1)
-        with pytest.raises(Exception):
-            _= cmodel.loglikelihood(y=y, x=x)
+
+    def test_loglikelihood_exceptions(self):
+        cmodel = _TestPolynomialModel(independent_key='S', dependent_key='OD', mu_degree=1, scale_degree=1)
+        with pytest.raises(Exception, match="No parameter vector"):
+            _= cmodel.loglikelihood(y=[2,3], x=[4,5])
+
+        cmodel.theta_fitted = [0, 1, 0.1, 1.6]
+
+        with pytest.raises(TypeError):
+            _ = cmodel.loglikelihood(4, x=[2,3])
+        with pytest.raises(ValueError, match="Input x must either be"):
+            _= cmodel.loglikelihood(y=[2,3], x="hello")
         return
 
 
