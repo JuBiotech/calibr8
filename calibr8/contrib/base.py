@@ -8,7 +8,7 @@ import scipy
 import typing
 
 from .. import core
-from .. import utils 
+from .. import utils
 
 try:
     import theano
@@ -131,15 +131,18 @@ def _get_hdi(
     hdi_upper = hdi_lower + hdi_width
     return hdi_lower, hdi_upper
 
+
 class BaseModelT(core.CalibrationModel):
     def loglikelihood(self, *, y, x, replicate_id: str=None, dependent_key: str=None, theta=None):
-        """Loglikelihood of observation (dependent variable) given the independent variable
+        """ Loglikelihood of observation (dependent variable) given the independent variable.
+
+        If both x and y are vectors, they must have the same length and the likelihood will be evaluated elementwise.
 
         Parameters
         ----------
-        y : array-like
+        y : scalar or array-like
             observed measurements (dependent variable)
-        x : array-like or TensorVariable
+        x : scalar, array-like or TensorVariable
             assumed independent variable
         replicate_id : optional, str
             unique identifier for replicate (necessary for pymc3 likelihood)
@@ -157,6 +160,16 @@ class BaseModelT(core.CalibrationModel):
             if self.theta_fitted is None:
                 raise Exception('No parameter vector was provided and the model is not fitted with data yet.')
             theta = self.theta_fitted
+
+        if not isinstance(x, (list, numpy.ndarray, float, int)) and not utils.istensor(x):
+            raise ValueError(
+                f'Input x must be a scalar, TensorVariable or an array-like object, but not {type(x)}'
+            )
+        if not isinstance(y, (list, numpy.ndarray, float, int)) and not utils.istensor(x):
+            raise ValueError(
+                f'Input y must be a scalar or an array-like object, but not {type(y)}'
+            )
+
         mu, scale, df = self.predict_dependent(x, theta=theta)
         if utils.istensor(x) or utils.istensor(theta):
             if pm.Model.get_context(error_if_none=False) is not None:
@@ -179,12 +192,9 @@ class BaseModelT(core.CalibrationModel):
                     nu=df,
                 ).logp(y).sum()
             return L
-        elif isinstance(x, (list, numpy.ndarray)):
-            # using t-distributed noise in the non-transformed space
-            loglikelihoods = scipy.stats.t.logpdf(x=y, loc=mu, scale=scale, df=df)
-            return numpy.sum(loglikelihoods)
         else:
-            raise Exception('Input x must either be a TensorVariable or an array-like object.')
+            return numpy.sum(scipy.stats.t.logpdf(x=y, loc=mu, scale=scale, df=df))
+
 
     def infer_independent(
         self, y:typing.Union[int,float,numpy.ndarray], *, 
@@ -207,11 +217,11 @@ class BaseModelT(core.CalibrationModel):
         steps : int
             steps between lower and upper or steps between the percentiles (default 300)
         ci_prob : float
-            The probability for equal tailed interval (ETI) and highest density interval (HDI).
-            if 1 (default), the complete interval [upper,lower] will be returned, 
-            else pdf will be trimmed to the according probability interval; 
+            Probability level for ETI and HDI credible intervals.
+            If 1 (default), the complete interval [upper,lower] will be returned, 
+            else the PDFs will be trimmed to the according probability interval; 
             float must be in the interval (0,1]
-                                
+
         Returns
         -------
         posterior : NumericPosterior

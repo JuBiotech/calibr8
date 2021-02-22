@@ -197,7 +197,7 @@ class CalibrationModel:
     def infer_independent(
         self, y:typing.Union[int,float,numpy.ndarray], *, 
         lower:float, upper:float, steps:int=300, 
-        hdi_prob:float=1
+        ci_prob:float=1
     ) -> NumericPosterior:
         """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
 
@@ -215,9 +215,10 @@ class CalibrationModel:
             upper limit for uniform distribution of prior
         steps : int
             steps between lower and upper or steps between the percentiles (default 300)
-        hdi_prob : float
-            if 1 (default), the complete interval [upper,lower] will be returned, 
-            else pdf will be trimmed to the according probability interval; 
+        ci_prob : float
+            Probability level for ETI and HDI credible intervals.
+            If 1 (default), the complete interval [upper,lower] will be returned, 
+            else the PDFs will be trimmed to the according probability interval; 
             float must be in the interval (0,1]
                                 
         Returns
@@ -228,18 +229,16 @@ class CalibrationModel:
         raise NotImplementedError('The infer_independent function should be implemented by the inheriting class.')
 
     def loglikelihood(self, *, y, x, theta=None):
-        """Loglikelihood of observation (dependent variable) given the independent variable
+        """ Loglikelihood of observation (dependent variable) given the independent variable.
+
+        If both x and y are vectors, they must have the same length and the likelihood will be evaluated elementwise.
 
         Parameters
         ----------
-        y : array-like
+        y : scalar or array-like
             observed measurements (dependent variable)
-        x : array-like or TensorVariable
+        x : scalar, array-like or TensorVariable
             assumed independent variable
-        replicate_id : optional, str
-            unique identifier for replicate (necessary for pymc3 likelihood)
-        dependent_key : optional, str
-            key of the dependent variable (necessary for pymc3 likelihood)
         theta : optional, array-like
             model parameters
 
@@ -249,6 +248,34 @@ class CalibrationModel:
             sum of log-likelihoods
         """
         raise NotImplementedError('The loglikelihood function should be implemented by the inheriting class.')
+
+    def likelihood(self, *, y, x, theta=None, scan_x: bool=False):
+        """ Likelihood of observation (dependent variable) given the independent variable.
+
+        Relies on the `loglikelihood` method.
+
+        Parameters
+        ----------
+        y : scalar or array-like
+            observed measurements (dependent variable)
+        x : scalar, array-like or TensorVariable
+            assumed independent variable
+        theta : optional, array-like
+            model parameters
+        scan_x : bool
+            When set to True, the method evaluates `likelihood(xi, y) for all xi in x`
+
+        Returns
+        -------
+        L : float or TensorVariable
+            sum of likelihoods
+        """
+        if scan_x:
+            return numpy.exp([
+                self.loglikelihood(y=y, x=xi, theta=theta)
+                for xi in x
+            ])
+        return numpy.exp(self.loglikelihood(y=y, x=x, theta=theta))
 
     def objective(self, independent, dependent, minimize=True) -> typing.Callable:
         """Creates an objective function for fitting to data.

@@ -97,7 +97,7 @@ class TestBasicCalibrationModel:
         with pytest.raises(NotImplementedError):
             _ = cmodel.predict_independent(x)
         with pytest.raises(NotImplementedError):
-            _ = cmodel.infer_independent(y, lower=0, upper=10, steps=10, hdi_prob=None)
+            _ = cmodel.infer_independent(y, lower=0, upper=10, steps=10, ci_prob=None)
         with pytest.raises(NotImplementedError):
             _ = cmodel.loglikelihood(y=y, x=x, theta=[1,2,3])
         pass
@@ -622,7 +622,7 @@ class TestBasePolynomialModelT:
         assert pst.hdi_prob == 1
 
         # check trimming to [2.5,97.5] interval
-        pst = em.infer_independent(y=1, lower=0, upper=20, steps=1775, ci_prob=0.95)
+        pst = em.infer_independent(y=[1, 2], lower=0, upper=20, steps=1775, ci_prob=0.95)
 
         assert len(pst.eti_x) == len(pst.eti_pdf)
         assert len(pst.hdi_x) == len(pst.hdi_pdf)
@@ -663,33 +663,62 @@ class TestBasePolynomialModelT:
             'x_hat': x_test
         })
         expected = cmodel.loglikelihood(x=x_test, y=y_obs)
+        assert numpy.ndim(actual) == numpy.ndim(expected) == 0
         numpy.testing.assert_almost_equal(actual, expected, 6)
         pass
 
-    def test_loglikelihood(self):
-        x = numpy.array([1,2,3])
-        y = numpy.array([1,2,3])
+    @pytest.mark.parametrize("x", [
+        numpy.array([1,2,3]),
+        4,
+    ])
+    @pytest.mark.parametrize("y", [
+        numpy.array([2,4,8]),
+        5,
+    ])
+    def test_loglikelihood(self, x, y):
         cmodel = _TestPolynomialModel(independent_key='S', dependent_key='OD', mu_degree=1, scale_degree=1)
         cmodel.theta_fitted = [0, 1, 0.1, 1.6]
 
-        true = cmodel.loglikelihood(y=y, x=x)
+        actual = cmodel.loglikelihood(y=y, x=x)
+        assert numpy.ndim(actual) == 0
         mu, scale, df = cmodel.predict_dependent(x, theta=cmodel.theta_fitted)
         expected = numpy.sum(stats.t.logpdf(x=y, loc=mu, scale=scale, df=df))
-        assert expected == true
+        numpy.testing.assert_equal(actual, expected)
         return
 
     def test_loglikelihood_exceptions(self):
         cmodel = _TestPolynomialModel(independent_key='S', dependent_key='OD', mu_degree=1, scale_degree=1)
         with pytest.raises(Exception, match="No parameter vector"):
-            _= cmodel.loglikelihood(y=[2,3], x=[4,5])
+            cmodel.loglikelihood(y=[2,3], x=[4,5])
 
         cmodel.theta_fitted = [0, 1, 0.1, 1.6]
 
         with pytest.raises(TypeError):
-            _ = cmodel.loglikelihood(4, x=[2,3])
-        with pytest.raises(ValueError, match="Input x must either be"):
-            _= cmodel.loglikelihood(y=[2,3], x="hello")
+            cmodel.loglikelihood(4, x=[2,3])
+        with pytest.raises(ValueError, match="Input x must be"):
+            cmodel.loglikelihood(y=[2,3], x="hello")
+        with pytest.raises(ValueError, match="operands could not be broadcast"):
+            cmodel.loglikelihood(y=[1,2,3], x=[1,2])
         return
+
+    def test_likelihood(self):
+        # use a linear model with intercept 1 and slope 0.5
+        cmodel = _TestPolynomialModel(independent_key="I", dependent_key="D", mu_degree=1)
+        cmodel.theta_fitted = [1, 0.5, 0.5]
+
+        assert numpy.isscalar(cmodel.likelihood(y=2, x=3))
+        assert numpy.isscalar(cmodel.likelihood(y=[2, 3], x=[3, 4]))
+
+        with pytest.raises(ValueError, match="operands could not be broadcast"):
+            cmodel.likelihood(y=[1,2,3], x=[1,2])
+
+        x_dense = numpy.linspace(0, 4, 501)
+        actual = cmodel.likelihood(x=x_dense, y=2, scan_x=True)
+        assert numpy.ndim(actual) == 1
+        # the maximum likelihood should be at x=2
+        assert x_dense[numpy.argmax(actual)] == 2
+        pass
+
 
 
 class TestBaseAsymmetricLogisticModelT:
