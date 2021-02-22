@@ -321,7 +321,7 @@ class TestModelFunctions:
 class TestSymbolicModelFunctions:
     def _check_numpy_theano_equivalence(self, function, theta):
         # make sure that test value computation is turned off (pymc3 likes to turn it on)
-        with theano.configparser.change_flags(compute_test_value='off'):
+        with theano.config.change_flags(compute_test_value='off'):
             # create computation graph
             x = tt.vector('x', dtype=theano.config.floatX)
             y = function(x, theta)
