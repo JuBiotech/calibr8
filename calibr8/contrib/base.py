@@ -229,40 +229,28 @@ class BaseModelT(core.CalibrationModel):
         """  
         y = numpy.atleast_1d(y)
 
-        def likelihood(x, y):
-            loc, scale, df = self.predict_dependent(x)
-            # get log-probs for all observations
-            logpdfs = [
-                scipy.stats.t.logpdf(y_, loc=loc, scale=scale, df=df)
-                for y_ in y
-            ]
-            # sum them and exp them (numerically better than numpy.prod of pdfs)
-            return numpy.exp(numpy.sum(logpdfs, axis=0))
-
-        # high resolution x-coordinates for integration
-
         likelihood_integral, _ = scipy.integrate.quad(
-            func=likelihood,
+            func=lambda x: self.likelihood(x=x, y=y),
             # by restricting the integral into the interval [a,b], the resulting PDF is
             # identical to the posterior with a Uniform(a, b) prior.
             # 1. prior probability is constant in [a,b]
             # 2. prior probability is 0 outside of [a,b]
             # > numerical integral is only computed in [a,b], but because of 1. and 2., it's
             #   identical to the integral over [-∞,+∞]
-                a=lower, b=upper,
-                args=(y,)
-            )
+            a=lower, b=upper,
+        )
 
+        # high resolution x-coordinates for integration
         # the first integration is just to find the peak
         x_integrate = numpy.linspace(lower, upper, 10_000)
-        area = scipy.integrate.cumtrapz(likelihood(x_integrate, y), x_integrate, initial=0)
+        area = scipy.integrate.cumtrapz(self.likelihood(x=x_integrate, y=y, scan_x=True), x_integrate, initial=0)
         cdf = area / area[-1]
 
         # now we find a high-resolution CDF for (1-shrink) of the probability mass
         shrink = 0.00001
         xfrom, xto = _get_eti(x_integrate, cdf, 1 - shrink)
         x_integrate = numpy.linspace(xfrom, xto, 100_000)
-        area = scipy.integrate.cumtrapz(likelihood(x_integrate, y), x_integrate, initial=0)
+        area = scipy.integrate.cumtrapz(self.likelihood(x=x_integrate, y=y, scan_x=True), x_integrate, initial=0)
         cdf = (area / area[-1]) * (1 - shrink) + shrink / 2
 
         # TODO: create a smart x-vector from the CDF with varying stepsize
@@ -277,14 +265,14 @@ class BaseModelT(core.CalibrationModel):
 
             eti_x = numpy.linspace(eti_lower, eti_upper, steps)
             hdi_x = numpy.linspace(hdi_lower, hdi_upper, steps)
-            eti_pdf = likelihood(eti_x, y) / likelihood_integral
-            hdi_pdf = likelihood(hdi_x, y) / likelihood_integral
+            eti_pdf = self.likelihood(x=eti_x, y=y, scan_x=True) / likelihood_integral
+            hdi_pdf = self.likelihood(x=hdi_x, y=y, scan_x=True) / likelihood_integral
             eti_prob = _interval_prob(x_integrate, cdf, eti_lower, eti_upper)
             hdi_prob = _interval_prob(x_integrate, cdf, hdi_lower, hdi_upper)
         else:
             x = numpy.linspace(lower, upper, steps)
             eti_x = hdi_x = x
-            eti_pdf = hdi_pdf = likelihood(x, y) / likelihood_integral
+            eti_pdf = hdi_pdf = self.likelihood(x=x, y=y, scan_x=True) / likelihood_integral
             eti_prob = hdi_prob = 1
 
         median = x_integrate[numpy.argmin(numpy.abs(cdf - 0.5))]
