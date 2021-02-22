@@ -1,6 +1,8 @@
 import collections
 import datetime
 import logging
+import matplotlib
+from matplotlib import pyplot
 import numpy
 import pathlib
 import pytest
@@ -470,6 +472,20 @@ class TestUtils:
         with pytest.raises(calibr8.BuildMismatchException):
             calibr8.utils.assert_version_match("1.1.1.1", "1.1.1.2")
         return
+
+    @pytest.mark.parametrize("residual_type", ["relative", "absolute"])
+    def test_plot_model(self, residual_type):
+        em = _TestPolynomialModel(independent_key='S', dependent_key='A365', mu_degree=1, scale_degree=1)
+        em.theta_fitted = [0, 2, 0.1, 1]
+        em.cal_independent = numpy.linspace(0.1, 10, 7)
+        mu, scale, df = em.predict_dependent(em.cal_independent)
+        em.cal_dependent = scipy.stats.t.rvs(loc=mu, scale=scale, df=df)
+
+        fig, axs = calibr8.utils.plot_model(em, residual_type=residual_type)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        assert numpy.shape(axs) == (3,)
+        pyplot.close()
+        pass
 
 
 class TestContribBase:
