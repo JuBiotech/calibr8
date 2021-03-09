@@ -19,6 +19,8 @@ test-calibr8-py38:
   script:
     - pip install -e . && pip install pytest pytest-cov
     - pytest --cov=./calibr8 --cov-append --cov-report term-missing calibr8/tests.py
+    - pip install aesara && pytest --cov=./calibr8 --cov-append --cov-report term-missing calibr8/tests.py && pip uninstall aesara -y
+    - pip install "theano-pymc==1.1.2" && pytest --cov=./calibr8 --cov-append --cov-report term-missing calibr8/tests.py && pip uninstall theano-pymc -y
     - pip install pymc3
     - pip install pygmo
     - pytest --cov=./calibr8 --cov-append --cov-report term-missing calibr8/tests.py

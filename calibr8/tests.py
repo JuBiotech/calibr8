@@ -441,14 +441,14 @@ class TestUtils:
 
     @pytest.mark.skipif(HAS_PYMC3, reason='run only if PyMC3 is not installed')
     def test_has_modules(self):
-        assert not (calibr8.utils.HAS_THEANO)
-        assert not (calibr8.utils.HAS_PYMC3)
+        assert not calibr8.utils.HAS_TENSORS
+        assert not calibr8.utils.HAS_PYMC3
         return
 
     @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
     def test_has_modules(self):
-        assert (calibr8.utils.HAS_THEANO)
-        assert (calibr8.utils.HAS_PYMC3)
+        assert calibr8.utils.HAS_TENSORS
+        assert calibr8.utils.HAS_PYMC3
         return
 
     def test_assert_version_match(self):

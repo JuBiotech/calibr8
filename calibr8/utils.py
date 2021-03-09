@@ -10,19 +10,24 @@ import numpy
 import scipy.stats
 import typing
 
+
 try:
-    import theano
-    import theano.tensor as tt
-    HAS_THEANO = True
-    tensor_types = (
-        tt.TensorVariable,
-        tt.TensorConstant,
-        theano.graph.basic.Variable
-        if not hasattr(theano, "gof") else
-        theano.gof.graph.Variable
-    )
+    # Aesara
+    import aesara
+    from aesara.graph.basic import Variable
+    HAS_TENSORS = True
 except ModuleNotFoundError:
-    HAS_THEANO = False
+    # Aesara is not available
+    try:
+        # Theano-PyMC 1.1.2
+        import theano
+        from theano.graph.basic import Variable
+        HAS_TENSORS = True
+    except ModuleNotFoundError:
+        HAS_TENSORS = False
+
+tensor_types = (Variable,) if HAS_TENSORS else ()
+
 
 try:
     import pymc3
@@ -71,7 +76,7 @@ def istensor(input:object) -> bool:
     result : bool
         Indicates if the object is or contains a TensorVariable.
     """
-    if not HAS_THEANO:
+    if not HAS_TENSORS:
         return False
     elif isinstance(input, str):
         return False
