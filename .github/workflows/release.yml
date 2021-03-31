@@ -26,7 +26,7 @@ jobs:
         pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
     - name: Install PyMC3 and PyGMO
       run: |
-        pip install pymc3 
+        pip install "pymc3>=3.11.2,<4"
         pip install pygmo
     - name: Test with PyMC3 and PyGMO
       run: |
