@@ -1,6 +1,6 @@
 [![PyPI version](https://img.shields.io/pypi/v/calibr8)](https://pypi.org/project/calibr8)
-[![pipeline](https://github.com/michaelosthege/calibr8/workflows/pipeline/badge.svg)](https://github.com/michaelosthege/calibr8/actions)
-[![coverage](https://codecov.io/gh/michaelosthege/calibr8/branch/master/graph/badge.svg)](https://codecov.io/gh/michaelosthege/calibr8)
+[![pipeline](https://github.com/jubiotech/calibr8/workflows/pipeline/badge.svg)](https://github.com/jubiotech/calibr8/actions)
+[![coverage](https://codecov.io/gh/jubiotech/calibr8/branch/master/graph/badge.svg)](https://codecov.io/gh/jubiotech/calibr8)
 [![documentation](https://readthedocs.org/projects/calibr8/badge/?version=latest)](https://calibr8.readthedocs.io/en/latest/?badge=latest)
 [![DOI](https://zenodo.org/badge/306862348.svg)](https://zenodo.org/badge/latestdoi/306862348)
 
