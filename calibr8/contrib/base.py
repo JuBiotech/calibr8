@@ -23,7 +23,10 @@ class BaseModelT(core.CalibrationModel):
     def loglikelihood(self, *, y, x, replicate_id: str=None, dependent_key: str=None, theta=None):
         """ Loglikelihood of observation (dependent variable) given the independent variable.
 
-        If both x and y are vectors, they must have the same length and the likelihood will be evaluated elementwise.
+        If both x and y are 1D-vectors, they must have the same length and the likelihood will be evaluated elementwise.
+
+        For a 2-dimensional `x`, the implementation *should* broadcast and return a result that has
+        the same length as the first dimension of `x`.
 
         Parameters
         ----------
@@ -80,7 +83,10 @@ class BaseModelT(core.CalibrationModel):
                 ).logp(y).sum()
             return L
         else:
-            return numpy.sum(scipy.stats.t.logpdf(x=y, loc=mu, scale=scale, df=df))
+            # If `x` is given as a column vector, this model can broadcast automatically.
+            # This gives considerable performance benefits for the `likelihood(..., scan_x=True)`
+            # case which is relevant for `infer_independent`.
+            return numpy.sum(scipy.stats.t.logpdf(x=y, loc=mu, scale=scale, df=df), axis=-1)
 
 
 class BasePolynomialModelT(BaseModelT):

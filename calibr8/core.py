@@ -17,7 +17,7 @@ import typing
 from . import utils
 
 
-__version__ = '6.0.0'
+__version__ = '6.0.1'
 _log = logging.getLogger('calibr8')
 
 
@@ -396,7 +396,10 @@ class CalibrationModel:
     def loglikelihood(self, *, y, x, theta=None):
         """ Loglikelihood of observation (dependent variable) given the independent variable.
 
-        If both x and y are vectors, they must have the same length and the likelihood will be evaluated elementwise.
+        If both x and y are 1D-vectors, they must have the same length and the likelihood will be evaluated elementwise.
+
+        For a 2-dimensional `x`, the implementation *should* broadcast and return a result that has
+        the same length as the first dimension of `x`.
 
         Parameters
         ----------
@@ -436,10 +439,18 @@ class CalibrationModel:
             sum of likelihoods
         """
         if scan_x:
-            return numpy.exp([
-                self.loglikelihood(y=y, x=xi, theta=theta)
-                for xi in x
-            ])
+            try:
+                # Try to pass `x` as a column vector to benefit from broadcasting
+                # if that's implemented by the underlying model.
+                result = numpy.exp(self.loglikelihood(y=y, x=x[:, None], theta=theta))
+                if not result.shape == x.shape:
+                    raise ValueError("The underlying model does not seem to implement broadcasting.")
+                return result
+            except:
+                return numpy.exp([
+                    self.loglikelihood(y=y, x=xi, theta=theta)
+                    for xi in x
+                ])
         return numpy.exp(self.loglikelihood(y=y, x=x, theta=theta))
 
     def objective(self, independent, dependent, minimize=True) -> typing.Callable:
