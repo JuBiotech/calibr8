@@ -487,6 +487,38 @@ class TestUtils:
         pyplot.close()
         pass
 
+    def test_plot_model_band_xlim(self):
+        cm = _TestPolynomialModel(independent_key='S', dependent_key='A365', mu_degree=1, scale_degree=1)
+        cm.theta_fitted = [0, 2, 0.1, 1]
+        cm.cal_independent = numpy.linspace(0.1, 10, 7)
+        mu, scale, df = cm.predict_dependent(cm.cal_independent)
+        cm.cal_dependent = scipy.stats.t.rvs(loc=mu, scale=scale, df=df)
+
+        # fetch the default limits for comparison
+        fig, axs = calibr8.utils.plot_model(cm, band_xlim=(3, 5))
+        orig_0 = axs[0].get_xlim()
+        orig_1 = axs[1].get_xlim()
+        orig_2 = axs[2].get_xlim()
+        pyplot.close()
+
+        # no zooming in with tighter bands - data is always shown
+        fig, axs = calibr8.utils.plot_model(cm, band_xlim=(3, 5))
+        assert axs[0].get_xlim() == orig_0
+        assert axs[1].get_xlim() == orig_1
+        assert axs[2].get_xlim() == orig_2
+        pyplot.close()
+
+        # wider band limits only affect the first two subplots
+        fig, axs = calibr8.utils.plot_model(cm, band_xlim=(0, 5))
+        assert axs[0].get_xlim()[0] < orig_0[0]
+        numpy.testing.assert_approx_equal(axs[0].get_xlim()[1], orig_0[1], significant=4)
+        assert axs[1].get_xlim()[0] < orig_1[0]
+        # the upper xlim in the logarithmic plot changes because of axis scaling
+        # residuals are unaffected
+        assert axs[2].get_xlim() == orig_2
+        pyplot.close()
+        pass
+
 
 class TestContribBase:
     def test_cant_instantiate_base_models(self):
