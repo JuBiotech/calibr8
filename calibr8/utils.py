@@ -9,6 +9,7 @@ from matplotlib import pyplot
 import numpy
 import scipy.stats
 import typing
+from typing import Tuple, Optional, Sequence
 
 
 try:
@@ -260,9 +261,10 @@ def assert_version_match(vA:str, vB:str):
 
 def plot_model(
     model, *,
-    fig:typing.Optional[matplotlib.figure.Figure] = None,
-    axs:typing.Optional[typing.Sequence[matplotlib.axes.Axes]] = None,
-    residual_type='absolute'
+    fig: Optional[matplotlib.figure.Figure] = None,
+    axs: Optional[Sequence[matplotlib.axes.Axes]] = None,
+    residual_type='absolute',
+    band_xlim: Tuple[Optional[float], Optional[float]] = (None, None),
 ):
     """Makes a plot of the model with its data.
 
@@ -276,7 +278,12 @@ def plot_model(
     axs : optional, [matplotlib.axes.Axes]
         matplotlib subplots to use instead of creating new ones.
     residual_type : optional, str
-        Specifies if residuals are plotted absolutesly or relatively.
+        Specifies if residuals are plotted absolutely or relatively.
+    band_xlim : tuple
+        Optional overrides for the minimum/maximum x coordinates
+        of the likelihood bands in the left and center plots.
+        Either entry can be `None` or a float.
+        Defaults to the min/max of the calibration data.
 
     Returns
     -------
@@ -288,36 +295,90 @@ def plot_model(
     X = model.cal_independent
     Y = model.cal_dependent
 
+    logscale = all(X > 0)
+    xmin = min(X) if band_xlim[0] is None else band_xlim[0]
+    xmax = max(X) if band_xlim[1] is None else band_xlim[1]
+    if logscale:
+        xband = numpy.exp(numpy.linspace(numpy.log(xmin or 1e-5), numpy.log(xmax), 300))
+    else:
+        xband = numpy.linspace(xmin, xmax, 300)
+
     fig = None
     if axs is None:
-        fig, axs = pyplot.subplots(ncols=3, figsize=(14,6), dpi=120)
-    left, right, residuals = axs
+        # Create a figure where the two left subplots share an axis and the rightmost is independent.
+        # The gridspecs are configured to make the margins work out nicely.
+        fig = pyplot.figure(figsize=(12, 3.65), dpi=120)
+        gs1 = fig.add_gridspec(1, 3, wspace=0.05, width_ratios=[1.125, 1.125, 1.5])
+        gs2 = fig.add_gridspec(1, 3, wspace=0.5, width_ratios=[1.125, 1.125, 1.5])
+        axs = []
+        axs.append(fig.add_subplot(gs1[0, 0]))
+        axs.append(fig.add_subplot(gs1[0, 1], sharey=axs[0]))
+        pyplot.setp(axs[1].get_yticklabels(), visible=False)
+        axs.append(fig.add_subplot(gs2[0, 2]))
 
-    X_pred = numpy.exp(numpy.linspace(numpy.log(min(X)), numpy.log(max(X)), 1000))
-    Y_pred = model.predict_dependent(X_pred)
-    plot_t_band(left, X_pred, *Y_pred, residual_type=None)
-    plot_t_band(right, X_pred, *Y_pred, residual_type=None)
-    plot_t_band(residuals, X_pred, *Y_pred, residual_type=residual_type)
+    # ======= Left =======
+    # Untransformed, outer range
+    ax = axs[0]
+    plot_t_band(
+        ax,
+        xband,
+        *model.predict_dependent(xband),
+        residual_type=None
+    )
+    ax.scatter(X, Y)
+    ax.set(
+        ylabel=model.dependent_key,
+        xlabel=model.independent_key,
+    )
 
-    left.scatter(X, Y)
-    right.scatter(X, Y)
-    if residual_type == 'relative':
-        residuals.scatter(X, (Y - model.predict_dependent(X)[0]) / model.predict_dependent(X)[0])
-        residuals.set_ylabel('relative residuals')
+    # ======= Center =======
+    # Transformed if possible, outer range
+    ax = axs[1]
+    plot_t_band(
+        ax,
+        xband,
+        *model.predict_dependent(xband),
+        residual_type=None
+    )
+    ax.scatter(X, Y)
+    ax.set(
+        xlabel=model.independent_key,
+        xscale="log" if logscale else None,
+    )
+
+    # ======= Center =======
+    # Transformed if possible, data range
+    ax = axs[2]
+    if logscale:
+        xresiduals = numpy.exp(numpy.linspace(numpy.log(min(X)), numpy.log(max(X)), 300))
     else:
-        if residual_type != 'absolute':
-            raise ValueError('Residual type must be "absolsute" or "relative".')
-        residuals.scatter(X, Y - model.predict_dependent(X)[0])
-        residuals.set_ylabel('residuals')
+        xresiduals = numpy.linspace(min(X), max(X), 300)
+    plot_t_band(
+        ax,
+        xresiduals,
+        *model.predict_dependent(xresiduals),
+        residual_type=residual_type
+    )
 
-    left.set_ylabel(model.dependent_key)
-    left.set_xlabel(model.independent_key)
-    right.set_xlabel(model.independent_key)
-    right.set_ylabel(model.dependent_key)
-    if all(X > 0):
-        right.set_xscale('log')
-        right.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
-        residuals.set_xscale('log')
-        residuals.set_xlim(numpy.min(X)*0.9, numpy.max(X)*1.1)
-    residuals.set_xlabel(model.independent_key)
+    if residual_type == 'relative':
+        ax.scatter(X, (Y - model.predict_dependent(X)[0]) / model.predict_dependent(X)[0])
+    elif residual_type == 'absolute':
+        ax.scatter(X, Y - model.predict_dependent(X)[0])
+    else:
+        raise ValueError('Residual type must be "absolute" or "relative".')
+    maxlim = max(numpy.abs(ax.get_ylim()))
+    ax.set(
+        ylabel=f"{residual_type} residuals",
+        ylim=(-maxlim, maxlim),
+        xlabel=model.independent_key,
+        xscale="log" if logscale else None,
+    )
+
+    # Automatically change the xtick formatter on log-scaled subplots
+    # if the data does not scale more than one order of magnitude.
+    # This avoids ugly overlaps with the scientific notation.
+    if logscale and numpy.ptp(numpy.log(X)) < 1:
+        axs[1].xaxis.set_minor_formatter(matplotlib.ticker.ScalarFormatter())
+        axs[2].xaxis.set_minor_formatter(matplotlib.ticker.ScalarFormatter())
+
     return fig, axs
