@@ -5,6 +5,7 @@ implement custom calibration models.
 import numpy
 import scipy
 import typing
+import warnings
 
 from .. import core
 from .. import utils
@@ -20,7 +21,7 @@ except ModuleNotFoundError:
 
 
 class BaseModelT(core.CalibrationModel):
-    def loglikelihood(self, *, y, x, replicate_id: str=None, dependent_key: str=None, theta=None):
+    def loglikelihood(self, *, y, x, name: str=None, replicate_id: str=None, dependent_key: str=None, theta=None, **dist_kwargs):
         """ Loglikelihood of observation (dependent variable) given the independent variable.
 
         If both x and y are 1D-vectors, they must have the same length and the likelihood will be evaluated elementwise.
@@ -34,12 +35,20 @@ class BaseModelT(core.CalibrationModel):
             observed measurements (dependent variable)
         x : scalar, array-like or TensorVariable
             assumed independent variable
+        name : str
+            Name for the likelihood variable in a PyMC3 model (tensor mode).
+            Previously this was `f'{replicate_id}.{dependent_key}'`.
         replicate_id : optional, str
-            unique identifier for replicate (necessary for pymc3 likelihood)
+            Deprecated; pass the `name` kwarg instead.
         dependent_key : optional, str
-            key of the dependent variable (necessary for pymc3 likelihood)
+            Deprecated; pass the `name` kwarg instead.
         theta : optional, array-like
-            model parameters
+            Parameters for the calibration model to use instead of `theta_fitted`.
+            The vector must have the correct length, but can have numeric and or symbolic entries.
+            Use this kwarg to run MCMC on calibration model parameters.
+        **dist_kwargs : dict
+            Additional keyword arguments are forwarded to the `pm.StudentT` distribution.
+            Most prominent example: `dims`.
 
         Returns
         -------
@@ -63,24 +72,36 @@ class BaseModelT(core.CalibrationModel):
         mu, scale, df = self.predict_dependent(x, theta=theta)
         if utils.istensor(x) or utils.istensor(theta):
             if pm.Model.get_context(error_if_none=False) is not None:
-                if not replicate_id:
-                    raise ValueError(f'A replicate_id is required in tensor-mode.')
-                if not dependent_key:
-                    raise ValueError(f'A dependent_key is required in tensor-mode.')
+                if replicate_id and dependent_key:
+                    warnings.warn(
+                        "The `replicate_id` and `dependent_key` parameters are deprecated. Use `name` instead.",
+                        DeprecationWarning
+                    )
+                    name = f'{replicate_id}.{dependent_key}'
+                if not name:
+                    raise ValueError("A `name` must be specified for the PyMC3 likelihood.")
                 L = pm.StudentT(
-                    f'{replicate_id}.{dependent_key}',
+                    name,
                     mu=mu,
                     sigma=scale,
                     nu=df,
-                    observed=y
+                    observed=y,
+                    **dist_kwargs or {}
                 )
             else:
                 # TODO: broadcasting behaviour differs between numpy/theano API of loglikelihood function
-                L = pm.StudentT.dist(
+                rv = pm.StudentT.dist(
                     mu=mu,
                     sigma=scale,
                     nu=df,
-                ).logp(y).sum()
+                    **dist_kwargs or {}
+                )
+                if hasattr(pm, "logp"):
+                    # PyMC3 version 4 has a functional logp implementation
+                    L = pm.logp(rv, y).sum()
+                else:
+                    # PyMC3 version 3 has an object-oriented logp method
+                    L = rv.logp(y).sum()
             return L
         else:
             # If `x` is given as a column vector, this model can broadcast automatically.
