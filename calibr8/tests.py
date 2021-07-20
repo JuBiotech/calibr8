@@ -702,7 +702,15 @@ class TestBasePolynomialModelT:
         # create a pymc3 model using the calibration model
         with pymc3.Model() as pmodel:
             x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
-            L = cmodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
+
+            with pytest.raises(ValueError, match="`name` must be specified"):
+                cmodel.loglikelihood(x=x_hat, y=y_obs)
+
+            with pytest.warns(DeprecationWarning, match="Use `name` instead"):
+                L = cmodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
+                assert isinstance(L, tt.TensorVariable)
+
+            L = cmodel.loglikelihood(x=x_hat, y=y_obs, name='L_A01_A')
             assert isinstance(L, tt.TensorVariable)
         
         # compare the two loglikelihood computation methods
