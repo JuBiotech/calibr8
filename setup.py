@@ -53,7 +53,7 @@ setuptools.setup(
     description='Toolbox for non-linear calibration modeling.',
     long_description=open(pathlib.Path(ROOT, 'README.md')).read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/michaelosthege/calibr8',
+    url='https://github.com/JuBiotech/calibr8',
     author='Laura Marie Helleckes, Michael Osthege',
     author_email='l.helleckes@fz-juelich.de, m.osthege@fz-juelich.de',
     license='GNU Affero General Public License v3',
