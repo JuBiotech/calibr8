@@ -14,12 +14,18 @@ import calibr8.utils
 
 
 try:
-    import pymc3
-    import theano
-    import theano.tensor as tt
-    HAS_PYMC3 = True
+    try:
+        import pymc3 as pm
+        import theano as backend
+        import theano.tensor as at
+    except ModuleNotFoundError:
+        import pymc as pm
+        import aesara as backend
+        import aesara.tensor as at
+    config = backend.config
+    HAS_PYMC = True
 except ModuleNotFoundError:
-    HAS_PYMC3 = False
+    HAS_PYMC = False
 
 try:
     import pygmo
@@ -319,20 +325,20 @@ class TestModelFunctions:
         return
 
 
-@pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
+@pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
 class TestSymbolicModelFunctions:
-    def _check_numpy_theano_equivalence(self, function, theta):
-        # make sure that test value computation is turned off (pymc3 likes to turn it on)
-        with theano.config.change_flags(compute_test_value='off'):
+    def _check_numpy_backend_equivalence(self, function, theta):
+        # make sure that test value computation is turned off (PyMC likes to turn it on)
+        with config.change_flags(compute_test_value='off'):
             # create computation graph
-            x = tt.vector('x', dtype=theano.config.floatX)
+            x = at.vector('x', dtype=config.floatX)
             y = function(x, theta)
-            assert isinstance(y, tt.TensorVariable)
+            assert isinstance(y, at.TensorVariable)
 
-            # compile theano function
-            f = theano.function([x], [y])
+            # compile Theano/Aesara function
+            f = backend.function([x], [y])
         
-            # check equivalence of numpy and theano computation
+            # check equivalence of numpy and Theano/Aesara backend computation
             x_test = [1, 2, 4]
             numpy.testing.assert_almost_equal(
                 f(x_test)[0],
@@ -341,35 +347,35 @@ class TestSymbolicModelFunctions:
         return
 
     def test_logistic(self):
-        self._check_numpy_theano_equivalence(
+        self._check_numpy_backend_equivalence(
             calibr8.logistic,
             [2, 2, 4, 1]
         )
         return
 
     def test_asymmetric_logistic(self):
-        self._check_numpy_theano_equivalence(
+        self._check_numpy_backend_equivalence(
             calibr8.asymmetric_logistic,
             [0, 4, 2, 1, 1]
         )
         return
 
     def test_log_log_logistic(self):
-        self._check_numpy_theano_equivalence(
+        self._check_numpy_backend_equivalence(
             calibr8.log_log_logistic,
             [2, 2, 4, 1]
         )
         return
     
     def test_xlog_logistic(self):
-        self._check_numpy_theano_equivalence(
+        self._check_numpy_backend_equivalence(
             calibr8.xlog_logistic,
             [2, 2, 4, 1]
         )
         return
 
     def test_ylog_logistic(self):
-        self._check_numpy_theano_equivalence(
+        self._check_numpy_backend_equivalence(
             calibr8.ylog_logistic,
             [2, 2, 4, 1]
         )
@@ -398,8 +404,8 @@ class TestUtils:
             '2018-12-01T09:27:30Z'
         )
 
-    @pytest.mark.skipif(HAS_PYMC3, reason='run only if PyMC3 is not installed')
-    def test_istensor_without_pymc3(self):
+    @pytest.mark.skipif(HAS_PYMC, reason='run only if PyMC is not installed')
+    def test_istensor_without_pymc(self):
         test_dict = {
             'a': 1, 
             'b': [1,2,3], 
@@ -411,8 +417,8 @@ class TestUtils:
         assert not (calibr8.istensor([1,2,3]))
         assert not (calibr8.istensor('hello'))
 
-    @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
-    def test_istensor_with_pymc3(self):
+    @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
+    def test_istensor_with_pymc(self):
         test_dict = {
             'a': 1, 
             'b': [1,2,3], 
@@ -427,11 +433,11 @@ class TestUtils:
         test_dict2 = {
             'a': 1, 
             'b': [1,2,3], 
-            'c': numpy.array([(1, tt.as_tensor_variable([1,2,3])), (3,4)])
+            'c': numpy.array([(1, at.as_tensor_variable([1,2,3])), (3,4)])
         }
         assert (calibr8.istensor(test_dict2))
-        assert (calibr8.istensor([1, tt.as_tensor_variable([1,2]), 3]))
-        assert (calibr8.istensor(numpy.array([1, tt.as_tensor_variable([1,2]), 3])))
+        assert (calibr8.istensor([1, at.as_tensor_variable([1,2]), 3]))
+        assert (calibr8.istensor(numpy.array([1, at.as_tensor_variable([1,2]), 3])))
 
     def test_import_warner(self):
         dummy = calibr8.utils.ImportWarner('dummy')
@@ -439,13 +445,13 @@ class TestUtils:
             print(dummy.__version__)
         return
 
-    @pytest.mark.skipif(HAS_PYMC3, reason='run only if PyMC3 is not installed')
+    @pytest.mark.skipif(HAS_PYMC, reason='run only if PyMC is not installed')
     def test_has_modules(self):
         assert not calibr8.utils.HAS_TENSORS
         assert not calibr8.utils.HAS_PYMC3
         return
 
-    @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
+    @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
     def test_has_modules(self):
         assert calibr8.utils.HAS_TENSORS
         assert calibr8.utils.HAS_PYMC3
@@ -690,7 +696,7 @@ class TestBasePolynomialModelT:
             _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, ci_prob=(97.5))
         pass
     
-    @pytest.mark.skipif(not HAS_PYMC3, reason='requires PyMC3')
+    @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
     def test_symbolic_loglikelihood(self):
         cmodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
         cmodel.theta_fitted = [0, 1, 0.1, 1]
@@ -699,27 +705,36 @@ class TestBasePolynomialModelT:
         x_true = numpy.array([1,2,3,4,5])
         y_obs = cmodel.predict_dependent(x_true)[0]
 
-        # create a pymc3 model using the calibration model
-        with pymc3.Model() as pmodel:
-            x_hat = pymc3.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
+        # create a PyMC model using the calibration model
+        with pm.Model() as pmodel:
+            x_hat = pm.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
 
             with pytest.raises(ValueError, match="`name` must be specified"):
                 cmodel.loglikelihood(x=x_hat, y=y_obs)
 
             with pytest.warns(DeprecationWarning, match="Use `name` instead"):
                 L = cmodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
-                assert isinstance(L, tt.TensorVariable)
+                assert isinstance(L, at.TensorVariable)
 
             L = cmodel.loglikelihood(x=x_hat, y=y_obs, name='L_A01_A')
-            assert isinstance(L, tt.TensorVariable)
+            assert isinstance(L, at.TensorVariable)
         
         # compare the two loglikelihood computation methods
         x_test = numpy.random.normal(x_true, scale=0.1)
-        actual = L.logp({
-            'x_hat': x_test
-        })
+        if not hasattr(pm, "logp"):
+            # PyMC3 version 3
+            actual = L.logp({
+                'x_hat': x_test
+            })
+        else:
+            # PyMC version 4
+            actual = pm.logpt(L, sum=True).eval({
+                pmodel.rvs_to_values[x_hat]: x_test
+            })
+
         expected = cmodel.loglikelihood(x=x_test, y=y_obs)
-        assert numpy.ndim(actual) == numpy.ndim(expected) == 0
+        assert numpy.ndim(expected) == 0
+        assert numpy.ndim(actual) == 0
         numpy.testing.assert_almost_equal(actual, expected, 6)
         pass
 
@@ -890,7 +905,7 @@ class TestOptimization:
         numpy.testing.assert_array_equal(em.cal_dependent, y)
         pass
 
-    @pytest.mark.xfail(reason="PyGMO and PyMC3 have dependencies (cloudpickle/dill) that are currently incompatible. See https://github.com/uqfoundation/dill/issues/383")
+    @pytest.mark.xfail(reason="PyGMO and PyMC have dependencies (cloudpickle/dill) that are currently incompatible. See https://github.com/uqfoundation/dill/issues/383")
     @pytest.mark.skipif(not HAS_PYGMO, reason='requires PyGMO')
     def test_fit_pygmo(self, caplog):
         numpy.random.seed(1234)

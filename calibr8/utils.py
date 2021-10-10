@@ -31,7 +31,10 @@ tensor_types = (Variable,) if HAS_TENSORS else ()
 
 
 try:
-    import pymc3
+    try:
+        import pymc3
+    except ModuleNotFoundError:
+        import pymc
     HAS_PYMC3 = True
 except ModuleNotFoundError:
     HAS_PYMC3 = False

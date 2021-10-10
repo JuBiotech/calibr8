@@ -11,11 +11,10 @@ from .. import core
 from .. import utils
 
 try:
-    import theano
-except ModuleNotFoundError:
-    theano = utils.ImportWarner('theano')
-try:
-    import pymc3 as pm
+    try:
+        import pymc3 as pm
+    except ModuleNotFoundError:
+        import pymc as pm
 except ModuleNotFoundError:
     pm = utils.ImportWarner('pymc3')
 
@@ -97,7 +96,7 @@ class BaseModelT(core.CalibrationModel):
                     **dist_kwargs or {}
                 )
                 if hasattr(pm, "logp"):
-                    # PyMC3 version 4 has a functional logp implementation
+                    # PyMC version 4 has a functional logp implementation
                     L = pm.logp(rv, y).sum()
                 else:
                     # PyMC3 version 3 has an object-oriented logp method
