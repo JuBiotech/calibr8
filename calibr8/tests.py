@@ -695,7 +695,25 @@ class TestBasePolynomialModelT:
         with pytest.raises(ValueError):
             _ = em.infer_independent(y=1, lower=0, upper=20, steps=1000, ci_prob=(97.5))
         pass
-    
+
+    @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
+    def test_symbolic_loglikelihood_checks_and_warnings(self):
+        cmodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
+        cmodel.theta_fitted = [0, 1, 0.1, 1]
+       
+        # create test data
+        x_true = numpy.array([1,2,3,4,5])
+        y_obs = cmodel.predict_dependent(x_true)[0]
+
+        with pm.Model():
+            x_hat = pm.Uniform("x_hat", shape=5)
+            with pytest.raises(ValueError, match="`name` must be specified"):
+                cmodel.loglikelihood(x=x_hat, y=y_obs)
+
+            with pytest.warns(DeprecationWarning, match="Use `name` instead"):
+                cmodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
+        pass
+
     @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
     def test_symbolic_loglikelihood(self):
         cmodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
@@ -708,14 +726,6 @@ class TestBasePolynomialModelT:
         # create a PyMC model using the calibration model
         with pm.Model() as pmodel:
             x_hat = pm.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
-
-            with pytest.raises(ValueError, match="`name` must be specified"):
-                cmodel.loglikelihood(x=x_hat, y=y_obs)
-
-            with pytest.warns(DeprecationWarning, match="Use `name` instead"):
-                L = cmodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
-                assert isinstance(L, at.TensorVariable)
-
             L = cmodel.loglikelihood(x=x_hat, y=y_obs, name='L_A01_A')
             assert isinstance(L, at.TensorVariable)
         
