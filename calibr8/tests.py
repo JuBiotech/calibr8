@@ -723,25 +723,48 @@ class TestBasePolynomialModelT:
         x_true = numpy.array([1,2,3,4,5])
         y_obs = cmodel.predict_dependent(x_true)[0]
 
-        # create a PyMC model using the calibration model
-        with pm.Model() as pmodel:
-            x_hat = pm.Uniform('x_hat', lower=0, upper=10, shape=x_true.shape, transform=None)
-            L = cmodel.loglikelihood(x=x_hat, y=y_obs, name='L_A01_A')
-            assert isinstance(L, at.TensorVariable)
-        
+        x_hat = at.vector()
+        x_hat.tag.test_value = x_true
+        L = cmodel.loglikelihood(x=x_hat, y=y_obs, name='L_A01_A')
+        assert isinstance(L, at.TensorVariable)
+        assert L.ndim == 0
+
         # compare the two loglikelihood computation methods
         x_test = numpy.random.normal(x_true, scale=0.1)
-        if not hasattr(pm, "logp"):
-            # PyMC3 version 3
-            actual = L.logp({
-                'x_hat': x_test
-            })
-        else:
-            # PyMC version 4
-            actual = pm.logpt(L, sum=True).eval({
-                pmodel.rvs_to_values[x_hat]: x_test
-            })
+        actual = L.eval({
+            x_hat: x_test
+        })
+        expected = cmodel.loglikelihood(x=x_test, y=y_obs)
+        assert numpy.ndim(expected) == 0
+        assert numpy.ndim(actual) == 0
+        numpy.testing.assert_almost_equal(actual, expected, 6)
+        pass
 
+    @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
+    def test_symbolic_loglikelihood_in_modelcontext(self):
+        cmodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
+        cmodel.theta_fitted = [0, 0.5, 0.1, 1]
+       
+        # create test data
+        x_true = numpy.array([1,2,3,4,5])
+        y_obs = cmodel.predict_dependent(x_true)[0]
+
+        # create a PyMC model using the calibration model
+        with pm.Model() as pmodel:
+            x_hat = pm.Uniform("x_hat", 0, 1, shape=x_true.shape, transform=None)
+            L = cmodel.loglikelihood(x=x_hat, y=y_obs, name='L_A01_A')
+        assert isinstance(L, at.TensorVariable)
+        assert L.ndim == 0
+
+        # PyMC v4 returns the RV, but for .eval() we need the RV-value-variable
+        if pm.__version__[0] != "3":
+            x_hat = pmodel.rvs_to_values[x_hat]
+
+        # compare the two loglikelihood computation methods
+        x_test = numpy.random.normal(x_true, scale=0.1)
+        actual = L.eval({
+            x_hat: x_test
+        })
         expected = cmodel.loglikelihood(x=x_test, y=y_obs)
         assert numpy.ndim(expected) == 0
         assert numpy.ndim(actual) == 0

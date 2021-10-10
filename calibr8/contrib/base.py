@@ -78,8 +78,8 @@ class BaseModelT(core.CalibrationModel):
                     )
                     name = f'{replicate_id}.{dependent_key}'
                 if not name:
-                    raise ValueError("A `name` must be specified for the PyMC3 likelihood.")
-                L = pm.StudentT(
+                    raise ValueError("A `name` must be specified for the PyMC likelihood.")
+                rv = pm.StudentT(
                     name,
                     mu=mu,
                     sigma=scale,
@@ -88,20 +88,20 @@ class BaseModelT(core.CalibrationModel):
                     **dist_kwargs or {}
                 )
             else:
-                # TODO: broadcasting behaviour differs between numpy/theano API of loglikelihood function
                 rv = pm.StudentT.dist(
                     mu=mu,
                     sigma=scale,
                     nu=df,
                     **dist_kwargs or {}
                 )
-                if hasattr(pm, "logp"):
-                    # PyMC version 4 has a functional logp implementation
-                    L = pm.logp(rv, y).sum()
-                else:
-                    # PyMC3 version 3 has an object-oriented logp method
-                    L = rv.logp(y).sum()
-            return L
+            # The API to get log-likelihood tensors differs between PyMC versions
+            if pm.__version__[0] == "3":
+                if isinstance(rv, pm.model.ObservedRV):
+                    return rv.logpt.sum()
+                elif isinstance(rv, pm.Distribution):
+                    return rv.logp(y).sum()
+            else:
+                return pm.logpt(rv, y, sum=True)
         else:
             # If `x` is given as a column vector, this model can broadcast automatically.
             # This gives considerable performance benefits for the `likelihood(..., scan_x=True)`
