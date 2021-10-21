@@ -257,7 +257,7 @@ class CalibrationModel:
     def theta_fitted(self, value: typing.Optional[typing.Sequence[float]]):
         if value is not None:
             self.__theta_fitted = tuple(value)
-            self.__theta_timestamp = datetime.datetime.utcnow().astimezone(datetime.timezone.utc).replace(microsecond=0)
+            self.__theta_timestamp = datetime.datetime.now().astimezone(datetime.timezone.utc).replace(microsecond=0)
         else:
             self.__theta_fitted = None
             self.__theta_timestamp = None
