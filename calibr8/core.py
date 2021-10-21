@@ -16,7 +16,7 @@ import typing
 from . import utils
 
 
-__version__ = '6.1.1
+__version__ = '6.1.1'
 _log = logging.getLogger('calibr8')
 
 
