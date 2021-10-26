@@ -146,7 +146,11 @@ class TestBasicCalibrationModel:
             DifferentEM.load('save_load_test.json')
         return
 
-    def test_save_and_load_attributes(self):
+    @pytest.mark.parametrize("ndim", [1, 2, 3])
+    def test_save_and_load_attributes(self, ndim):
+        shape = tuple(3 + numpy.arange(ndim))
+        assert len(shape) == ndim
+
         em = _TestModel()
         em.theta_guess = (1,1,1)
         em.theta_fitted = (1,2,3)
@@ -156,8 +160,8 @@ class TestBasicCalibrationModel:
             (0, 5),
             (0, 10)
         )
-        em.cal_independent = numpy.linspace(0, 10, 7)
-        em.cal_dependent = numpy.random.normal(em.cal_independent)
+        em.cal_independent = numpy.random.uniform(0, 10, size=shape)
+        em.cal_dependent = numpy.random.normal(size=len(em.cal_independent))
 
         # save and load
         em.save('save_load_test.json')

@@ -16,7 +16,7 @@ import typing
 from . import utils
 
 
-__version__ = '6.1.1'
+__version__ = '6.1.2'
 _log = logging.getLogger('calibr8')
 
 
@@ -496,8 +496,8 @@ class CalibrationModel:
             theta_timestamp=utils.format_datetime(self.theta_timestamp),
             independent_key=self.independent_key,
             dependent_key=self.dependent_key,
-            cal_independent=tuple(self.cal_independent) if self.cal_independent is not None else None,
-            cal_dependent=tuple(self.cal_dependent) if self.cal_dependent is not None else None,
+            cal_independent=self.cal_independent.tolist() if self.cal_independent is not None else None,
+            cal_dependent=self.cal_dependent.tolist() if self.cal_dependent is not None else None,
         )
         with open(filepath, 'w') as jfile:
             json.dump(data, jfile, indent=4)
