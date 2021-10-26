@@ -36,12 +36,14 @@ def _mask_and_warn_inf_or_nan(x: numpy.ndarray, y: numpy.ndarray, on: typing.Opt
     x : array
     y : array
     """
+    mask_x = ~numpy.any(numpy.ma.masked_invalid(x).mask, axis=tuple(range(1, x.ndim)))
+    mask_y = ~numpy.ma.masked_invalid(y).mask
     if on == "y":
-        mask = numpy.isfinite(y)
+        mask = mask_y
     elif on =="x":
-        mask = numpy.isfinite(x)
+        mask = mask_x
     else:
-        mask = numpy.logical_and(numpy.isfinite(x), numpy.isfinite(y))
+        mask = numpy.logical_and(mask_x, mask_y)
     if numpy.any(~mask):
         _log.warning("%d elements in x and y where dropped because they were inf or nan.", sum(~mask))
     return x[mask], y[mask]

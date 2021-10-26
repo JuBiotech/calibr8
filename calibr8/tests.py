@@ -824,7 +824,6 @@ class TestBasePolynomialModelT:
         pass
 
 
-
 class TestBaseAsymmetricLogisticModelT:
     def test_predict_dependent(self):
         x = numpy.array([1,2,3])
@@ -890,6 +889,39 @@ class TestOptimization:
             result = calibr8.optimization._mask_and_warn_inf_or_nan(x, y)
         assert not numpy.any(numpy.isnan(result[0]))
         assert not numpy.any(numpy.isnan(result[1]))
+        assert "3 elements" in caplog.text
+        pass
+
+    @pytest.mark.parametrize("ndim", [2, 3])
+    def test_finite_masking_multivariate(self, ndim, caplog):
+        x = numpy.random.normal(size=4 + numpy.arange(ndim))
+        y = numpy.sum(x ** 2, axis=tuple(numpy.arange(1, ndim)))
+        assert x.shape == (4, 5, 6)[:ndim]
+        assert y.shape == (4,)
+
+        result = calibr8.optimization._mask_and_warn_inf_or_nan(x, y)
+        numpy.testing.assert_array_equal(result[0], x)
+        numpy.testing.assert_array_equal(result[1], y)
+
+        idx = tuple(numpy.ones(shape=ndim, dtype=int))
+        x[idx] = numpy.inf
+        with caplog.at_level(logging.WARNING):
+            result = calibr8.optimization._mask_and_warn_inf_or_nan(x, y, on="x")
+        assert len(result[0]) == 3
+        assert len(result[1]) == 3
+        assert "1 elements" in caplog.text
+
+        y[[0, 3]] = numpy.nan
+        with caplog.at_level(logging.WARNING):
+            result = calibr8.optimization._mask_and_warn_inf_or_nan(x, y, on="y")
+        assert len(result[0]) == 2
+        assert len(result[1]) == 2
+        assert "2 elements" in caplog.text
+
+        with caplog.at_level(logging.WARNING):
+            result = calibr8.optimization._mask_and_warn_inf_or_nan(x, y)
+        assert len(result[0]) == 1
+        assert len(result[1]) == 1
         assert "3 elements" in caplog.text
         pass
 
