@@ -36,7 +36,13 @@ def _mask_and_warn_inf_or_nan(x: numpy.ndarray, y: numpy.ndarray, on: typing.Opt
     x : array
     y : array
     """
-    mask_x = ~numpy.any(numpy.ma.masked_invalid(x).mask, axis=tuple(range(1, x.ndim)))
+    xdims = numpy.ndim(x)
+    if xdims == 1:
+        mask_x = numpy.isfinite(x)
+    elif xdims == 2:
+        mask_x = ~numpy.any(numpy.ma.masked_invalid(x).mask, axis=1)
+    else:
+        raise ValueError(f"The independent values are {numpy.ndim(x)}-dimensional. That's not supported.")
     mask_y = ~numpy.ma.masked_invalid(y).mask
     if on == "y":
         mask = mask_y

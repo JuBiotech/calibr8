@@ -896,19 +896,18 @@ class TestOptimization:
         assert "3 elements" in caplog.text
         pass
 
-    @pytest.mark.parametrize("ndim", [2, 3])
-    def test_finite_masking_multivariate(self, ndim, caplog):
-        x = numpy.random.normal(size=4 + numpy.arange(ndim))
-        y = numpy.sum(x ** 2, axis=tuple(numpy.arange(1, ndim)))
-        assert x.shape == (4, 5, 6)[:ndim]
+    def test_finite_masking_multivariate(self, caplog):
+        x = numpy.random.normal(size=(4, 5))
+        y = numpy.sum(x ** 2, axis=1)
+        assert x.ndim == 2
+        assert x.shape == (4, 5)
         assert y.shape == (4,)
 
         result = calibr8.optimization._mask_and_warn_inf_or_nan(x, y)
         numpy.testing.assert_array_equal(result[0], x)
         numpy.testing.assert_array_equal(result[1], y)
 
-        idx = tuple(numpy.ones(shape=ndim, dtype=int))
-        x[idx] = numpy.inf
+        x[1, 1] = numpy.inf
         with caplog.at_level(logging.WARNING):
             result = calibr8.optimization._mask_and_warn_inf_or_nan(x, y, on="x")
         assert len(result[0]) == 3
@@ -927,6 +926,10 @@ class TestOptimization:
         assert len(result[0]) == 1
         assert len(result[1]) == 1
         assert "3 elements" in caplog.text
+
+        # higher dimensionality inputs are not supported:
+        with pytest.raises(ValueError, match="4-dimensional"):
+            calibr8.optimization._mask_and_warn_inf_or_nan(x[:, :, None, None], y)
         pass
 
     def test_fit_checks_guess_and_bounds_count(self):
