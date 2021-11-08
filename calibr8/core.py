@@ -366,8 +366,8 @@ def _infer_univariate_independent(
 
 class CalibrationModel:
     """A parent class providing the general structure of a calibration model."""
-    
-    def __init__(self, independent_key:str, dependent_key:str, *, theta_names:typing.Tuple[str]):
+
+    def __init__(self, independent_key:str, dependent_key:str, *, theta_names:typing.Tuple[str], ndim=1):
         """Creates a CalibrationModel object.
 
         Parameters
@@ -378,6 +378,10 @@ class CalibrationModel:
             name of the dependent variable
         theta_names : optional, tuple of str
             names of the model parameters
+        ndim : int
+            Number of dimensions that the independent variable has.
+            Most calibrations are univariate (ndim=1).
+            Multivariate calibrations (ndim > 1) may need to override the `infer_independent` implementation.
         """
         # make sure that the inheriting type has no required constructor (kw)args
         args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults, annotations = inspect.getfullargspec(type(self).__init__)
@@ -392,6 +396,7 @@ class CalibrationModel:
         self.__theta_fitted = None
 
         # public attributes/properties
+        self.ndim = ndim
         self.independent_key = independent_key
         self.dependent_key = dependent_key
         self.theta_names = theta_names
@@ -492,7 +497,12 @@ class CalibrationModel:
         -------
         posterior : UnivariateInferenceResult
             the result of the numeric posterior calculation
-        """  
+        """
+        if self.ndim != 1:
+            raise NotImplementedError(
+                f"This calibration model seems to be multivariate (ndim={self.ndim}),"
+                " but does not have an override implementation of .infer_independent()."
+            )
         y = numpy.atleast_1d(y)
         return _infer_univariate_independent(
             self.likelihood,

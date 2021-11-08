@@ -135,6 +135,9 @@ class TestBasicCalibrationModel:
         with pytest.raises(ValueError, match=r"Unexpected `ci_prob`"):
             cmodel.loglikelihood = lambda x, y, theta: 1
             _ = cmodel.infer_independent(y, lower=0, upper=10, steps=10, ci_prob=None)
+        with pytest.raises(NotImplementedError, match="seems to be multivariate"):
+            cmodel.ndim = 3
+            cmodel.infer_independent(2, lower=0, upper=5)
         pass
 
     def test_save_and_load_version_check(self):
