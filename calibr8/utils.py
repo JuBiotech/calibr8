@@ -346,7 +346,7 @@ def plot_model(
     ax.scatter(X, Y)
     ax.set(
         xlabel=model.independent_key,
-        xscale="log" if logscale else None,
+        xscale="log" if logscale else "linear",
     )
 
     # ======= Center =======
@@ -374,7 +374,7 @@ def plot_model(
         ylabel=f"{residual_type} residuals",
         ylim=(-maxlim, maxlim),
         xlabel=model.independent_key,
-        xscale="log" if logscale else None,
+        xscale="log" if logscale else "linear",
     )
 
     # Automatically change the xtick formatter on log-scaled subplots
