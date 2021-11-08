@@ -100,14 +100,15 @@ class TestBasicCalibrationModel:
         x = numpy.array([1,2,3])
         y = numpy.array([4,5,6])
         cmodel = _TestModel()
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match="predict_dependent function"):
             _ = cmodel.predict_dependent(x)
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match="predict_independent function"):
             _ = cmodel.predict_independent(x)
-        with pytest.raises(NotImplementedError):
-            _ = cmodel.infer_independent(y, lower=0, upper=10, steps=10, ci_prob=None)
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match="loglikelihood function"):
             _ = cmodel.loglikelihood(y=y, x=x, theta=[1,2,3])
+        with pytest.raises(ValueError, match=r"Unexpected `ci_prob`"):
+            cmodel.loglikelihood = lambda x, y, theta: 1
+            _ = cmodel.infer_independent(y, lower=0, upper=10, steps=10, ci_prob=None)
         pass
 
     def test_save_and_load_version_check(self):

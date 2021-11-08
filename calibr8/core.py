@@ -365,7 +365,7 @@ class CalibrationModel:
         # TODO: create a smart x-vector from the CDF with varying stepsize
 
         if ci_prob != 1:
-            if not (0 < ci_prob <= 1):
+            if not isinstance(ci_prob, (int, float)) or not (0 < ci_prob <= 1):
                 raise ValueError(f'Unexpected `ci_prob` value of {ci_prob}. Expected float in interval (0, 1].')
 
             # determine the interval bounds from the high-resolution CDF
