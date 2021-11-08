@@ -12,6 +12,8 @@ import numpy
 import os
 import scipy
 import typing
+import warnings
+from typing import Union
 
 from . import utils
 
@@ -20,11 +22,11 @@ __version__ = '6.1.3'
 _log = logging.getLogger('calibr8')
 
 
-class NumericPosterior:
-    """ The result of a numeric infer_independent operation. """
+class InferenceResult:
+    """Generic base type of independent value inference results."""
+
     def __init__(
         self,
-        median: float,
         eti_x: numpy.ndarray,
         eti_pdf: numpy.ndarray,
         eti_prob: float,
@@ -36,8 +38,6 @@ class NumericPosterior:
 
         Parameters
         ----------
-        median : float
-            x-value of the posterior median
         eti_x : array
             Values of the independent variable in [eti_lower, eti_upper]
         eti_pdf : array
@@ -51,13 +51,92 @@ class NumericPosterior:
         hdi_prob : float
             Probability mass in the HDI
         """
+        self._eti_x = eti_x
+        self._eti_pdf = eti_pdf
+        self._eti_prob = eti_prob
+        self._hdi_x = hdi_x
+        self._hdi_pdf = hdi_pdf
+        self._hdi_prob = hdi_prob
+
+    @property
+    def eti_x(self) -> numpy.ndarray:
+        """Values of the independent variable in the interval [eti_lower, eti_upper]"""
+        return self._eti_x
+
+    @property
+    def eti_pdf(self) -> numpy.ndarray:
+        """Values of the posterior probability density at the positions `eti_x`."""
+        return self._eti_pdf
+
+    @property
+    def eti_lower(self) -> Union[float, numpy.ndarray]:
+        """ Lower bound of the ETI. This is the first value in `eti_x`. """
+        return self._eti_x[..., 0]
+
+    @property
+    def eti_upper(self) -> Union[float, numpy.ndarray]:
+        """ Upper bound of the ETI. This is the last value in `eti_x`. """
+        return self._eti_x[..., -1]
+
+    @property
+    def eti_width(self) -> Union[float, numpy.ndarray]:
+        """ Width of the ETI. """
+        return self.eti_upper - self.eti_lower
+
+    @property
+    def eti_prob(self) -> float:
+        """ Probability mass of the given equal tailed interval. """
+        return self._eti_prob
+
+    @property
+    def hdi_x(self) -> numpy.ndarray:
+        """Values of the independent variable in the interval [hdi_lower, hdi_upper]"""
+        return self._hdi_x
+
+    @property
+    def hdi_pdf(self) -> numpy.ndarray:
+        """Values of the posterior probability density at the positions `hdi_x`."""
+        return self._hdi_pdf
+
+    @property
+    def hdi_lower(self) -> Union[float, numpy.ndarray]:
+        """ Lower bound of the HDI. This is the first value in `hdi_x`. """
+        return self._hdi_x[..., 0]
+
+    @property
+    def hdi_upper(self) -> Union[float, numpy.ndarray]:
+        """ Upper bound of the HDI. This is the last value in `hdi_x`. """
+        return self._hdi_x[..., -1]
+
+    @property
+    def hdi_width(self) -> Union[float, numpy.ndarray]:
+        """ Width of the HDI. """
+        return self.hdi_upper - self.hdi_lower
+
+    @property
+    def hdi_prob(self) -> float:
+        """ Probability mass of the given highest density interval. """
+        return self._hdi_prob
+
+
+class UnivariateInferenceResult(InferenceResult):
+    """ The result of a numeric infer_independent operation with a univariate model. """
+    def __init__(
+        self,
+        median: float,
+        **kwargs,
+    ) -> None:
+        """ The result of a numeric infer_independent operation.
+
+        Parameters
+        ----------
+        median : float
+            x-value of the posterior median
+        **kwargs : dict
+            Forwarded to InferenceResult base constructor.
+        """
         self.median = median
-        self.eti_x = eti_x
-        self.eti_pdf = eti_pdf
-        self.eti_prob = eti_prob
-        self.hdi_x = hdi_x
-        self.hdi_pdf = hdi_pdf
-        self.hdi_prob = hdi_prob
+        super().__init__(**kwargs)
 
     def __repr__(self) -> str:
         result = (
@@ -67,35 +146,15 @@ class NumericPosterior:
         )
         return result
 
-    @property
-    def eti_lower(self) -> float:
-        """ Lower bound of the ETI. This is the first value in `eti_x`. """
-        return self.eti_x[0]
 
-    @property
-    def eti_upper(self) -> float:
-        """ Upper bound of the ETI. This is the last value in `eti_x`. """
-        return self.eti_x[-1]
-
-    @property
-    def eti_width(self) -> float:
-        """ Width of the ETI. """
-        return self.eti_upper - self.eti_lower
-
-    @property
-    def hdi_lower(self) -> float:
-        """ Lower bound of the HDI. This is the first value in `hdi_x`. """
-        return self.hdi_x[0]
-
-    @property
-    def hdi_upper(self) -> float:
-        """ Upper bound of the HDI. This is the last value in `hdi_x`. """
-        return self.hdi_x[-1]
-
-    @property
-    def hdi_width(self) -> float:
-        """ Width of the HDI. """
-        return self.hdi_upper - self.hdi_lower
+class NumericPosterior(UnivariateInferenceResult):
+    """Deprecated alias for UnivariateInferenceResult"""
+    def __init__(self, *args, **kwargs) -> None:
+        warnings.warn(
+            "The NumericPosterior class was renamed to UnivariateInferenceResult.",
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
 
 
 def _interval_prob(x_cdf: numpy.ndarray, cdf: numpy.ndarray, a: float, b: float):
@@ -209,6 +268,7 @@ def _get_hdi(
     hdi_upper = hdi_lower + hdi_width
     return hdi_lower, hdi_upper
 
+
 class CalibrationModel:
     """A parent class providing the general structure of a calibration model."""
     
@@ -309,7 +369,7 @@ class CalibrationModel:
         self, y:typing.Union[int,float,numpy.ndarray], *, 
         lower:float, upper:float, steps:int=300, 
         ci_prob:float=1
-    ) -> NumericPosterior:
+    ) -> UnivariateInferenceResult:
         """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
         The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
         This is identical to the posterior with a Uniform (lower,upper) prior. If precentiles are provided, the interval of
@@ -333,7 +393,7 @@ class CalibrationModel:
 
         Returns
         -------
-        posterior : NumericPosterior
+        posterior : UnivariateInferenceResult
             the result of the numeric posterior calculation
         """  
         y = numpy.atleast_1d(y)
@@ -386,10 +446,10 @@ class CalibrationModel:
 
         median = x_integrate[numpy.argmin(numpy.abs(cdf - 0.5))]
 
-        return NumericPosterior(
+        return UnivariateInferenceResult(
             median,
-            eti_x, eti_pdf, eti_prob,
-            hdi_x, hdi_pdf, hdi_prob,
+            eti_x=eti_x, eti_pdf=eti_pdf, eti_prob=eti_prob,
+            hdi_x=hdi_x, hdi_pdf=hdi_pdf, hdi_prob=hdi_prob,
         )
 
     def loglikelihood(self, *, y, x, theta=None):

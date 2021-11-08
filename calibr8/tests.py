@@ -59,6 +59,32 @@ class _TestLogIndependentLogisticModel(calibr8.BaseLogIndependentAsymmetricLogis
         super().__init__(independent_key='I', dependent_key='D', scale_degree=scale_degree)
 
 
+class TestInferenceResult:
+    def test_warnings(self):
+        with pytest.warns(DeprecationWarning, match="was renamed"):
+            arr = numpy.arange(10)
+            pst = calibr8.NumericPosterior(
+                0.5,
+                eti_x=arr+0.1, eti_pdf=arr+0.2, eti_prob=0.3,
+                hdi_x=arr+0.4, hdi_pdf=arr+0.5, hdi_prob=0.6,
+            )
+        # Directly forwarded
+        assert isinstance(pst, calibr8.InferenceResult)
+        assert isinstance(pst, calibr8.UnivariateInferenceResult)
+        numpy.testing.assert_array_equal(pst.eti_x, arr+0.1)
+        numpy.testing.assert_array_equal(pst.eti_pdf, arr+0.2)
+        assert pst.eti_prob == 0.3
+        numpy.testing.assert_array_equal(pst.hdi_x, arr+0.4)
+        numpy.testing.assert_array_equal(pst.hdi_pdf, arr+0.5)
+        assert pst.hdi_prob == 0.6
+        # Derived properties
+        assert pst.eti_lower == 0.1
+        assert pst.eti_upper == 9.1
+        assert pst.hdi_lower == 0.4
+        assert pst.hdi_upper == 9.4
+        pass
+
+
 class TestBasicCalibrationModel:
     def test_init(self):
         em = _TestModel('I', 'D', theta_names=tuple('c,d,e'.split(',')))
