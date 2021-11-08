@@ -6,6 +6,8 @@ from .contrib.base import (
 )
 from .core import (
     CalibrationModel,
+    InferenceResult,
+    UnivariateInferenceResult,
     NumericPosterior,
     __version__,
     asymmetric_logistic,
