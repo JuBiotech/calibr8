@@ -33,6 +33,7 @@ release = '5.0.0'
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx_rtd_theme",
+    "myst_parser",
     "numpydoc",
     "nbsphinx",
     "nbsphinx_link",
