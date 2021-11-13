@@ -31,6 +31,8 @@ from .utils import (
     MajorMismatchException,
     MinorMismatchException,
     PatchMismatchException,
+    HAS_TENSORS,
+    HAS_PYMC,
     istensor,
     plot_model,
     plot_norm_band,

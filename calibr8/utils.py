@@ -12,6 +12,19 @@ import typing
 from typing import Tuple, Optional, Sequence
 
 
+class ImportWarner:
+    """Mock for an uninstalled package, raises `ImportError` when used."""
+    __all__ = []
+
+    def __init__(self, module_name):
+        self.module_name = module_name
+
+    def __getattr__(self, attr):
+        raise ImportError(
+            f'{self.module_name} is not installed. In order to use this function try:\npip install {self.module_name}'
+        )
+
+
 try:
     # Aesara
     import aesara
@@ -32,12 +45,13 @@ tensor_types = (Variable,) if HAS_TENSORS else ()
 
 try:
     try:
-        import pymc3
+        import pymc3 as pm
     except ModuleNotFoundError:
-        import pymc
-    HAS_PYMC3 = True
+        import pymc as pm
+    HAS_PYMC = True
 except ModuleNotFoundError:
-    HAS_PYMC3 = False
+    HAS_PYMC = False
+    pm = ImportWarner('pymc')
 
 
 def parse_datetime(s: typing.Optional[str]) -> typing.Optional[datetime.datetime]:
@@ -96,19 +110,6 @@ def istensor(input:object) -> bool:
                 if istensor(element):
                     return True
     return False
-
-
-class ImportWarner:
-    """Mock for an uninstalled package, raises `ImportError` when used."""
-    __all__ = []
-
-    def __init__(self, module_name):
-        self.module_name = module_name
-
-    def __getattr__(self, attr):
-        raise ImportError(
-            f'{self.module_name} is not installed. In order to use this function try:\npip install {self.module_name}'
-        )
 
 
 def plot_norm_band(ax, independent, mu, scale):
