@@ -8,7 +8,7 @@ from . import noise
 from .. import core
 
 
-class BaseModelT(core.CalibrationModel, noise.StudentTNoise):
+class BaseModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
     pass
 
 
