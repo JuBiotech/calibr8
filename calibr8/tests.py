@@ -37,7 +37,7 @@ except ModuleNotFoundError:
 dir_testfiles = pathlib.Path(pathlib.Path(__file__).absolute().parent, 'testfiles')
 
 
-class _TestModel(calibr8.CalibrationModel):
+class _TestModel(calibr8.CalibrationModel, calibr8.NormalNoise):
     def __init__(self, independent_key=None, dependent_key=None, theta_names=None):
         if theta_names is None:
             theta_names = tuple('a,b,c'.split(','))
@@ -85,12 +85,50 @@ class TestInferenceResult:
         pass
 
 
-class TestBasicCalibrationModel:
+class TestNoiseModels:
+    def test_base_class(self):
+        assert calibr8.DistributionMixin.scipy_dist is None
+        assert calibr8.DistributionMixin.pymc_dist is None
+        with pytest.raises(NotImplementedError, match="mapping to SciPy"):
+            assert calibr8.DistributionMixin.to_scipy()
+        with pytest.raises(NotImplementedError, match="mapping to PyMC"):
+            assert calibr8.DistributionMixin.to_pymc()
+        pass
+
+    @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
+    @pytest.mark.parametrize(
+        "cls,a,b,params", [
+            (calibr8.NormalNoise, -1, 1, (0.2, 1.2)),
+            (calibr8.LaplaceNoise, -1, 1, (-0.2, 0.8)),
+            (calibr8.LogNormalNoise, 0.1, 2, (-0.1, 0.2)),
+            (calibr8.StudentTNoise, -2, 10, (1.5, 0.3, 4)),
+        ]
+    )
+    def test_parametrization_equivalence(self, cls: calibr8.DistributionMixin, a, b, params):
+        """Validates that SciPy and PyMC parametrization give the same distribution."""
+        x = numpy.linspace(a, b, 7)
+        kwargs_scipy = cls.to_scipy(*params)
+        kwargs_pymc = cls.to_pymc(*params)
+
+        result_scipy = cls.scipy_dist.logpdf(x=x, **kwargs_scipy)
+
+        rv = cls.pymc_dist.dist(**kwargs_pymc)
+        if not hasattr(pm, "logp"):
+            # PyMC v3 syntax
+            result_pymc = rv.logp(x).eval()
+        else:
+            result_pymc = [pm.logp(rv, xi).eval() for xi in x]
+
+        # The resulting log-PDF evaluations should be really close
+        numpy.testing.assert_allclose(result_scipy, result_pymc)
+        pass
+
+
+class TestBaseCalibrationModel:
     def test_init(self):
         em = _TestModel('I', 'D', theta_names=tuple('c,d,e'.split(',')))
         assert em.independent_key == 'I'
         assert em.dependent_key == 'D'
-        print(em.theta_names)
         assert em.theta_names == ('c', 'd', 'e')
         assert em.theta_bounds is None
         assert em.theta_guess is None
@@ -98,6 +136,31 @@ class TestBasicCalibrationModel:
         assert em.theta_timestamp is None
         assert em.cal_independent is None
         assert em.cal_dependent is None
+        pass
+
+    def test_init_requires_noisemodel(self):
+        assert issubclass(calibr8.CalibrationModel, calibr8.DistributionMixin)
+
+        class _InvalidModel(calibr8.CalibrationModel):
+            def __init__(self):
+                super().__init__("A", "B", theta_names=tuple('abc'), ndim=1)
+
+        assert not calibr8.core._inherits_noisemodel(calibr8.DistributionMixin)
+        assert not calibr8.core._inherits_noisemodel(calibr8.CalibrationModel)
+        assert calibr8.core._inherits_noisemodel(calibr8.LaplaceNoise)
+        assert not calibr8.core._inherits_noisemodel(_InvalidModel)
+        assert calibr8.core._inherits_noisemodel(_TestModel)
+
+        # Check that a warning is raised when the model class does not inherit a DistributionMixin _sub_class
+        with pytest.warns(DeprecationWarning, match="does not implement a noise model"):
+            _InvalidModel()
+
+        # Check that no warning is raised when the inheritance is correct
+        with pytest.warns(None) as record:
+            _TestModel()
+        assert len(record) == 0
+
+        assert issubclass(_TestModel, calibr8.DistributionMixin)
         pass
     
     def test_constructor_signature_check(self):
@@ -109,13 +172,13 @@ class TestBasicCalibrationModel:
         class EM_args(calibr8.CalibrationModel):
             def __init__(self, arg1):
                 super().__init__('I', 'D', theta_names=tuple('abc'))
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=r"constructor must not have any required \(kw\)arguments"):
             EM_args(arg1=3)
 
         class EM_kwargs(calibr8.CalibrationModel):
             def __init__(self, *, kwonly, kwonlydefault=4):
                 super().__init__('I', 'D', theta_names=tuple('abc'))
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=r"constructor must not have any required \(kw\)arguments"):
             EM_kwargs(kwonly=3)
         
         pass

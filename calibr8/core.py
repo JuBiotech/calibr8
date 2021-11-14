@@ -369,7 +369,34 @@ def _infer_univariate_independent(
     )
 
 
-class CalibrationModel:
+class DistributionMixin:
+    """Maps the values returned by `CalibrationModel.predict_dependent`
+    to a SciPy distribution and its parameters, and optionally also to
+    a PyMC distribution and its parameters.
+    """
+    scipy_dist = None
+    pymc_dist = None
+
+    def to_scipy(*args) -> dict:
+        raise NotImplementedError("This model does not implement a mapping to SciPy distribution parameters.")
+
+    def to_pymc(*args) -> dict:
+        raise NotImplementedError("This model does not implement a mapping to PyMC distribution parameters.")
+
+
+def _inherits_noisemodel(cls):
+    """Determines if cls is a sub-type of DistributionMixin that's not DistributionMixin or a calibration model."""
+    for m in cls.__mro__:
+        if (
+            issubclass(m, DistributionMixin)
+            and m is not DistributionMixin
+            and not issubclass(m, CalibrationModel)
+        ):
+            return True
+    return False
+
+
+class CalibrationModel(DistributionMixin):
     """A parent class providing the general structure of a calibration model."""
 
     def __init__(self, independent_key:str, dependent_key:str, *, theta_names:typing.Tuple[str], ndim=1):
@@ -388,6 +415,14 @@ class CalibrationModel:
             Most calibrations are univariate (ndim=1).
             Multivariate calibrations (ndim > 1) may need to override the `infer_independent` implementation.
         """
+        if not _inherits_noisemodel(type(self)):
+            warnings.warn(
+                "This model does not implement a noise model yet."
+                "\nAdd a noise model mixin to your class definition. For example:"
+                "\n`class MyModel(CalibrationModel, LaplaceNoise)`",
+                DeprecationWarning,
+                stacklevel=2
+            )
         # make sure that the inheriting type has no required constructor (kw)args
         args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults, annotations = inspect.getfullargspec(type(self).__init__)
         n_defaults = 0 if not defaults else len(defaults)

@@ -1,3 +1,10 @@
+
+from .contrib.noise import (
+    NormalNoise,
+    LaplaceNoise,
+    LogNormalNoise,
+    StudentTNoise,
+)
 from .contrib.base import (
     BaseAsymmetricLogisticT,
     BaseLogIndependentAsymmetricLogisticT,
@@ -6,6 +13,7 @@ from .contrib.base import (
 )
 from .core import (
     CalibrationModel,
+    DistributionMixin,
     InferenceResult,
     UnivariateInferenceResult,
     NumericPosterior,
