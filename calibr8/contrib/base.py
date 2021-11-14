@@ -2,111 +2,14 @@
 This module implements generic, reusable calibration models that can be subclassed to
 implement custom calibration models.
 """
-import numpy
-import scipy
 import typing
-import warnings
 
+from . import noise
 from .. import core
-from .. import utils
-
-try:
-    try:
-        import pymc3 as pm
-    except ModuleNotFoundError:
-        import pymc as pm
-except ModuleNotFoundError:
-    pm = utils.ImportWarner('pymc3')
 
 
-class BaseModelT(core.CalibrationModel):
-    def loglikelihood(self, *, y, x, name: str=None, replicate_id: str=None, dependent_key: str=None, theta=None, **dist_kwargs):
-        """ Loglikelihood of observation (dependent variable) given the independent variable.
-
-        If both x and y are 1D-vectors, they must have the same length and the likelihood will be evaluated elementwise.
-
-        For a 2-dimensional `x`, the implementation *should* broadcast and return a result that has
-        the same length as the first dimension of `x`.
-
-        Parameters
-        ----------
-        y : scalar or array-like
-            observed measurements (dependent variable)
-        x : scalar, array-like or TensorVariable
-            assumed independent variable
-        name : str
-            Name for the likelihood variable in a PyMC3 model (tensor mode).
-            Previously this was `f'{replicate_id}.{dependent_key}'`.
-        replicate_id : optional, str
-            Deprecated; pass the `name` kwarg instead.
-        dependent_key : optional, str
-            Deprecated; pass the `name` kwarg instead.
-        theta : optional, array-like
-            Parameters for the calibration model to use instead of `theta_fitted`.
-            The vector must have the correct length, but can have numeric and or symbolic entries.
-            Use this kwarg to run MCMC on calibration model parameters.
-        **dist_kwargs : dict
-            Additional keyword arguments are forwarded to the `pm.StudentT` distribution.
-            Most prominent example: `dims`.
-
-        Returns
-        -------
-        L : float or TensorVariable
-            sum of log-likelihoods
-        """
-        if theta is None:
-            if self.theta_fitted is None:
-                raise Exception('No parameter vector was provided and the model is not fitted with data yet.')
-            theta = self.theta_fitted
-
-        if not isinstance(x, (list, numpy.ndarray, float, int)) and not utils.istensor(x):
-            raise ValueError(
-                f'Input x must be a scalar, TensorVariable or an array-like object, but not {type(x)}'
-            )
-        if not isinstance(y, (list, numpy.ndarray, float, int)) and not utils.istensor(x):
-            raise ValueError(
-                f'Input y must be a scalar or an array-like object, but not {type(y)}'
-            )
-
-        mu, scale, df = self.predict_dependent(x, theta=theta)
-        if utils.istensor(x) or utils.istensor(theta):
-            if pm.Model.get_context(error_if_none=False) is not None:
-                if replicate_id and dependent_key:
-                    warnings.warn(
-                        "The `replicate_id` and `dependent_key` parameters are deprecated. Use `name` instead.",
-                        DeprecationWarning
-                    )
-                    name = f'{replicate_id}.{dependent_key}'
-                if not name:
-                    raise ValueError("A `name` must be specified for the PyMC likelihood.")
-                rv = pm.StudentT(
-                    name,
-                    mu=mu,
-                    sigma=scale,
-                    nu=df,
-                    observed=y,
-                    **dist_kwargs or {}
-                )
-            else:
-                rv = pm.StudentT.dist(
-                    mu=mu,
-                    sigma=scale,
-                    nu=df,
-                    **dist_kwargs or {}
-                )
-            # The API to get log-likelihood tensors differs between PyMC versions
-            if pm.__version__[0] == "3":
-                if isinstance(rv, pm.model.ObservedRV):
-                    return rv.logpt.sum()
-                elif isinstance(rv, pm.Distribution):
-                    return rv.logp(y).sum()
-            else:
-                return pm.logpt(rv, y, sum=True)
-        else:
-            # If `x` is given as a column vector, this model can broadcast automatically.
-            # This gives considerable performance benefits for the `likelihood(..., scan_x=True)`
-            # case which is relevant for `infer_independent`.
-            return numpy.sum(scipy.stats.t.logpdf(x=y, loc=mu, scale=scale, df=df), axis=-1)
+class BaseModelT(core.CalibrationModel, noise.StudentTNoise):
+    pass
 
 
 class BasePolynomialModelT(BaseModelT):
