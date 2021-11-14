@@ -14,6 +14,8 @@ from .contrib.base import (
 from .core import (
     CalibrationModel,
     DistributionMixin,
+    ContinuousMultivariateModel,
+    ContinuousUnivariateModel,
     InferenceResult,
     ContinuousMultivariateInference,
     ContinuousUnivariateInference,
