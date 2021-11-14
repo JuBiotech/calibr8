@@ -71,29 +71,54 @@ class _TestLogIndependentLogisticModel(calibr8.BaseLogIndependentAsymmetricLogis
         super().__init__(independent_key='I', dependent_key='D', scale_degree=scale_degree)
 
 
-class TestInferenceResult:
-    def test_warnings(self):
-        with pytest.warns(DeprecationWarning, match="was renamed"):
+class TestDeprecatedClasses:
+    def test_warns_errormodel(self):
+        class _TestEM(calibr8.ErrorModel, calibr8.NormalNoise):
+            def __init__(self, *args, **kwargs):
+                super().__init__("A", "B", theta_names=tuple('abc'), ndim=1)
+
+        with pytest.warns(DeprecationWarning, match="was renamed to `CalibrationModel`"):
+            _TestEM()
+        pass
+
+    def test_warns_numericposterior(self):
+        with pytest.warns(DeprecationWarning, match="was renamed to `ContinuousUnivariateInference`"):
             arr = numpy.arange(10)
-            pst = calibr8.NumericPosterior(
+            calibr8.NumericPosterior(
                 0.5,
                 eti_x=arr+0.1, eti_pdf=arr+0.2, eti_prob=0.3,
-                hdi_x=arr+0.4, hdi_pdf=arr+0.5, hdi_prob=0.6,
+                hdi_x=arr*1.1+0.4, hdi_pdf=arr+0.5, hdi_prob=0.6,
             )
+        pass
+
+
+class TestInferenceResult:
+    def test_univariate_continuous(self):
+        arr = numpy.arange(10)
+        pst = calibr8.ContinuousUnivariateInference(
+            0.5,
+            eti_x=arr+0.1, eti_pdf=arr+0.2, eti_prob=0.3,
+            hdi_x=arr*1.1+0.4, hdi_pdf=arr+0.5, hdi_prob=0.6,
+        )
         # Directly forwarded
         assert isinstance(pst, calibr8.InferenceResult)
-        assert isinstance(pst, calibr8.UnivariateInferenceResult)
+        assert isinstance(pst, calibr8.ContinuousUnivariateInference)
         numpy.testing.assert_array_equal(pst.eti_x, arr+0.1)
         numpy.testing.assert_array_equal(pst.eti_pdf, arr+0.2)
         assert pst.eti_prob == 0.3
-        numpy.testing.assert_array_equal(pst.hdi_x, arr+0.4)
+        numpy.testing.assert_array_equal(pst.hdi_x, arr*1.1+0.4)
         numpy.testing.assert_array_equal(pst.hdi_pdf, arr+0.5)
         assert pst.hdi_prob == 0.6
         # Derived properties
         assert pst.eti_lower == 0.1
         assert pst.eti_upper == 9.1
+        assert pst.eti_width == 9.0
         assert pst.hdi_lower == 0.4
-        assert pst.hdi_upper == 9.4
+        assert pst.hdi_upper == 10.3
+        assert pst.hdi_width == 9.9
+        repr = pst.__repr__()
+        assert "ETI (30.0 %): [0.1, 9.1]" in repr
+        assert "HDI (60.0 %): [0.4, 10.3]" in repr
         pass
 
 

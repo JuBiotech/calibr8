@@ -26,6 +26,9 @@ _log = logging.getLogger('calibr8')
 class InferenceResult:
     """Generic base type of independent value inference results."""
 
+
+class ContinuousInference(InferenceResult):
+    """Describes properties common for inference with continuous independent variables."""
     def __init__(
         self,
         eti_x: numpy.ndarray,
@@ -120,7 +123,7 @@ class InferenceResult:
         return self._hdi_prob
 
 
-class UnivariateInferenceResult(InferenceResult):
+class ContinuousUnivariateInference(ContinuousInference):
     """ The result of a numeric infer_independent operation with a univariate model. """
     def __init__(
         self,
@@ -142,20 +145,14 @@ class UnivariateInferenceResult(InferenceResult):
     def __repr__(self) -> str:
         result = (
             str(type(self))
-            + f"\n    ETI ({round(self.eti_prob, 3) * 100:.1f} %): [{round(self.eti_lower, 4)}, {round(self.eti_upper, 4)}] Δ={round(self.eti_width, 4)}"
-            + f"\n    HDI ({round(self.hdi_prob, 3) * 100:.1f} %): [{round(self.hdi_lower, 4)}, {round(self.hdi_upper, 4)}] Δ={round(self.hdi_width, 4)}"
+            + f"\n    ETI ({numpy.round(self.eti_prob, 3) * 100:.1f} %): [{numpy.round(self.eti_lower, 4)}, {numpy.round(self.eti_upper, 4)}] Δ={round(self.eti_width, 4)}"
+            + f"\n    HDI ({numpy.round(self.hdi_prob, 3) * 100:.1f} %): [{numpy.round(self.hdi_lower, 4)}, {numpy.round(self.hdi_upper, 4)}] Δ={round(self.hdi_width, 4)}"
         )
         return result
 
 
-class NumericPosterior(UnivariateInferenceResult):
-    """Deprecated alias for UnivariateInferenceResult"""
-    def __init__(self, *args, **kwargs) -> None:
-        warnings.warn(
-            "The NumericPosterior class was renamed to UnivariateInferenceResult.",
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+class ContinuousMultivariateInference(ContinuousInference):
+    """The result of a multivariate independent variable inference."""
 
 
 def _interval_prob(x_cdf: numpy.ndarray, cdf: numpy.ndarray, a: float, b: float):
@@ -283,7 +280,7 @@ def _infer_univariate_independent(
     upper:float,
     steps:int=300,
     ci_prob:float=1,
-):
+) -> ContinuousUnivariateInference:
     """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
     The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
     This is identical to the posterior with a Uniform (lower,upper) prior. If precentiles are provided, the interval of
@@ -310,7 +307,7 @@ def _infer_univariate_independent(
 
     Returns
     -------
-    posterior : UnivariateInferenceResult
+    posterior : ContinuousUnivariateInference
         the result of the numeric posterior calculation
     """  
     y = numpy.atleast_1d(y)
@@ -363,7 +360,7 @@ def _infer_univariate_independent(
 
     median = x_integrate[numpy.argmin(numpy.abs(cdf - 0.5))]
 
-    return UnivariateInferenceResult(
+    return ContinuousUnivariateInference(
         median,
         eti_x=eti_x, eti_pdf=eti_pdf, eti_prob=eti_prob,
         hdi_x=hdi_x, hdi_pdf=hdi_pdf, hdi_prob=hdi_prob,
@@ -517,7 +514,7 @@ class CalibrationModel(DistributionMixin):
         *,
         lower:float, upper:float, steps:int=300,
         ci_prob:float=1
-    ) -> UnivariateInferenceResult:
+    ) -> InferenceResult:
         """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
         The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower]. 
         This is identical to the posterior with a Uniform (lower,upper) prior. If precentiles are provided, the interval of
@@ -541,7 +538,7 @@ class CalibrationModel(DistributionMixin):
 
         Returns
         -------
-        posterior : UnivariateInferenceResult
+        posterior : InferenceResult
             the result of the numeric posterior calculation
         """
         if self.ndim != 1:
