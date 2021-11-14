@@ -44,6 +44,18 @@ class _TestModel(calibr8.CalibrationModel, calibr8.NormalNoise):
         super().__init__(independent_key='I', dependent_key='D', theta_names=theta_names)
 
 
+class _TestBivariateLinearModel(calibr8.CalibrationModel, calibr8.NormalNoise):
+    def __init__(self, independent_key: str=None, dependent_key: str=None, theta_names=None):
+        super().__init__(independent_key="x1,x2", dependent_key="y", theta_names="i,s1,s2,sd".split(","), ndim=2)
+
+    def predict_dependent(self, x, *, theta=None):
+        x = numpy.array(x)
+        if theta is None:
+            theta = self.theta_fitted
+        i, s1, s2, sd = theta
+        return i + s1 * x[..., 0] + s2 * x[..., 1], sd
+
+
 class _TestPolynomialModel(calibr8.BasePolynomialModelT):
     def __init__(self, independent_key=None, dependent_key=None, theta_names=None, *, scale_degree=0, mu_degree=1):
         super().__init__(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
@@ -191,7 +203,7 @@ class TestBaseCalibrationModel:
             cmodel.predict_dependent(x)
         with pytest.raises(NotImplementedError, match="predict_independent function"):
             cmodel.predict_independent(x)
-        with pytest.raises(NotImplementedError, match="loglikelihood function"):
+        with pytest.raises(NotImplementedError, match="predict_dependent function"):
             cmodel.loglikelihood(y=y, x=x, theta=[1, 2, 3])
         with pytest.raises(ValueError, match=r"Unexpected `ci_prob`"):
             cmodel.loglikelihood = lambda x, y, theta: 1
@@ -284,6 +296,44 @@ class TestBaseCalibrationModel:
         obj_min = cm.objective(calX, calY, minimize=True)
         obj_max = cm.objective(calX, calY, minimize=False)
         assert -obj_max(theta) == obj_min(theta)
+        pass
+
+    def test_likelihood_multivariate(self):
+        cm = _TestBivariateLinearModel()
+        cm.theta_fitted = (0.5, 1, 2, 0.4)
+
+        X = [
+            [1, 2],
+            [0.5, 1],
+            [1.5, 2.5],
+        ]
+        Y = [5.5, 3.0, 7.0]
+        y_obs = [5.6, 3.0, 6.9]
+
+        # Check the expected output for one coordinate
+        assert cm.predict_dependent(X[0]) == (Y[0], 0.4)
+
+        # And its broadcasting for multiple coordinates
+        numpy.testing.assert_array_equal(cm.predict_dependent(X)[0], Y)
+
+        # Expected likelihoods of coordinate/observation paris
+        LL_elemwise = cm.scipy_dist.logpdf(x=y_obs, loc=Y, scale=0.4).sum()
+
+        # Expected likelihoods of all observation at each coordinate
+        LL_scan = numpy.array([
+            cm.scipy_dist.logpdf(x=y_obs, loc=y, scale=0.4).sum()
+            for y in Y
+        ])
+
+        assert LL_elemwise.shape == ()
+        assert LL_scan.shape == (3,)
+
+        # Testing the underlying loglikelihood
+        numpy.testing.assert_array_equal(cm.loglikelihood(y=y_obs, x=X), LL_elemwise)
+
+        # Now check if likelihood wraps it correctly
+        numpy.testing.assert_array_equal(cm.likelihood(y=y_obs, x=X, scan_x=False), numpy.exp(LL_elemwise))
+        numpy.testing.assert_array_equal(cm.likelihood(y=y_obs, x=X, scan_x=True), numpy.exp(LL_scan))
         pass
 
 
@@ -1002,6 +1052,73 @@ class TestBasePolynomialModelT:
         assert numpy.ndim(actual) == 1
         # the maximum likelihood should be at x=2
         assert x_dense[numpy.argmax(actual)] == 2
+        pass
+
+    @pytest.mark.xfail(reason="Draft test case, see https://github.com/JuBiotech/calibr8/issues/15")
+    def test_likelihood_nobroadcasting_fallback(self):
+        class _TestSwitchableBroadcastingModel(calibr8.CalibrationModel, calibr8.NormalNoise):
+            def __init__(self):
+                self.x_shapes = []
+                self.can_broadcast = False
+                super().__init__(independent_key="I", dependent_key="D", theta_names="i,s,sd".split(","), ndim=1)
+
+            def predict_dependent(self, x, *, theta=None):
+                if theta is None:
+                    theta = self.theta_fitted
+                i, s, sd = self.theta_fitted
+                # This part broadcasts just fine
+                x = numpy.array(x)
+                mu = i + x * s
+                return mu, sd
+
+            def loglikelihood(self, *, y, x, **kwargs):
+                # This overrides the native CalibrationModel.loglikelihood with one
+                # that can be externally set to return non-broadcasted results.
+                LL_broadcasted = super().loglikelihood(y=y, x=x, **kwargs)
+                if not self.can_broadcast:
+                    return LL_broadcasted.sum()
+                return LL_broadcasted
+
+        cm = _TestSwitchableBroadcastingModel()
+        cm.theta_fitted = [0.5, 0.6, 0.7]
+
+        X = numpy.array([1, 2, 3])
+        Y = [1.1, 1.7, 2.3]
+        y_obs = [1.0, 1.7, 2.4]
+
+        # Check the prediction of the test model
+        for x, y in zip(X, Y):
+            assert cm.predict_dependent(x) == (y, 0.7)
+
+        # The predict_dependent can broadcast
+        mu, sd = cm.predict_dependent(X)
+        numpy.testing.assert_array_equal(mu, Y)
+        assert sd == 0.7
+
+        # Test the switching between can_broadcast modes
+        cm.can_broadcast = True
+        LL = cm.loglikelihood(x=X[..., None], y=y_obs)
+        assert numpy.shape(LL) == (3,)
+
+        cm.can_broadcast = False
+        LL = cm.loglikelihood(x=X[..., None], y=y_obs)
+        assert numpy.shape(LL) == ()
+
+        # The CalibrationModel.likelihood should give the same results either way.
+        cm.can_broadcast = True
+        L_broadcasted = cm.likelihood(x=X[..., None], y=y_obs, scan_x=True)
+        cm.can_broadcast = False
+        L_looped = cm.likelihood(x=X[..., None], y=y_obs, scan_x=True)
+
+        numpy.testing.assert_array_equal(L_broadcasted, L_looped)
+
+        # Of course the values should also be correct.
+        L_expected = numpy.exp([
+            cm.scipy_dist.logpdf(x=y_obs, loc=mui, scale=sd).sum()
+            for mui in mu
+        ])
+        assert numpy.shape(L_expected) == (3,)
+        numpy.testing.assert_array_equal(L_broadcasted, L_expected)
         pass
 
 
