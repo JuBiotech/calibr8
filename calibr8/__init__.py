@@ -15,8 +15,8 @@ from .core import (
     CalibrationModel,
     DistributionMixin,
     InferenceResult,
-    UnivariateInferenceResult,
-    NumericPosterior,
+    ContinuousMultivariateInference,
+    ContinuousUnivariateInference,
     __version__,
     asymmetric_logistic,
     inverse_asymmetric_logistic,
@@ -53,7 +53,21 @@ class ErrorModel(CalibrationModel):
         import warnings
 
         warnings.warn(
-            "The `ErrorModel` class was renamed to `CalibrationModel`. It will be removed in a future release.",
+            "The `ErrorModel` class was renamed to `CalibrationModel`."
+            " It will be removed in a future release.",
+            DeprecationWarning,
+        )
+        super().__init__(*args, **kwargs)
+
+
+class NumericPosterior(ContinuousUnivariateInference):
+    """Deprecated alias for ContinuousUnivariateInference"""
+    def __init__(self, *args, **kwargs) -> None:
+        import warnings
+
+        warnings.warn(
+            "The `NumericPosterior` class was renamed to `ContinuousUnivariateInference`."
+            " It will be removed in a future release.",
             DeprecationWarning,
         )
         super().__init__(*args, **kwargs)
