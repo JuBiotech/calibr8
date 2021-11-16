@@ -416,6 +416,11 @@ class CalibrationModel:
     @theta_fitted.setter
     def theta_fitted(self, value: typing.Optional[typing.Sequence[float]]):
         if value is not None:
+            if numpy.shape(value) != numpy.shape(self.theta_names):
+                raise ValueError(
+                    f"The number of parameters ({len(value)}) "
+                    f"does not match the number of parameter names ({len(self.theta_names)})."
+                )
             self.__theta_fitted = tuple(value)
             self.__theta_timestamp = datetime.datetime.now().astimezone(datetime.timezone.utc).replace(microsecond=0)
         else:
