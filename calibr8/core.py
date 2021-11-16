@@ -202,7 +202,7 @@ def _get_hdi(
     guess_upper: float,
     *,
     history: typing.Optional[typing.DefaultDict[str, typing.List]]=None
-) -> typing.Tuple[float]:
+) -> typing.Tuple[float, float]:
     """ Find the highest density interval (HDI) corresponding to a certain credible interval probability level.
 
     Parameters
@@ -257,10 +257,15 @@ def _get_hdi(
             history["L"].append(L)
         return L
 
+    initial_guess = [guess_lower, guess_upper - guess_lower]
+    if not numpy.isfinite(hdi_objective(initial_guess)):
+        # Bad initial guess. Reset to the outer limimts.
+        initial_guess = [x_cdf[0], x_cdf[-1] - x_cdf[0]]
+
     fit = scipy.optimize.fmin(
         hdi_objective,
         # parametrize as b=a+d
-        x0=[guess_lower, guess_upper - guess_lower],
+        x0=initial_guess,
         xtol=numpy.ptp(x_cdf) / len(x_cdf),
         disp=False
     )
