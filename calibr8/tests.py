@@ -121,20 +121,18 @@ class TestBasicCalibrationModel:
         pass
 
     def test_exceptions(self):
-        independent = 'X'
-        dependent = 'BS'
         x = numpy.array([1,2,3])
         y = numpy.array([4,5,6])
         cmodel = _TestModel()
         with pytest.raises(NotImplementedError, match="predict_dependent function"):
-            _ = cmodel.predict_dependent(x)
+            cmodel.predict_dependent(x)
         with pytest.raises(NotImplementedError, match="predict_independent function"):
-            _ = cmodel.predict_independent(x)
+            cmodel.predict_independent(x)
         with pytest.raises(NotImplementedError, match="loglikelihood function"):
-            _ = cmodel.loglikelihood(y=y, x=x, theta=[1,2,3])
+            cmodel.loglikelihood(y=y, x=x, theta=[1, 2, 3])
         with pytest.raises(ValueError, match=r"Unexpected `ci_prob`"):
             cmodel.loglikelihood = lambda x, y, theta: 1
-            _ = cmodel.infer_independent(y, lower=0, upper=10, steps=10, ci_prob=None)
+            cmodel.infer_independent(y, lower=0, upper=10, steps=10, ci_prob=None)
         with pytest.raises(NotImplementedError, match="seems to be multivariate"):
             cmodel.ndim = 3
             cmodel.infer_independent(2, lower=0, upper=5)
@@ -207,6 +205,16 @@ class TestBasicCalibrationModel:
         assert em_loaded.theta_timestamp == theta_timestamp
         numpy.testing.assert_array_equal(em_loaded.cal_independent, em.cal_independent)
         numpy.testing.assert_array_equal(em_loaded.cal_dependent, em.cal_dependent)
+        pass
+
+    def test_objective(self):
+        cm = _TestPolynomialModel(mu_degree=1, scale_degree=0)
+        calX = numpy.linspace(1, 10, 5)
+        calY = 0.3 + calX * 0.5
+        theta = [0.3, 0.5, 1]
+        obj_min = cm.objective(calX, calY, minimize=True)
+        obj_max = cm.objective(calX, calY, minimize=False)
+        assert -obj_max(theta) == obj_min(theta)
         pass
 
 
