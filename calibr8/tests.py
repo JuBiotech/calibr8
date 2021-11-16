@@ -224,6 +224,76 @@ class TestBasicCalibrationModel:
         pass
 
 
+class TestUnivariateInferenceHelpers:
+    def test_get_eti(self):
+        mu = 0.2
+        sd = 1.8
+
+        x_cdf = numpy.linspace(-10, 10, 1001)
+        cdf = scipy.stats.norm.cdf(x=x_cdf, loc=mu, scale=sd)
+        eti_lower, eti_upper = calibr8.core._get_eti(
+            x_cdf=x_cdf,
+            cdf=cdf,
+            ci_prob=0.6827, # 👈 this should give us an HDI of 1 standard deviation
+        )
+        assert isinstance(eti_lower, float)
+        assert isinstance(eti_upper, float)
+        numpy.testing.assert_allclose(eti_lower, mu - sd)
+        numpy.testing.assert_allclose(eti_upper, mu + sd)
+        pass
+
+    @pytest.mark.xfail(reason="The current implementation does not converge well. See https://github.com/JuBiotech/calibr8/issues/13")
+    def test_interval_prob(self):
+        # test with a uniform in the interval [10, 20]
+        # evaluated at 10 positions including the limits
+        x = numpy.linspace(10, 20, 10)
+        cdf = numpy.linspace(0, 1, 10)
+        assert cdf[0] == 0
+        assert cdf[-1] == 1
+        numpy.testing.assert_almost_equal(calibr8.core._interval_prob(x, cdf, 10, 20), 1, decimal=2)
+        numpy.testing.assert_almost_equal(calibr8.core._interval_prob(x, cdf, 10, 15), 0.5, decimal=2)
+        numpy.testing.assert_almost_equal(calibr8.core._interval_prob(x, cdf, 15, 20), 0.5, decimal=2)
+        numpy.testing.assert_almost_equal(calibr8.core._interval_prob(x, cdf, 10, 13), 0.3, decimal=2)
+        pass
+
+    @pytest.mark.xfail(reason="The current implementation does not converge well. See https://github.com/JuBiotech/calibr8/issues/13")
+    @pytest.mark.parametrize("initial_guess", [(3, 25), (13, 14)])
+    def test_get_hdi(self, initial_guess):
+        # The first initial guess ☝ is very wide, the other is too narrow.
+        # Test with a __/|__ shaped PDF.
+        pdf = numpy.concatenate([
+            numpy.linspace(0, 1e-6, 100),
+            numpy.linspace(0, 1, 100),
+            numpy.linspace(1e-6, 0, 100),
+        ])
+        pdf = pdf / pdf.sum()
+        cdf = numpy.cumsum(pdf)
+
+        x = numpy.linspace(5, 20, num=len(pdf))
+        left = 12.5
+        right = 15
+
+        history = collections.defaultdict(list)
+        hdi_lower, hdi_upper = calibr8.core._get_hdi(
+            x_cdf=x,
+            cdf=cdf,
+            ci_prob=0.75,
+            guess_lower=initial_guess[0],
+            guess_upper=initial_guess[1],
+            history=history,
+        )
+        assert isinstance(hdi_lower, float)
+        assert isinstance(hdi_upper, float)
+        assert set(history) == { "prob", "delta_prob", "a", "b", "d", "L_prob", "L_delta", "L" }
+        for k, hist in history.items():
+            assert len(hist) > 5
+            assert len(hist) == len(history["L"])
+
+        numpy.testing.assert_allclose(hdi_lower, left)
+        numpy.testing.assert_allclose(hdi_upper, right)
+        pass
+
+
 class TestModelFunctions:
     def test_logistic(self):
         x = numpy.array([1.,2.,4.])
