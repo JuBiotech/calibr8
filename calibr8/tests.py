@@ -138,6 +138,12 @@ class TestBasicCalibrationModel:
             cmodel.infer_independent(2, lower=0, upper=5)
         pass
 
+    def test_theta_assignment_checks_length(self):
+        cmodel = _TestModel()
+        with pytest.raises(ValueError, match="number of parameters"):
+            cmodel.theta_fitted = numpy.ones(shape=(len(cmodel.theta_names) + 1,))
+        pass
+
     def test_save_and_load_version_check(self):
         em = _TestModel()
         em.theta_guess = (1,1,1)
@@ -524,7 +530,7 @@ class TestUtils:
     @pytest.mark.parametrize("residual_type", ["relative", "absolute"])
     def test_plot_model(self, residual_type):
         em = _TestPolynomialModel(independent_key='S', dependent_key='A365', mu_degree=1, scale_degree=1)
-        em.theta_fitted = [0, 2, 0.1, 1]
+        em.theta_fitted = [0, 2, 0.1, 1, 2]
         em.cal_independent = numpy.linspace(0.1, 10, 7)
         mu, scale, df = em.predict_dependent(em.cal_independent)
         em.cal_dependent = scipy.stats.t.rvs(loc=mu, scale=scale, df=df)
@@ -537,7 +543,7 @@ class TestUtils:
 
     def test_plot_model_band_xlim(self):
         cm = _TestPolynomialModel(independent_key='S', dependent_key='A365', mu_degree=1, scale_degree=1)
-        cm.theta_fitted = [0, 2, 0.1, 1]
+        cm.theta_fitted = [0, 2, 0.1, 1, 4]
         cm.cal_independent = numpy.linspace(0.1, 10, 7)
         mu, scale, df = cm.predict_dependent(cm.cal_independent)
         cm.cal_dependent = scipy.stats.t.rvs(loc=mu, scale=scale, df=df)
@@ -703,7 +709,7 @@ class TestContribBase:
 class TestBasePolynomialModelT:
     def test_infer_independent(self):
         em = _TestPolynomialModel(independent_key='S', dependent_key='A365', mu_degree=1, scale_degree=1)
-        em.theta_fitted = [0, 2, 0.1, 1]
+        em.theta_fitted = [0, 2, 0.1, 1, 3]
         pst = em.infer_independent(y=1, lower=0, upper=20, steps=876)
 
         assert len(pst.eti_x) == len(pst.eti_pdf)
@@ -741,7 +747,7 @@ class TestBasePolynomialModelT:
     @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
     def test_symbolic_loglikelihood_checks_and_warnings(self):
         cmodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
-        cmodel.theta_fitted = [0, 1, 0.1, 1]
+        cmodel.theta_fitted = [0, 1, 0.1, 1, 5]
        
         # create test data
         x_true = numpy.array([1,2,3,4,5])
@@ -759,7 +765,7 @@ class TestBasePolynomialModelT:
     @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
     def test_symbolic_loglikelihood(self):
         cmodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
-        cmodel.theta_fitted = [0, 1, 0.1, 1]
+        cmodel.theta_fitted = [0, 1, 0.1, 1, 3]
        
         # create test data
         x_true = numpy.array([1,2,3,4,5])
@@ -785,7 +791,7 @@ class TestBasePolynomialModelT:
     @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
     def test_symbolic_loglikelihood_in_modelcontext(self):
         cmodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
-        cmodel.theta_fitted = [0, 0.5, 0.1, 1]
+        cmodel.theta_fitted = [0, 0.5, 0.1, 1, 7]
        
         # create test data
         x_true = numpy.array([1,2,3,4,5])
@@ -823,7 +829,7 @@ class TestBasePolynomialModelT:
     ])
     def test_loglikelihood(self, x, y):
         cmodel = _TestPolynomialModel(independent_key='S', dependent_key='OD', mu_degree=1, scale_degree=1)
-        cmodel.theta_fitted = [0, 1, 0.1, 1.6]
+        cmodel.theta_fitted = [0, 1, 0.1, 1.6, 3]
 
         actual = cmodel.loglikelihood(y=y, x=x)
         assert numpy.ndim(actual) == 0
@@ -837,7 +843,7 @@ class TestBasePolynomialModelT:
         with pytest.raises(Exception, match="No parameter vector"):
             cmodel.loglikelihood(y=[2,3], x=[4,5])
 
-        cmodel.theta_fitted = [0, 1, 0.1, 1.6]
+        cmodel.theta_fitted = [0, 1, 0.1, 1.6, 2]
 
         with pytest.raises(TypeError):
             cmodel.loglikelihood(4, x=[2,3])
@@ -850,7 +856,7 @@ class TestBasePolynomialModelT:
     def test_likelihood(self):
         # use a linear model with intercept 1 and slope 0.5
         cmodel = _TestPolynomialModel(independent_key="I", dependent_key="D", mu_degree=1)
-        cmodel.theta_fitted = [1, 0.5, 0.5]
+        cmodel.theta_fitted = [1, 0.5, 0.5, 4]
 
         assert numpy.isscalar(cmodel.likelihood(y=2, x=3))
         assert numpy.isscalar(cmodel.likelihood(y=[2, 3], x=[3, 4]))
@@ -882,7 +888,7 @@ class TestBaseAsymmetricLogisticModelT:
     
     def test_predict_independent(self):
         cmodel = _TestLogisticModel(independent_key='S', dependent_key='OD', scale_degree=1)
-        cmodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.43]
+        cmodel.theta_fitted = [0, 4, 2, 1, 1, 2, 1.43, 5]
         x_original = numpy.array([4, 5, 6])
         mu, sd, df = cmodel.predict_dependent(x_original)
         x_predicted = cmodel.predict_independent(y=mu)
@@ -1007,7 +1013,7 @@ class TestOptimization:
                 em,
                 independent=x, dependent=y,
                 theta_guess=numpy.ones_like(theta),
-                theta_bounds=[(-5, 5)]*len(theta_mu) + [(0.02, 1), (1, 20)]
+                theta_bounds=[(-5, 5)]*len(theta_mu) + [(0.02, 1), (1, 20)],
             )
         assert "2 elements" in caplog.text
         # inf/nan should only be ignored for fitting
