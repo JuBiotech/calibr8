@@ -132,7 +132,7 @@ class BasePolynomialModelT(BaseModelT):
             may be used to set the names of the model parameters
         """
         if mu_degree == 0:
-            raise Exception('0-degree (constant) mu calibration models are useless.')
+            raise ValueError("0-degree (constant) mu calibration models are useless.")
         self.mu_degree = mu_degree
         self.scale_degree = scale_degree
         if theta_names is None:
