@@ -31,6 +31,7 @@ Learn from the examples how a ``calibr8``-driven workflow looks like:
    Example_Fitting_a_Linear_Model
    Example_Numeric_Independent_Posterior
    Advanced_In-depth_Model_Fitting
+   Advanced_Custom_Noise_Models
    Advanced_Hierarchical_Calibration
 
 
