@@ -4,6 +4,7 @@ from .contrib.noise import (
     LaplaceNoise,
     LogNormalNoise,
     StudentTNoise,
+    PoissonNoise,
 )
 from .contrib.base import (
     BaseAsymmetricLogisticT,

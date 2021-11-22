@@ -139,6 +139,7 @@ class TestNoiseModels:
             (calibr8.LaplaceNoise, -1, 1, (-0.2, 0.8)),
             (calibr8.LogNormalNoise, 0.1, 2, (-0.1, 0.2)),
             (calibr8.StudentTNoise, -2, 10, (1.5, 0.3, 4)),
+            (calibr8.PoissonNoise, 1, 7, (1.5,)),
         ]
     )
     def test_parametrization_equivalence(self, cls: calibr8.DistributionMixin, a, b, params):
@@ -147,7 +148,11 @@ class TestNoiseModels:
         kwargs_scipy = cls.to_scipy(*params)
         kwargs_pymc = cls.to_pymc(*params)
 
-        result_scipy = cls.scipy_dist.logpdf(x=x, **kwargs_scipy)
+        if hasattr(cls.scipy_dist, "logpdf"):
+            logp = cls.scipy_dist.logpdf
+        else:
+            logp = cls.scipy_dist.logpmf
+        result_scipy = logp(x, **kwargs_scipy)
 
         rv = cls.pymc_dist.dist(**kwargs_pymc)
         if not hasattr(pm, "logp"):
@@ -158,6 +163,26 @@ class TestNoiseModels:
 
         # The resulting log-PDF evaluations should be really close
         numpy.testing.assert_allclose(result_scipy, result_pymc)
+        pass
+
+    def test_no_logpdmf_error(self):
+        class InvalidNoise(calibr8.DistributionMixin):
+            scipy_dist = None
+
+        class _TestInvalidNoiseDist(calibr8.ContinuousUnivariateModel, InvalidNoise):
+            def __init__(self):
+                super().__init__(independent_key="I", dependent_key="D", theta_names=["a"])
+
+            def predict_dependent(self, x, *, theta=None):
+                return theta[0] * 2
+
+        cm = _TestInvalidNoiseDist()
+        with pytest.raises(NotImplementedError, match="logpdf or logpmf methods"):
+            cm.loglikelihood(
+                x=numpy.arange(3),
+                y=[1,2,3],
+                theta=[5],
+            )
         pass
 
 
@@ -459,6 +484,24 @@ class TestContinuousUnivariateModel:
         expected = numpy.sum(stats.t.logpdf(x=y, loc=mu, scale=scale, df=df))
         numpy.testing.assert_equal(actual, expected)
         return
+
+    def test_loglikelihood_discrete(self):
+        class DiscreteModel(calibr8.ContinuousUnivariateModel, calibr8.PoissonNoise):
+            def __init__(self):
+                super().__init__(independent_key="I", dependent_key="D", theta_names=["slope"])
+
+            def predict_dependent(self, x, *, theta=None):
+                if theta is None:
+                    theta = self.theta_fitted
+                slope = theta[0]
+                return (slope * x,)
+
+        y = 2
+        x = numpy.linspace(1, 5, 50)
+        dm = DiscreteModel()
+        expected = scipy.stats.poisson.logpmf(y, mu=x * 1.2).sum()
+        numpy.testing.assert_array_equal(dm.loglikelihood(y=y, x=x, theta=[1.2]), expected)
+        pass
 
     def test_loglikelihood_exceptions(self):
         cmodel = _TestPolynomialModel(independent_key='S', dependent_key='OD', mu_degree=1, scale_degree=1)

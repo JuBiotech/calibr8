@@ -533,7 +533,14 @@ class CalibrationModel(DistributionMixin):
             else:
                 return pm.logpt(rv, y, sum=True)
         else:
-            return self.scipy_dist.logpdf(x=y, **self.to_scipy(*params)).sum(axis=-1)
+            logp = None
+            if hasattr(self.scipy_dist, "logpdf"):
+                logp = self.scipy_dist.logpdf
+            elif hasattr(self.scipy_dist, "logpmf"):
+                logp = self.scipy_dist.logpmf
+            else:
+                raise NotImplementedError("No logpdf or logpmf methods found on {self.scipy_dist}.")
+            return logp(y, **self.to_scipy(*params)).sum(axis=-1)
 
     def likelihood(self, *, y, x, theta=None, scan_x: bool=False):
         """ Likelihood of observation (dependent variable) given the independent variable.
