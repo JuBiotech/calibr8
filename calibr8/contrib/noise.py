@@ -62,3 +62,17 @@ class StudentTNoise(DistributionMixin):
     @staticmethod
     def to_pymc(*params):
         return dict(mu=params[0], sigma=params[1], nu=params[2])
+
+
+class PoissonNoise(DistributionMixin):
+    """Poisson noise, predicted in terms of mean."""
+    scipy_dist = scipy.stats.poisson
+    pymc_dist = pm.Poisson if HAS_PYMC else None
+
+    @staticmethod
+    def to_scipy(*params):
+        return dict(mu=params[0])
+
+    @staticmethod
+    def to_pymc(*params):
+        return dict(mu=params[0])
