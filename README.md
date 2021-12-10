@@ -22,3 +22,21 @@ Read the package documentation [here](https://calibr8.readthedocs.io/en/latest/?
 `calibr8` is licensed under the [GNU Affero General Public License v3.0](https://github.com/michaelosthege/calibr8/blob/master/LICENSE).
 
 Head over to Zenodo to [generate a BibTeX citation](https://doi.org/10.5281/zenodo.4127012) for the latest release.
+
+Please cite the paper as:
+
+*Helleckes & Osthege et al. (2021). Bayesian calibration, process modeling and uncertainty quantification in biotechnology. bioRxiv. https://doi.org/10.1101/2021.06.30.450546*
+
+```
+@article {calibr8,
+	author = {Helleckes, Laura Marie and Osthege, Michael and Wiechert, Wolfgang and von Lieres, Eric and Oldiges, Marco},
+	title = {Bayesian calibration, process modeling and uncertainty quantification in biotechnology},
+	elocation-id = {2021.06.30.450546},
+	year = {2021},
+	doi = {10.1101/2021.06.30.450546},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/early/2021/07/03/2021.06.30.450546},
+	eprint = {https://www.biorxiv.org/content/early/2021/07/03/2021.06.30.450546.full.pdf},
+	journal = {bioRxiv}
+}
+```
