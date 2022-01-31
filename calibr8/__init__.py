@@ -46,8 +46,7 @@ from .utils import (
     HAS_PYMC,
     istensor,
     plot_model,
-    plot_norm_band,
-    plot_t_band,
+    plot_continuous_band,
 )
 
 

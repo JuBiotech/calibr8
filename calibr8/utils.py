@@ -380,12 +380,13 @@ def plot_model(
     # ======= Left =======
     # Untransformed, outer range
     ax = axs[0]
-    plot_t_band(
-        ax,
-        xband,
-        *model.predict_dependent(xband),
-        residual_type=None
-    )
+    if hasattr(model.scipy_dist, "ppf"):
+        plot_continuous_band(
+            ax,
+            xband,
+            model,
+            residual_type=None,
+        )
     ax.scatter(X, Y)
     ax.set(
         ylabel=model.dependent_key,
@@ -395,12 +396,13 @@ def plot_model(
     # ======= Center =======
     # Transformed if possible, outer range
     ax = axs[1]
-    plot_t_band(
-        ax,
-        xband,
-        *model.predict_dependent(xband),
-        residual_type=None
-    )
+    if hasattr(model.scipy_dist, "ppf"):
+        plot_continuous_band(
+            ax,
+            xband,
+            model,
+            residual_type=None,
+        )
     ax.scatter(X, Y)
     ax.set(
         xlabel=model.independent_key,
@@ -414,12 +416,13 @@ def plot_model(
         xresiduals = numpy.exp(numpy.linspace(numpy.log(min(X)), numpy.log(max(X)), 300))
     else:
         xresiduals = numpy.linspace(min(X), max(X), 300)
-    plot_t_band(
-        ax,
-        xresiduals,
-        *model.predict_dependent(xresiduals),
-        residual_type=residual_type
-    )
+    if hasattr(model.scipy_dist, "ppf"):
+        plot_continuous_band(
+            ax,
+            xresiduals,
+            model,
+            residual_type=residual_type,
+        )
 
     if residual_type == 'relative':
         ax.scatter(X, (Y - model.predict_dependent(X)[0]) / model.predict_dependent(X)[0])
