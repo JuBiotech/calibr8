@@ -125,7 +125,6 @@ def plot_norm_band(ax, independent, mu, scale):
         mu parameter of the Normal distribution
     scale : array-like
         scale parameter of the Normal distribution
-
     Returns
     -------
     artists : list of matplotlib.Artist
@@ -149,6 +148,65 @@ def plot_norm_band(ax, independent, mu, scale):
 
 
 def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optional[str]=None):
+    """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a t-distribution.
+    
+    Parameters
+    ----------
+    ax : matplotlib.Axes
+        subplot object to plot into
+    independent : array-like
+        x-values for the plot
+    mu : array-like
+        mu parameter of the t-distribution
+    scale : array-like
+        scale parameter of the t-distribution
+    df : array-like
+        density parameter of the t-distribution
+    residual_type : str, optional
+        One of { None, "absolute", "relative" }.
+        Specifies if bands are for no, absolute or relative residuals.
+    Returns
+    -------
+    artists : list of matplotlib.Artist
+        the created artists (1x Line2D, 6x PolyCollection (alternating plot & legend))
+    """
+    if residual_type:
+        artists = ax.plot(independent, numpy.repeat(0, len(independent)), color='green')
+    else:
+        artists = ax.plot(independent, mu, color='green')
+    for q, c in zip([97.5, 95, 84], ['#d9ecd9', '#b8dbb8', '#9ccd9c']):
+        percent = q - (100 - q)
+        
+        if residual_type == 'absolute':
+            mu = numpy.repeat(0, len(independent))
+            
+        lower = scipy.stats.t.ppf(1-q/100, loc=mu, scale=scale, df=df)
+        upper = scipy.stats.t.ppf(q/100, loc=mu, scale=scale, df=df)
+        
+        if residual_type == 'relative':
+            lower = (lower-mu)/mu
+            upper = (upper-mu)/mu
+            
+        elif residual_type=='absolute' or residual_type is None:
+            pass
+        else:
+            raise Exception(f'Only "relative" or "absolute" residuals supported. You passed {residual_type}')
+            
+        artists.append(ax.fill_between(independent,
+            # by using the Percent Point Function (PPF), which is the inverse of the CDF,
+            # the visualization will show symmetric intervals of <percent> probability
+            lower,
+            upper,
+            alpha=.15, color='green'
+        ))
+        artists.append(ax.fill_between(
+            [], [], [],
+            color=c, label=f'{percent:.1f} % likelihood band'
+        ))
+    return artists
+
+
+def plot_continuous_band(ax, independent, model, residual_type: typing.Optional[str]=None):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a t-distribution.
     
     Parameters
