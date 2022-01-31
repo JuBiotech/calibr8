@@ -207,7 +207,7 @@ def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optiona
 
 
 def plot_continuous_band(ax, independent, model, residual_type: typing.Optional[str]=None):
-    """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a t-distribution.
+    """Helper function for plotting the 84, 95 and 97.5 % likelihood-bands of a univariate distribution.
     
     Parameters
     ----------
@@ -215,12 +215,9 @@ def plot_continuous_band(ax, independent, model, residual_type: typing.Optional[
         subplot object to plot into
     independent : array-like
         x-values for the plot
-    mu : array-like
-        mu parameter of the t-distribution
-    scale : array-like
-        scale parameter of the t-distribution
-    df : array-like
-        density parameter of the t-distribution
+    model : CalibrationModel
+        A fitted calibration model with data.
+        The predict_dependent method should return a tuple where the mean is the first entry.
     residual_type : str, optional
         One of { None, "absolute", "relative" }.
         Specifies if bands are for no, absolute or relative residuals.
@@ -230,22 +227,24 @@ def plot_continuous_band(ax, independent, model, residual_type: typing.Optional[
     artists : list of matplotlib.Artist
         the created artists (1x Line2D, 6x PolyCollection (alternating plot & legend))
     """
+    assert hasattr(model.scipy_dist, "ppf"), "Only Scipy distributions with a ppf method can be used for the continuous likelihood bands."
+    params =  list(model.predict_dependent(independent))
     if residual_type:
         artists = ax.plot(independent, numpy.repeat(0, len(independent)), color='green')
     else:
-        artists = ax.plot(independent, mu, color='green')
+        artists = ax.plot(independent, params[0], color='green')
     for q, c in zip([97.5, 95, 84], ['#d9ecd9', '#b8dbb8', '#9ccd9c']):
         percent = q - (100 - q)
         
         if residual_type == 'absolute':
-            mu = numpy.repeat(0, len(independent))
+            params[0] = numpy.repeat(0, len(independent))
             
-        lower = scipy.stats.t.ppf(1-q/100, loc=mu, scale=scale, df=df)
-        upper = scipy.stats.t.ppf(q/100, loc=mu, scale=scale, df=df)
+        lower = model.scipy_dist.ppf(1-q/100, **model.to_scipy(*params))
+        upper = model.scipy_dist.ppf(q/100, **model.to_scipy(*params))
         
         if residual_type == 'relative':
-            lower = (lower-mu)/mu
-            upper = (upper-mu)/mu
+            lower = (lower-params[0])/params[0]
+            upper = (upper-params[0])/params[0]
             
         elif residual_type=='absolute' or residual_type is None:
             pass
