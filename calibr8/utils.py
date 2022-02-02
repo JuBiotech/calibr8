@@ -10,6 +10,7 @@ import numpy
 import scipy.stats
 import typing
 from typing import Tuple, Optional, Sequence
+import warnings
 
 
 class ImportWarner:
@@ -125,11 +126,17 @@ def plot_norm_band(ax, independent, mu, scale):
         mu parameter of the Normal distribution
     scale : array-like
         scale parameter of the Normal distribution
+    
     Returns
     -------
     artists : list of matplotlib.Artist
         the created artists (1x Line2D, 6x PolyCollection (alternating plot & legend))
     """
+    warnings.warn(
+        "`plot_norm_band` is substituted by a more general `plot_continuous_band` function."
+        "It will be removed in a future release.",
+        DeprecationWarning,
+    )
     artists = ax.plot(independent, mu, color='green')
     for q, c in zip([97.5, 95, 84], ['#d9ecd9', '#b8dbb8', '#9ccd9c']):
         percent = q - (100 - q)
@@ -145,7 +152,7 @@ def plot_norm_band(ax, independent, mu, scale):
             color=c, label=f'{percent:.1f} % likelihood band'
         ))
     return artists
-
+    
 
 def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optional[str]=None):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a t-distribution.
@@ -165,11 +172,17 @@ def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optiona
     residual_type : str, optional
         One of { None, "absolute", "relative" }.
         Specifies if bands are for no, absolute or relative residuals.
+    
     Returns
     -------
     artists : list of matplotlib.Artist
         the created artists (1x Line2D, 6x PolyCollection (alternating plot & legend))
     """
+    warnings.warn(
+        "`plot_t_band` is substituted by a more general `plot_continuous_band` function."
+        "It will be removed in a future release.",
+        DeprecationWarning,
+    )
     if residual_type:
         artists = ax.plot(independent, numpy.repeat(0, len(independent)), color='green')
     else:
@@ -179,7 +192,6 @@ def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optiona
         
         if residual_type == 'absolute':
             mu = numpy.repeat(0, len(independent))
-            
         lower = scipy.stats.t.ppf(1-q/100, loc=mu, scale=scale, df=df)
         upper = scipy.stats.t.ppf(q/100, loc=mu, scale=scale, df=df)
         
@@ -187,6 +199,7 @@ def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optiona
             lower = (lower-mu)/mu
             upper = (upper-mu)/mu
             
+
         elif residual_type=='absolute' or residual_type is None:
             pass
         else:
@@ -207,7 +220,7 @@ def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optiona
 
 
 def plot_continuous_band(ax, independent, model, residual_type: typing.Optional[str]=None):
-    """Helper function for plotting the 84, 95 and 97.5 % likelihood-bands of a univariate distribution.
+    """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a univariate distribution.
     
     Parameters
     ----------
@@ -229,26 +242,26 @@ def plot_continuous_band(ax, independent, model, residual_type: typing.Optional[
     """
     if not hasattr(model.scipy_dist, "ppf"):
         raise ValueError("Only Scipy distributions with a ppf method can be used for the continuous likelihood bands.")
-    params =  list(model.predict_dependent(independent))
+    params =  model.predict_dependent(independent)
+    median = model.scipy_dist.ppf(0.5, **model.to_scipy(*params))
     if residual_type:
         artists = ax.plot(independent, numpy.repeat(0, len(independent)), color='green')
     else:
-        artists = ax.plot(independent, params[0], color='green')
+        artists = ax.plot(independent, median, color='green')
     for q, c in zip([97.5, 95, 84], ['#d9ecd9', '#b8dbb8', '#9ccd9c']):
         percent = q - (100 - q)
         
-        if residual_type == 'absolute':
-            params[0] = numpy.repeat(0, len(independent))
-            
-        lower = model.scipy_dist.ppf(1-q/100, **model.to_scipy(*params))
-        upper = model.scipy_dist.ppf(q/100, **model.to_scipy(*params))
+        if residual_type:
+            lower = model.scipy_dist.ppf(1-q/100, **model.to_scipy(*params)) - median
+            upper = model.scipy_dist.ppf(q/100, **model.to_scipy(*params)) - median
         
-        if residual_type == 'relative':
-            lower = (lower-params[0])/params[0]
-            upper = (upper-params[0])/params[0]
+            if residual_type == 'relative':
+                lower = (lower)/median
+                upper = (upper)/median
             
-        elif residual_type=='absolute' or residual_type is None:
-            pass
+        elif residual_type is None:
+            lower = model.scipy_dist.ppf(1-q/100, **model.to_scipy(*params))
+            upper = model.scipy_dist.ppf(q/100, **model.to_scipy(*params))
         else:
             raise Exception(f'Only "relative" or "absolute" residuals supported. You passed {residual_type}')
             
