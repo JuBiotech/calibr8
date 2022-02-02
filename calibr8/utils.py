@@ -227,7 +227,8 @@ def plot_continuous_band(ax, independent, model, residual_type: typing.Optional[
     artists : list of matplotlib.Artist
         the created artists (1x Line2D, 6x PolyCollection (alternating plot & legend))
     """
-    assert hasattr(model.scipy_dist, "ppf"), "Only Scipy distributions with a ppf method can be used for the continuous likelihood bands."
+    if not hasattr(model.scipy_dist, "ppf"):
+        raise ValueError("Only Scipy distributions with a ppf method can be used for the continuous likelihood bands.")
     params =  list(model.predict_dependent(independent))
     if residual_type:
         artists = ax.plot(independent, numpy.repeat(0, len(independent)), color='green')
