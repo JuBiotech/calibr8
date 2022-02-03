@@ -19,7 +19,7 @@ from . import utils
 from . utils import pm
 
 
-__version__ = '6.2.0'
+__version__ = '6.2.1'
 _log = logging.getLogger('calibr8')
 
 
@@ -531,7 +531,7 @@ class CalibrationModel(DistributionMixin):
                 elif isinstance(rv, pm.Distribution):
                     return rv.logp(y).sum()
             else:
-                return pm.logpt(rv, y, sum=True)
+                return pm.joint_logpt(rv, y, sum=True)
         else:
             logp = None
             if hasattr(self.scipy_dist, "logpdf"):

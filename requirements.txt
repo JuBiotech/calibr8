@@ -1,4 +1,5 @@
 fastprogress
 matplotlib
-numpy
+# Pin upper version because of Thano-PyMC compatibility
+numpy<1.22
 scipy
