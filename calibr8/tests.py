@@ -90,6 +90,20 @@ class TestDeprecatedClasses:
                 hdi_x=arr*1.1+0.4, hdi_pdf=arr+0.5, hdi_prob=0.6,
             )
         pass
+    
+    def test_warns_plot_t_band(self):
+        _, ax = pyplot.subplots()
+
+        with pytest.warns(DeprecationWarning, match="`plot_t_band` is substituted"):
+            calibr8.utils.plot_t_band(ax=ax, independent=[1,2,3], mu=[3,4,5], scale=[6,7,8], df=1)
+        pass
+
+    def test_warns_plot_norm_band(self):
+        _, ax = pyplot.subplots()
+        
+        with pytest.warns(DeprecationWarning, match="`plot_norm_band` is substituted"):
+            calibr8.utils.plot_norm_band(ax=ax, independent=[1,2,3], mu=[3,4,5], scale=[6,7,8])
+        pass
 
 
 class TestInferenceResult:

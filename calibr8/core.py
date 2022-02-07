@@ -19,7 +19,7 @@ from . import utils
 from . utils import pm
 
 
-__version__ = '6.2.1'
+__version__ = '6.3.0'
 _log = logging.getLogger('calibr8')
 
 
