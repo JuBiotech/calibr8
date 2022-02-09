@@ -1284,7 +1284,7 @@ class TestOptimization:
         pass
 
 
-class TestContribBase:
+class TestContribStudentT:
     def test_cant_instantiate_base_models(self):
         with pytest.raises(TypeError, match=r"constructor must not have any required \(kw\)arguments"):
             calibr8.BaseModelT(independent_key='I', dependent_key='D', theta_names=["a", "b"])
@@ -1424,4 +1424,64 @@ class TestBaseLogIndependentAsymmetricModelT:
 
         x_inverse = em.predict_independent(mu)
         numpy.testing.assert_array_almost_equal(x_inverse, x)
+        pass
+
+
+class TestBaseModels:
+    @pytest.mark.parametrize(
+        "cls,init_kwargs,theta,invertible", [
+            (calibr8.BasePolynomialModelN, dict(mu_degree=1, sigma_degree=0), [1, 0.5, 0.1], True),
+            (calibr8.BasePolynomialModelN, dict(mu_degree=1, sigma_degree=1), [1, 0.5, 0.1, 0.2], True),
+            (calibr8.BasePolynomialModelN, dict(mu_degree=2, sigma_degree=0), [1, 0.5, 0.3, 0.1], False),
+            (calibr8.BasePolynomialModelT, dict(mu_degree=1, scale_degree=0), [1, 0.5, 0.1, 3], True),
+            (calibr8.BasePolynomialModelT, dict(mu_degree=1, scale_degree=1), [1, 0.5, 0.1, 0.2, 3], True),
+            (calibr8.BasePolynomialModelT, dict(mu_degree=2, scale_degree=0), [1, 0.5, 0.3, 0.1, 3], False),
+            (calibr8.BaseAsymmetricLogisticN, dict(sigma_degree=0), [-1, 2, 0.5, 0.2, 1, 0.2], True),
+            (calibr8.BaseAsymmetricLogisticN, dict(sigma_degree=1), [-1, 2, 0.5, 0.2, 1, 0.2, 0.1], True),
+            (calibr8.BaseAsymmetricLogisticT, dict(scale_degree=0), [-1, 2, 0.5, 0.2, 1, 0.2, 5], True),
+            (calibr8.BaseAsymmetricLogisticT, dict(scale_degree=1), [-1, 2, 0.5, 0.2, 1, 0.2, 0.1, 5], True),
+            (calibr8.BaseLogIndependentAsymmetricLogisticN, dict(sigma_degree=0), [-1, 2, 0.5, 0.2, 1, 0.2], True),
+            (calibr8.BaseLogIndependentAsymmetricLogisticN, dict(sigma_degree=1), [-1, 2, 0.5, 0.2, 1, 0.2, 0.1], True),
+            (calibr8.BaseLogIndependentAsymmetricLogisticT, dict(scale_degree=0), [-1, 2, 0.5, 0.2, 1, 0.2, 5], True),
+            (calibr8.BaseLogIndependentAsymmetricLogisticT, dict(scale_degree=1), [-1, 2, 0.5, 0.2, 1, 0.2, 0.1, 5], True),
+        ]
+    )
+    def test_basic_features(self, cls, init_kwargs, theta, invertible):
+        # Create a derived class that doesn't have default kwargs
+        class _TestModel(cls):
+            def __init__(self, **kwargs) -> None:
+                super().__init__(**kwargs)
+
+        cm = _TestModel(independent_key="I", dependent_key="D", **init_kwargs)
+        assert len(cm.theta_names) == len(theta)
+
+        # Can it predict?
+        x = numpy.linspace(1, 10)
+        params = cm.predict_dependent(x, theta=theta)
+        assert isinstance(params, tuple)
+
+        # Does it default to the fitted theta?
+        cm.theta_fitted = theta
+        params = cm.predict_dependent(x)
+        assert isinstance(params, tuple)
+
+        # Draw some observations
+        scipy_kwargs = cm.to_scipy(*params)
+        obs = cm.scipy_dist.rvs(**scipy_kwargs)
+
+        if invertible:
+            xhat = cm.predict_independent(obs)
+            assert len(xhat) == len(x)
+        else:
+            with pytest.raises(Exception):
+                cm.predict_independent(obs)
+        pass
+
+    @pytest.mark.parametrize("cls", [calibr8.BasePolynomialModelN, calibr8.BasePolynomialModelT])
+    def test_mu_degree_0_exception(self, cls):
+        class _TestModel(cls):
+            def __init__(self, **kwargs) -> None:
+                super().__init__(independent_key="I", dependent_key="D", **kwargs)
+        with pytest.raises(ValueError, match="are useless"):
+            _TestModel(mu_degree=0)
         pass

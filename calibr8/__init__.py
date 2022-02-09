@@ -6,6 +6,11 @@ from .contrib.noise import (
     StudentTNoise,
     PoissonNoise,
 )
+from .contrib.normal import (
+    BaseAsymmetricLogisticN,
+    BaseLogIndependentAsymmetricLogisticN,
+    BasePolynomialModelN,
+)
 from .contrib.studentt import (
     BaseAsymmetricLogisticT,
     BaseLogIndependentAsymmetricLogisticT,
