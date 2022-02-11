@@ -1294,6 +1294,21 @@ class TestContribStudentT:
             calibr8.BasePolynomialModelT(independent_key='I', dependent_key='D', mu_degree=1, scale_degree=1)
         pass
 
+    def test_warns_about_basemodelt(self):
+        class UnmigratedModel(calibr8.BaseModelT):
+            def __init__(self, independent_key="I", dependent_key="D"):
+                super().__init__(
+                    independent_key=independent_key,
+                    dependent_key=dependent_key,
+                    theta_names=[],
+                )
+
+        with pytest.warns(FutureWarning, match="is deprecated"):
+            cm = UnmigratedModel()
+        assert isinstance(cm, calibr8.CalibrationModel)
+        assert isinstance(cm, calibr8.BaseModelT)
+        pass
+
 
 class TestBasePolynomialModelT:
     def test_exceptions(self):

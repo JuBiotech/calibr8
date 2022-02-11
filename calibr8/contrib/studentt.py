@@ -3,23 +3,35 @@ This module implements reusable calibration models
 with Students-t distributions for the dependent variable.
 """
 import typing
+import warnings
 
 from . import noise
 from .. import core
 
 
 class BaseModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
-    pass
+    def __init__(self, independent_key: str, dependent_key: str, *, theta_names: typing.Tuple[str]):
+        warnings.warn(
+            "The`BaseModelT` class is deprecated. "
+            "Inherit `core.ContinuousUnivariateModel, noise.StudentTNoise` directly.",
+            FutureWarning
+        )
+        super().__init__(
+            independent_key=independent_key,
+            dependent_key=dependent_key,
+            theta_names=theta_names
+        )
 
 
-class BasePolynomialModelT(BaseModelT):
+class BasePolynomialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
     def __init__(
         self, *,
         independent_key: str, dependent_key: str,
         mu_degree: int, scale_degree: int=0,
         theta_names: typing.Optional[typing.Tuple[str]]=None,
     ):
-        """ Template for a model with polynomial trend (mu) and scale (as a function of mu).
+        """ Template for a model with polynomial trend (mu) and scale (as a function of mu)
+        with a Student-t distributed observation noise.
 
         Parameters
         ----------
@@ -107,7 +119,7 @@ class BasePolynomialModelT(BaseModelT):
         return (y - a) / b
 
 
-class BaseAsymmetricLogisticT(BaseModelT):
+class BaseAsymmetricLogisticT(core.ContinuousUnivariateModel, noise.StudentTNoise):
     def __init__(
         self, *,
         independent_key:str, dependent_key:str,
@@ -191,7 +203,7 @@ class BaseAsymmetricLogisticT(BaseModelT):
         return core.inverse_asymmetric_logistic(y, theta[:5])
 
 
-class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
+class BaseLogIndependentAsymmetricLogisticT(core.ContinuousUnivariateModel, noise.StudentTNoise):
     def __init__(
         self, *,
         independent_key:str, dependent_key:str,

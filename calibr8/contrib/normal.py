@@ -15,7 +15,8 @@ class BasePolynomialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         mu_degree: int, sigma_degree: int=0,
         theta_names: Optional[Tuple[str]]=None,
     ):
-        """ Template for a model with polynomial trend (mu) and sigma (as a function of mu).
+        """ Template for a model with polynomial trend (mu) and sigma (as a function of mu)
+        with a normally distributed observation noise.
 
         Parameters
         ----------
