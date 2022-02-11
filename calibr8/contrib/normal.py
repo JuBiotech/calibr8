@@ -1,25 +1,22 @@
 """
-This module implements generic, reusable calibration models that can be subclassed to
-implement custom calibration models.
+This module implements reusable calibration models
+with Normal distributions for the dependent variable.
 """
-import typing
+from typing import Optional, Tuple
 
 from . import noise
 from .. import core
 
 
-class BaseModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
-    pass
-
-
-class BasePolynomialModelT(BaseModelT):
+class BasePolynomialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
     def __init__(
         self, *,
         independent_key: str, dependent_key: str,
-        mu_degree: int, scale_degree: int=0,
-        theta_names: typing.Optional[typing.Tuple[str]]=None,
+        mu_degree: int, sigma_degree: int=0,
+        theta_names: Optional[Tuple[str]]=None,
     ):
-        """ Template for a model with polynomial trend (mu) and scale (as a function of mu).
+        """ Template for a model with polynomial trend (mu) and sigma (as a function of mu)
+        with a normally distributed observation noise.
 
         Parameters
         ----------
@@ -29,27 +26,27 @@ class BasePolynomialModelT(BaseModelT):
             name of the dependent variable
         mu_degree : int
             degree of the polynomial model describing the trend (mu)
-        scale_degree : optional, int
-            degree of the polynomial model describing the scale as a function of mu
+        sigma_degree : optional, int
+            degree of the polynomial model describing the sigma as a function of mu
         theta_names : optional, tuple of str
             may be used to set the names of the model parameters
         """
         if mu_degree == 0:
             raise ValueError("0-degree (constant) mu calibration models are useless.")
         self.mu_degree = mu_degree
-        self.scale_degree = scale_degree
+        self.sigma_degree = sigma_degree
         if theta_names is None:
             theta_names = tuple(
                 f'mu_{d}'
                 for d in range(mu_degree + 1)
             ) + tuple(
-                f'scale_{d}'
-                for d in range(scale_degree + 1)
-            ) + ('df',)
+                f'sigma_{d}'
+                for d in range(sigma_degree + 1)
+            )
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
-        """Predicts the parameters mu and scale of a student-t-distribution which
+        """Predicts the parameters mu and sigma of a normal distribution which
         characterizes the dependent variable given values of the independent variable.
 
         Parameters
@@ -59,27 +56,23 @@ class BasePolynomialModelT(BaseModelT):
         theta : optional, array-like
             parameter vector of the calibration model:
                 [mu_degree] parameters for mu (lowest degree first)
-                [scale_degree] parameters for scale (lowest degree first)
-                1 parameter for degree of freedom
+                [sigma_degree] parameters for sigma (lowest degree first)
 
         Returns
         -------
         mu : array-like
-            values for the mu parameter of a student-t-distribution describing the dependent variable
-        scale : array-like or float
-            values for the scale parameter of a student-t-distribution describing the dependent variable
-        df : float
-            degree of freedom of student-t-distribution
+            values for the mu parameter of a normal distribution describing the dependent variable
+        sigma : array-like or float
+            values for the sigma parameter of a normal distribution describing the dependent variable
         """
         if theta is None:
             theta = self.theta_fitted
         mu = core.polynomial(x, theta=theta[:self.mu_degree+1])
-        if self.scale_degree == 0:
-            scale = theta[-2]
+        if self.sigma_degree == 0:
+            sigma = theta[-1]
         else:
-            scale = core.polynomial(mu, theta=theta[self.mu_degree+1:self.mu_degree+1 + self.scale_degree+1])
-        df = theta[-1]
-        return mu, scale, df
+            sigma = core.polynomial(mu, theta=theta[self.mu_degree+1:])
+        return mu, sigma
 
     def predict_independent(self, y, *, theta=None):
         """Predict the independent variable using the inverse trend model.
@@ -91,8 +84,7 @@ class BasePolynomialModelT(BaseModelT):
         theta : optional, array-like
             parameter vector of the calibration model:
                 [mu_degree] parameters for mu (lowest degree first)
-                [scale_degree] parameters for scale (lowest degree first)
-                1 parameter for degree of freedom
+                [sigma_degree] parameters for sigma (lowest degree first)
 
         Returns
         -------
@@ -107,14 +99,14 @@ class BasePolynomialModelT(BaseModelT):
         return (y - a) / b
 
 
-class BaseAsymmetricLogisticT(BaseModelT):
+class BaseAsymmetricLogisticN(core.ContinuousUnivariateModel, noise.NormalNoise):
     def __init__(
         self, *,
         independent_key:str, dependent_key:str,
-        scale_degree:int=0,
-        theta_names: typing.Optional[typing.Tuple[str]]=None,
+        sigma_degree:int=0,
+        theta_names: Optional[Tuple[str]]=None,
     ):
-        """ Template for a model with asymmetric logistic trend (mu) and polynomial scale (as a function of mu).
+        """ Template for a model with asymmetric logistic trend (mu) and polynomial sigma (as a function of mu).
 
         Parameters
         ----------
@@ -122,21 +114,21 @@ class BaseAsymmetricLogisticT(BaseModelT):
             name of the independent variable
         dependent_key : str
             name of the dependent variable
-        scale_degree : optional, int
-            degree of the polynomial model describing the scale as a function of mu
+        sigma_degree : optional, int
+            degree of the polynomial model describing the sigma as a function of mu
         theta_names : optional, tuple of str
             may be used to set the names of the model parameters
         """
-        self.scale_degree = scale_degree
+        self.sigma_degree = sigma_degree
         if theta_names is None:
             theta_names = tuple('L_L,L_U,I_x,S,c'.split(',')) + tuple(
-                f'scale_{d}'
-                for d in range(scale_degree + 1)
-            ) + ('df',)
+                f'sigma_{d}'
+                for d in range(sigma_degree + 1)
+            )
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
-        """Predicts the parameters mu and scale of a student-t-distribution which
+        """Predicts the parameters mu and sigma of a normal distribution which
         characterizes the dependent variable given values of the independent variable.
 
         Parameters
@@ -146,27 +138,23 @@ class BaseAsymmetricLogisticT(BaseModelT):
         theta : optional, array-like
             parameter vector of the calibration model:
                 5 parameters of asymmetric logistic model for mu
-                [scale_degree] parameters for scale (lowest degree first)
-                1 parameter for degree of freedom
+                [sigma_degree] parameters for sigma (lowest degree first)
 
         Returns
         -------
         mu : array-like
-            values for the mu parameter of a student-t-distribution describing the dependent variable
-        scale : array-like or float
-            values for the scale parameter of a student-t-distribution describing the dependent variable
-        df : float
-            degree of freedom of student-t-distribution
+            values for the mu parameter of a normal distribution describing the dependent variable
+        sigma : array-like or float
+            values for the sigma parameter of a normal distribution describing the dependent variable
         """
         if theta is None:
             theta = self.theta_fitted
         mu = core.asymmetric_logistic(x, theta[:5])
-        if self.scale_degree == 0:
-            scale = theta[-2]
+        if self.sigma_degree == 0:
+            sigma = theta[-1]
         else:
-            scale = core.polynomial(mu, theta[5:-1])
-        df = theta[-1]
-        return mu, scale, df
+            sigma = core.polynomial(mu, theta[5:])
+        return mu, sigma
 
     def predict_independent(self, y, *, theta=None):
         """Predict the independent variable using the inverse trend model.
@@ -175,11 +163,10 @@ class BaseAsymmetricLogisticT(BaseModelT):
         ----------
         y : array-like
             observations
-         theta : optional, array-like
+        theta : optional, array-like
             parameter vector of the calibration model:
                 5 parameters of asymmetric logistic model for mu
-                [scale_degree] parameters for scale (lowest degree first)
-                1 parameter for degree of freedom
+                [sigma_degree] parameters for sigma (lowest degree first)
 
         Returns
         -------
@@ -191,14 +178,14 @@ class BaseAsymmetricLogisticT(BaseModelT):
         return core.inverse_asymmetric_logistic(y, theta[:5])
 
 
-class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
+class BaseLogIndependentAsymmetricLogisticN(core.ContinuousUnivariateModel, noise.NormalNoise):
     def __init__(
         self, *,
         independent_key:str, dependent_key:str,
-        scale_degree:int=0,
-        theta_names: typing.Optional[typing.Tuple[str]]=None,
+        sigma_degree:int=0,
+        theta_names: Optional[Tuple[str]]=None,
     ):
-        """ Template for a model with asymmetric logistic trend (mu) and polynomial scale (as a function of mu).
+        """ Template for a model with asymmetric logistic trend (mu) and polynomial sigma (as a function of mu).
 
         Parameters
         ----------
@@ -206,21 +193,21 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
             name of the independent variable
         dependent_key : str
             name of the dependent variable
-        scale_degree : optional, int
-            degree of the polynomial model describing the scale as a function of mu
+        sigma_degree : optional, int
+            degree of the polynomial model describing the sigma as a function of mu
         theta_names : optional, tuple of str
             may be used to set the names of the model parameters
         """
-        self.scale_degree = scale_degree
+        self.sigma_degree = sigma_degree
         if theta_names is None:
             theta_names = tuple('L_L,L_U,log_I_x,S,c'.split(',')) + tuple(
-                f'scale_{d}'
-                for d in range(scale_degree + 1)
-            ) + ('df',)
+                f'sigma_{d}'
+                for d in range(sigma_degree + 1)
+            )
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
-        """Predicts the parameters mu and scale of a student-t-distribution which
+        """Predicts the parameters mu and sigma of a normal distribution which
         characterizes the dependent variable given values of the independent variable.
 
         Parameters
@@ -230,27 +217,23 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
         theta : optional, array-like
             parameter vector of the calibration model:
                 5 parameters of log-independent asymmetric logistic model for mu
-                [scale_degree] parameters for scale (lowest degree first)
-                1 parameter for degree of freedom
+                [sigma_degree] parameters for sigma (lowest degree first)
 
         Returns
         -------
         mu : array-like
-            values for the mu parameter of a student-t-distribution describing the dependent variable
-        scale : array-like or float
-            values for the scale parameter of a student-t-distribution describing the dependent variable
-        df : float
-            degree of freedom of student-t-distribution
+            values for the mu parameter of a normal distribution describing the dependent variable
+        sigma : array-like or float
+            values for the sigma parameter of a normal distribution describing the dependent variable
         """
         if theta is None:
             theta = self.theta_fitted
         mu = core.xlog_asymmetric_logistic(x, theta[:5])
-        if self.scale_degree == 0:
-            scale = theta[-2]
+        if self.sigma_degree == 0:
+            sigma = theta[-1]
         else:
-            scale = core.polynomial(mu, theta[5:-1])
-        df = theta[-1]
-        return mu, scale, df
+            sigma = core.polynomial(mu, theta[5:-1])
+        return mu, sigma
 
     def predict_independent(self, y, *, theta=None):
         """Predict the independent variable using the inverse trend model.
@@ -262,8 +245,7 @@ class BaseLogIndependentAsymmetricLogisticT(BaseModelT):
         theta : optional, array-like
             parameter vector of the calibration model:
                 5 parameters of log-independent asymmetric logistic model for mu
-                [scale_degree] parameters for scale (lowest degree first)
-                1 parameter for degree of freedom
+                [sigma_degree] parameters for sigma (lowest degree first)
 
         Returns
         -------
