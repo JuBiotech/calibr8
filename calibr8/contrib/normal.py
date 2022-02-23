@@ -279,7 +279,7 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         """
         self.sigma_degree = sigma_degree
         if theta_names is None:
-            theta_names = tuple('L,k'.split(',')) + tuple(
+            theta_names = ("L", "k") + tuple(
                 f'sigma_{d}'
                 for d in range(sigma_degree + 1)
             )

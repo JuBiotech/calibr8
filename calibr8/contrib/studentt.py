@@ -309,7 +309,7 @@ class BaseExponentialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise)
         """
         self.scale_degree = scale_degree
         if theta_names is None:
-            theta_names = tuple('L,k'.split(',')) + tuple(
+            theta_names = ("L", "k") + tuple(
                 f'scale_{d}'
                 for d in range(scale_degree + 1)
             ) + ('df',)
