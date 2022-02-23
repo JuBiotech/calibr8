@@ -292,6 +292,7 @@ class BaseExponentialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise)
         self, *,
         independent_key:str, dependent_key:str,
         scale_degree:int=0,
+        fixed_intercept: typing.Optional[float]=None,
         theta_names: typing.Optional[typing.Tuple[str]]=None,
     ):
         """ Template for a model with exponential trend (mu) and polynomial scale (as a function of mu).
@@ -299,20 +300,29 @@ class BaseExponentialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise)
         Parameters
         ----------
         independent_key : str
-            name of the independent variable
+            Name of the independent variable.
         dependent_key : str
-            name of the dependent variable
+            Name of the dependent variable.
         scale_degree : optional, int
-            degree of the polynomial model describing the scale as a function of mu
+            Degree of the polynomial model describing the scale as a function of mu.
+            ⚠ Attention: for scale_degree > 0, ensure that scale is always positive! 
+        fixed_intercept : optional, float
+            If set, the y-axis intercept will be fixed to this value.
+            Otherwise the intercept becomes a free parameter.
         theta_names : optional, tuple of str
-            may be used to set the names of the model parameters
+            May be used to set the names of the model parameters.
         """
         self.scale_degree = scale_degree
+        self.fixed_intercept = fixed_intercept
         if theta_names is None:
-            theta_names = ("L", "k") + tuple(
-                f'scale_{d}'
+            if fixed_intercept:
+                theta_names = ("L", "k")
+            else:
+                theta_names = ("I", "L", "k")
+            theta_names += tuple(
+                f"scale_{d}"
                 for d in range(scale_degree + 1)
-            ) + ('df',)
+            ) + ("df",)
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
@@ -322,30 +332,40 @@ class BaseExponentialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise)
         Parameters
         ----------
         x : array-like
-            values of the independent variable
+            Values of the independent variable.
         theta : optional, array-like
-            parameter vector of the calibration model:
-                2 parameters ofexponential model for mu
-                scale_degree] parameters for scale (lowest degree first)
-                1 parameter for degree of freedom
+            Parameter vector of the calibration model.
+            Depending on the ``fixed_intercept`` setting these are
+            [I, L, k] or [L, k] parameters of exponential model for mu.
+            Followed by parameters for the model for scale (lowest degree first).
+            Followed by the degree of freedom parameter.
 
         Returns
         -------
         mu : array-like
-            values for the mu parameter of a Student-t distribution describing the dependent variable
+            Values for the mu parameter of a Student-t distribution describing the dependent variable.
         scale : array-like or float
-            values for the scale parameter of a Student-t distribution describing the dependent variable
+            Values for the scale parameter of a Student-t distribution describing the dependent variable.
         df : float
-            degree of freedom of Student-t distribution
+            Degree of freedom of Student-t distribution.
         """
         if theta is None:
             theta = self.theta_fitted
-        mu = core.exponential(x, theta[:2])
+
+        if self.fixed_intercept is None:
+            theta_mu = (theta[0], theta[1], theta[2])
+            theta_scale = theta[3:-1]
+        else:
+            theta_mu = (self.fixed_intercept, theta[0], theta[1])
+            theta_scale = theta[2:-1]
+        assert len(theta_scale) == self.scale_degree + 1
+        mu = core.exponential(x, theta_mu)
         if self.scale_degree == 0:
             scale = theta[-2]
         else:
-            scale = core.polynomial(mu, theta=theta[2:-1])
+            scale = core.polynomial(mu, theta_scale)
         df = theta[-1]
+        print(scale)
         return mu, scale, df
 
     def predict_independent(self, y, *, theta=None):
@@ -354,18 +374,25 @@ class BaseExponentialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise)
         Parameters
         ----------
         y : array-like
-            observations
+            Observations
         theta : optional, array-like
-            parameter vector of the calibration model:
-                2 parameters of exponential model for mu
-                scale_degree] parameters for scale (lowest degree first)
-                1 parameter for degree of freedom
+            Parameter vector of the calibration model.
+            Depending on the ``fixed_intercept`` setting these are
+            [I, L, k] or [L, k] parameters of exponential model for mu.
+            Followed by parameters for the model for scale (lowest degree first).
+            Followed by the degree of freedom parameter.
 
         Returns
         -------
         x : array-like
-            predicted independent values given the observations
+            Predicted independent values given the observations.
         """
         if theta is None:
             theta = self.theta_fitted
-        return core.inverse_exponential(y, theta[:2])
+
+        if self.fixed_intercept is None:
+            theta_mu = (theta[0], theta[1], theta[2])
+        else:
+            theta_mu = (self.fixed_intercept, theta[0], theta[1])
+
+        return core.inverse_exponential(y, theta_mu)

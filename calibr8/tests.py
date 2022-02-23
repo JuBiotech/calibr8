@@ -776,15 +776,15 @@ class TestContinuousMultivariateModel:
 class TestModelFunctions:
     def test_exponential(self):
         x = numpy.array([1.,2.,4.])
-        theta = [2,4]
-        expected = 2*(1-numpy.exp(-4*x))
+        theta = [1,2,4]
+        expected = (2-1)*(1-numpy.exp(-4*x))+1
         true = calibr8.exponential(x, theta)
         numpy.testing.assert_array_equal(expected, true)
         return
     
     def test_inverse_exponential(self):
         x = numpy.array([1.,2.,4.])
-        theta = [2,4]
+        theta = [1,2,4]
         forward = calibr8.exponential(x, theta)
         reverse = calibr8.inverse_exponential(forward, theta)
         numpy.testing.assert_allclose(reverse, x)
@@ -1475,10 +1475,12 @@ class TestBaseModels:
             (calibr8.BaseLogIndependentAsymmetricLogisticN, dict(sigma_degree=1), [-1, 2, 0.5, 0.2, 1, 0.2, 0.1], True),
             (calibr8.BaseLogIndependentAsymmetricLogisticT, dict(scale_degree=0), [-1, 2, 0.5, 0.2, 1, 0.2, 5], True),
             (calibr8.BaseLogIndependentAsymmetricLogisticT, dict(scale_degree=1), [-1, 2, 0.5, 0.2, 1, 0.2, 0.1, 5], True),
-            (calibr8.BaseExponentialModelN, dict(sigma_degree=0), [1,4,5], True),
-            (calibr8.BaseExponentialModelN, dict(sigma_degree=1), [1,4,0.1,5], True),
-            (calibr8.BaseExponentialModelT, dict(scale_degree=0), [1,4,5,2], True),
-            (calibr8.BaseExponentialModelT, dict(scale_degree=1), [1,4,0.1,5,2], True),
+            (calibr8.BaseExponentialModelN, dict(sigma_degree=0), [-1, 5, 1, 0.1], True),
+            (calibr8.BaseExponentialModelN, dict(sigma_degree=1), [2, 1, 0.4, 0.1, 0.5], True),
+            (calibr8.BaseExponentialModelT, dict(scale_degree=0), [-1, 5, 1, 0.1, 3], True),
+            (calibr8.BaseExponentialModelT, dict(scale_degree=1), [2, 1, 0.4, 0.1, 0.5, 3], True),
+            (calibr8.BaseExponentialModelN, dict(sigma_degree=0, fixed_intercept=1), [-5, 1, 0.1], True),
+            (calibr8.BaseExponentialModelT, dict(scale_degree=0, fixed_intercept=-1), [-2, 1, 0.1, 3], True),
         ]
     )
     def test_basic_features(self, cls, init_kwargs, theta, invertible):

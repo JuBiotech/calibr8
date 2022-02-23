@@ -262,6 +262,7 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         self, *,
         independent_key:str, dependent_key:str,
         sigma_degree:int=0,
+        fixed_intercept: Optional[float]=None,
         theta_names: Optional[Tuple[str]]=None,
     ):
         """ Template for a model with exponential trend (mu) and polynomial sigma (as a function of mu).
@@ -274,13 +275,22 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
             name of the dependent variable
         sigma_degree : optional, int
             degree of the polynomial model describing the sigma as a function of mu
+            ⚠ Attention: for sigma_degree > 0, ensure that sigma is always positive!
+        fixed_intercept : optional, float
+            If set, the y-axis intercept will be fixed to this value.
+            Otherwise the intercept becomes a free parameter.
         theta_names : optional, tuple of str
             may be used to set the names of the model parameters
         """
         self.sigma_degree = sigma_degree
+        self.fixed_intercept = fixed_intercept
         if theta_names is None:
-            theta_names = ("L", "k") + tuple(
-                f'sigma_{d}'
+            if fixed_intercept:
+                theta_names = ("L", "k")
+            else:
+                theta_names = ("I", "L", "k")
+            theta_names += tuple(
+                f"sigma_{d}"
                 for d in range(sigma_degree + 1)
             )
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
@@ -294,9 +304,10 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         x : array-like
             values of the independent variable
         theta : optional, array-like
-            parameter vector of the calibration model:
-                2 parameters ofexponential model for mu
-                [sigma_degree] parameters for sigma (lowest degree first)
+            Parameter vector of the calibration model.
+            Depending on the ``fixed_intercept`` setting these are
+            [I, L, k] or [L, k] parameters of exponential model for mu.
+            Followed by parameters for the model for sigma (lowest degree first).
 
         Returns
         -------
@@ -307,11 +318,19 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         """
         if theta is None:
             theta = self.theta_fitted
-        mu = core.exponential(x, theta[:2])
+
+        if self.fixed_intercept is None:
+            theta_mu = (theta[0], theta[1], theta[2])
+            theta_sigma = theta[3:]
+        else:
+            theta_mu = (self.fixed_intercept, theta[0], theta[1])
+            theta_sigma = theta[2:]
+
+        mu = core.exponential(x, theta_mu)
         if self.sigma_degree == 0:
             sigma = theta[-1]
         else:
-            sigma = core.polynomial(mu, theta[2:])
+            sigma = core.polynomial(mu, theta_sigma)
         return mu, sigma
 
     def predict_independent(self, y, *, theta=None):
@@ -322,9 +341,10 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         y : array-like
             observations
         theta : optional, array-like
-            parameter vector of the calibration model:
-                2 parameters of exponential model for mu
-                [sigma_degree] parameters for sigma (lowest degree first)
+            Parameter vector of the calibration model.
+            Depending on the ``fixed_intercept`` setting these are
+            [I, L, k] or [L, k] parameters of exponential model for mu.
+            Followed by parameters for the model for sigma (lowest degree first).
 
         Returns
         -------
@@ -333,4 +353,9 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         """
         if theta is None:
             theta = self.theta_fitted
-        return core.inverse_exponential(y, theta[:2])
+
+        if self.fixed_intercept is None:
+            theta_mu = (theta[0], theta[1], theta[2])
+        else:
+            theta_mu = (self.fixed_intercept, theta[0], theta[1])
+        return core.inverse_exponential(y, theta_mu)
