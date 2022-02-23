@@ -774,6 +774,22 @@ class TestContinuousMultivariateModel:
 
 
 class TestModelFunctions:
+    def test_exponential(self):
+        x = numpy.array([1.,2.,4.])
+        theta = [2,4]
+        expected = 2*(1-numpy.exp(-4*x))
+        true = calibr8.exponential(x, theta)
+        assert (numpy.array_equal(true, expected))
+        return
+    
+    def test_inverse_exponential(self):
+        x = numpy.array([1.,2.,4.])
+        theta = [2,4]
+        forward = calibr8.exponential(x, theta)
+        reverse = calibr8.inverse_exponential(forward, theta)
+        assert (numpy.allclose(x, reverse))
+        return
+
     def test_logistic(self):
         x = numpy.array([1.,2.,4.])
         theta = [2,2,4,1]
