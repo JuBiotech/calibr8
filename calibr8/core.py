@@ -1152,10 +1152,10 @@ def exponential(x, theta):
     x : array-like
         independent variable
     theta : array-like
-        parameters of the exponential model
-            I: intercept (x=0)
-            L: asymptotic limit (for x->inf if k>0, else for x->-inf)
-            k: kinetic rate 
+        Parameters of the exponential model:
+        - I: y-axis intercept
+        - L: asymptotic limit
+        - k: kinetic rate
     
     Returns
     -------
@@ -1174,10 +1174,10 @@ def inverse_exponential(y, theta):
     y : array-like
         dependent variable
     theta : array-like
-        parameters of the exponential model
-            I: intercept (x=0)
-            L: asymptotic limit (for x->inf if k>0, else for x->-inf)
-            k: kinetic rate 
+        Parameters of the exponential model:
+        - I: y-axis intercept
+        - L: asymptotic limit
+        - k: kinetic rate
     
     Returns
     -------
