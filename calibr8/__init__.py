@@ -10,12 +10,14 @@ from .contrib.normal import (
     BaseAsymmetricLogisticN,
     BaseLogIndependentAsymmetricLogisticN,
     BasePolynomialModelN,
+    BaseExponentialModelN,
 )
 from .contrib.studentt import (
     BaseAsymmetricLogisticT,
     BaseLogIndependentAsymmetricLogisticT,
     BaseModelT,
     BasePolynomialModelT,
+    BaseExponentialModelT,
 )
 from .core import (
     CalibrationModel,

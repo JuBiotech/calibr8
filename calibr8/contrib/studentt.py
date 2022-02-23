@@ -285,3 +285,87 @@ class BaseLogIndependentAsymmetricLogisticT(core.ContinuousUnivariateModel, nois
         if theta is None:
             theta = self.theta_fitted
         return core.inverse_xlog_asymmetric_logistic(y, theta[:5])
+
+
+class BaseExponentialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
+    def __init__(
+        self, *,
+        independent_key:str, dependent_key:str,
+        scale_degree:int=0,
+        theta_names: typing.Optional[typing.Tuple[str]]=None,
+    ):
+        """ Template for a model with exponential trend (mu) and polynomial scale (as a function of mu).
+
+        Parameters
+        ----------
+        independent_key : str
+            name of the independent variable
+        dependent_key : str
+            name of the dependent variable
+        scale_degree : optional, int
+            degree of the polynomial model describing the scale as a function of mu
+        theta_names : optional, tuple of str
+            may be used to set the names of the model parameters
+        """
+        self.scale_degree = scale_degree
+        if theta_names is None:
+            theta_names = tuple('L,k'.split(',')) + tuple(
+                f'scale_{d}'
+                for d in range(scale_degree + 1)
+            ) + ('df',)
+        super().__init__(independent_key, dependent_key, theta_names=theta_names)
+
+    def predict_dependent(self, x, *, theta=None):
+        """Predicts the parameters mu and scale of a Student-t distribution which
+        characterizes the dependent variable given values of the independent variable.
+
+        Parameters
+        ----------
+        x : array-like
+            values of the independent variable
+        theta : optional, array-like
+            parameter vector of the calibration model:
+                2 parameters ofexponential model for mu
+                scale_degree] parameters for scale (lowest degree first)
+                1 parameter for degree of freedom
+
+        Returns
+        -------
+        mu : array-like
+            values for the mu parameter of a Student-t distribution describing the dependent variable
+        scale : array-like or float
+            values for the scale parameter of a Student-t distribution describing the dependent variable
+        df : float
+            degree of freedom of Student-t distribution
+        """
+        if theta is None:
+            theta = self.theta_fitted
+        mu = core.exponential(x, theta[:2])
+        if self.scale_degree == 0:
+            scale = theta[-2]
+        else:
+            scale = core.polynomial(mu, theta=theta[2:-1])
+        df = theta[-1]
+        return mu, scale, df
+
+    def predict_independent(self, y, *, theta=None):
+        """Predict the independent variable using the inverse trend model.
+
+        Parameters
+        ----------
+        y : array-like
+            observations
+        theta : optional, array-like
+            parameter vector of the calibration model:
+                2 parameters of exponential model for mu
+                scale_degree] parameters for scale (lowest degree first)
+                1 parameter for degree of freedom
+
+        Returns
+        -------
+        x : array-like
+            predicted independent values given the observations
+        """
+        if theta is None:
+            theta = self.theta_fitted
+        return core.inverse_exponential(y, theta[:2])

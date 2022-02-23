@@ -255,3 +255,82 @@ class BaseLogIndependentAsymmetricLogisticN(core.ContinuousUnivariateModel, nois
         if theta is None:
             theta = self.theta_fitted
         return core.inverse_xlog_asymmetric_logistic(y, theta[:5])
+
+
+class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
+    def __init__(
+        self, *,
+        independent_key:str, dependent_key:str,
+        sigma_degree:int=0,
+        theta_names: Optional[Tuple[str]]=None,
+    ):
+        """ Template for a model with exponential trend (mu) and polynomial sigma (as a function of mu).
+
+        Parameters
+        ----------
+        independent_key : str
+            name of the independent variable
+        dependent_key : str
+            name of the dependent variable
+        sigma_degree : optional, int
+            degree of the polynomial model describing the sigma as a function of mu
+        theta_names : optional, tuple of str
+            may be used to set the names of the model parameters
+        """
+        self.sigma_degree = sigma_degree
+        if theta_names is None:
+            theta_names = tuple('L,k'.split(',')) + tuple(
+                f'sigma_{d}'
+                for d in range(sigma_degree + 1)
+            )
+        super().__init__(independent_key, dependent_key, theta_names=theta_names)
+
+    def predict_dependent(self, x, *, theta=None):
+        """Predicts the parameters mu and sigma of a normal distribution which
+        characterizes the dependent variable given values of the independent variable.
+
+        Parameters
+        ----------
+        x : array-like
+            values of the independent variable
+        theta : optional, array-like
+            parameter vector of the calibration model:
+                2 parameters ofexponential model for mu
+                [sigma_degree] parameters for sigma (lowest degree first)
+
+        Returns
+        -------
+        mu : array-like
+            values for the mu parameter of a normal distribution describing the dependent variable
+        sigma : array-like or float
+            values for the sigma parameter of a normal distribution describing the dependent variable
+        """
+        if theta is None:
+            theta = self.theta_fitted
+        mu = core.exponential(x, theta[:2])
+        if self.sigma_degree == 0:
+            sigma = theta[-1]
+        else:
+            sigma = core.polynomial(mu, theta[2:-1])
+        return mu, sigma
+
+    def predict_independent(self, y, *, theta=None):
+        """Predict the independent variable using the inverse trend model.
+
+        Parameters
+        ----------
+        y : array-like
+            observations
+        theta : optional, array-like
+            parameter vector of the calibration model:
+                2 parameters of exponential model for mu
+                [sigma_degree] parameters for sigma (lowest degree first)
+
+        Returns
+        -------
+        x : array-like
+            predicted independent values given the observations
+        """
+        if theta is None:
+            theta = self.theta_fitted
+        return core.inverse_exponential(y, theta[:2])
