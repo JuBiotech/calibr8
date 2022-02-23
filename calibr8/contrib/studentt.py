@@ -61,7 +61,7 @@ class BasePolynomialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
-        """Predicts the parameters mu and scale of a student-t-distribution which
+        """Predicts the parameters mu and scale of a Student-t distribution which
         characterizes the dependent variable given values of the independent variable.
 
         Parameters
@@ -77,11 +77,11 @@ class BasePolynomialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
         Returns
         -------
         mu : array-like
-            values for the mu parameter of a student-t-distribution describing the dependent variable
+            values for the mu parameter of a Student-t distribution describing the dependent variable
         scale : array-like or float
-            values for the scale parameter of a student-t-distribution describing the dependent variable
+            values for the scale parameter of a Student-t distribution describing the dependent variable
         df : float
-            degree of freedom of student-t-distribution
+            degree of freedom of Student-t distribution
         """
         if theta is None:
             theta = self.theta_fitted
@@ -148,7 +148,7 @@ class BaseAsymmetricLogisticT(core.ContinuousUnivariateModel, noise.StudentTNois
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
-        """Predicts the parameters mu and scale of a student-t-distribution which
+        """Predicts the parameters mu and scale of a Student-t distribution which
         characterizes the dependent variable given values of the independent variable.
 
         Parameters
@@ -164,11 +164,11 @@ class BaseAsymmetricLogisticT(core.ContinuousUnivariateModel, noise.StudentTNois
         Returns
         -------
         mu : array-like
-            values for the mu parameter of a student-t-distribution describing the dependent variable
+            values for the mu parameter of a Student-t distribution describing the dependent variable
         scale : array-like or float
-            values for the scale parameter of a student-t-distribution describing the dependent variable
+            values for the scale parameter of a Student-t distribution describing the dependent variable
         df : float
-            degree of freedom of student-t-distribution
+            degree of freedom of Student-t distribution
         """
         if theta is None:
             theta = self.theta_fitted
@@ -232,7 +232,7 @@ class BaseLogIndependentAsymmetricLogisticT(core.ContinuousUnivariateModel, nois
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
-        """Predicts the parameters mu and scale of a student-t-distribution which
+        """Predicts the parameters mu and scale of a Student-t distribution which
         characterizes the dependent variable given values of the independent variable.
 
         Parameters
@@ -248,11 +248,11 @@ class BaseLogIndependentAsymmetricLogisticT(core.ContinuousUnivariateModel, nois
         Returns
         -------
         mu : array-like
-            values for the mu parameter of a student-t-distribution describing the dependent variable
+            values for the mu parameter of a Student-t distribution describing the dependent variable
         scale : array-like or float
-            values for the scale parameter of a student-t-distribution describing the dependent variable
+            values for the scale parameter of a Student-t distribution describing the dependent variable
         df : float
-            degree of freedom of student-t-distribution
+            degree of freedom of Student-t distribution
         """
         if theta is None:
             theta = self.theta_fitted
