@@ -1145,7 +1145,7 @@ def polynomial(x, theta):
 
 
 def exponential(x, theta):
-    """2-parameter exponential model.
+    """3-parameter exponential model.
     
     Parameters
     ----------
@@ -1153,20 +1153,21 @@ def exponential(x, theta):
         independent variable
     theta : array-like
         parameters of the exponential model
-            L: upper limit
-            k: kinetic rate (positive)
+            I: intercept (x=0)
+            L: asymptotic limit (for x->inf if k>0, else for x->-inf)
+            k: kinetic rate 
     
     Returns
     -------
     y : array-like
         dependent variable
     """
-    L,k = theta[:2]
-    return L *(1-numpy.exp(-k*x))
+    I,L,k = theta[:3]
+    return (L-I) *(1-numpy.exp(-k*x)) + I
 
 
 def inverse_exponential(y, theta):
-    """Inverse of 2-parameter exponential model.
+    """Inverse of 3-parameter exponential model.
     
     Parameters
     ----------
@@ -1174,13 +1175,14 @@ def inverse_exponential(y, theta):
         dependent variable
     theta : array-like
         parameters of the exponential model
-            L: upper limit
-            k: kinetic rate (positive)
+            I: intercept (x=0)
+            L: asymptotic limit (for x->inf if k>0, else for x->-inf)
+            k: kinetic rate 
     
     Returns
     -------
     x : array-like
         independent variable
     """
-    L,k = theta[:2]
-    return -1/k * numpy.log(1-y/L)
+    I,L,k = theta[:3]
+    return -1/k * numpy.log(1-(y-I)/(L-I))
