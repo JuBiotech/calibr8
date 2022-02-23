@@ -28,6 +28,8 @@ Learn from the examples how a ``calibr8``-driven workflow looks like:
    :maxdepth: 2
    :caption: Examples
 
+   Basic_ExponentialModel
+   Basic_GeneralizedLogistic
    Example_Fitting_a_Linear_Model
    Example_Numeric_Independent_Posterior
    Advanced_In-depth_Model_Fitting
