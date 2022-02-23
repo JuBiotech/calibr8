@@ -311,7 +311,7 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         if self.sigma_degree == 0:
             sigma = theta[-1]
         else:
-            sigma = core.polynomial(mu, theta[2:-1])
+            sigma = core.polynomial(mu, theta[2:])
         return mu, sigma
 
     def predict_independent(self, y, *, theta=None):
