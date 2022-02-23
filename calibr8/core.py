@@ -1142,3 +1142,45 @@ def polynomial(x, theta):
     """
     # Numpy's polynomial function wants to get the highest degree first
     return numpy.polyval(theta[::-1], x)
+
+
+def exponential(x, theta):
+    """2-parameter exponential model.
+    
+    Parameters
+    ----------
+    x : array-like
+        independent variable
+    theta : array-like
+        parameters of the exponential model
+            L: upper limit
+            k: kinetic rate (positive)
+    
+    Returns
+    -------
+    y : array-like
+        dependent variable
+    """
+    L,k = theta[:2]
+    return L *(1-numpy.exp(-k*x))
+
+
+def inverse_exponential(y, theta):
+    """Inverse of 2-parameter exponential model.
+    
+    Parameters
+    ----------
+    y : array-like
+        dependent variable
+    theta : array-like
+        parameters of the exponential model
+            L: upper limit
+            k: kinetic rate (positive)
+    
+    Returns
+    -------
+    x : array-like
+        independent variable
+    """
+    L,k = theta[:2]
+    return -1/k * numpy.log(1-y/L)
