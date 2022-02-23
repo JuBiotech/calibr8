@@ -779,7 +779,7 @@ class TestModelFunctions:
         theta = [2,4]
         expected = 2*(1-numpy.exp(-4*x))
         true = calibr8.exponential(x, theta)
-        assert (numpy.array_equal(true, expected))
+        numpy.testing.assert_array_equal(expected, true)
         return
     
     def test_inverse_exponential(self):
@@ -787,7 +787,7 @@ class TestModelFunctions:
         theta = [2,4]
         forward = calibr8.exponential(x, theta)
         reverse = calibr8.inverse_exponential(forward, theta)
-        assert (numpy.allclose(x, reverse))
+        numpy.testing.assert_allclose(reverse, x)
         return
 
     def test_logistic(self):
