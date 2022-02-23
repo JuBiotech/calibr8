@@ -1475,6 +1475,10 @@ class TestBaseModels:
             (calibr8.BaseLogIndependentAsymmetricLogisticN, dict(sigma_degree=1), [-1, 2, 0.5, 0.2, 1, 0.2, 0.1], True),
             (calibr8.BaseLogIndependentAsymmetricLogisticT, dict(scale_degree=0), [-1, 2, 0.5, 0.2, 1, 0.2, 5], True),
             (calibr8.BaseLogIndependentAsymmetricLogisticT, dict(scale_degree=1), [-1, 2, 0.5, 0.2, 1, 0.2, 0.1, 5], True),
+            (calibr8.BaseExponentialModelN, dict(sigma_degree=0), [1,4,5], True),
+            (calibr8.BaseExponentialModelN, dict(sigma_degree=1), [1,4,0.1,5], True),
+            (calibr8.BaseExponentialModelT, dict(scale_degree=0), [1,4,5,2], True),
+            (calibr8.BaseExponentialModelT, dict(scale_degree=1), [1,4,0.1,5,2], True),
         ]
     )
     def test_basic_features(self, cls, init_kwargs, theta, invertible):
