@@ -285,7 +285,7 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         self.sigma_degree = sigma_degree
         self.fixed_intercept = fixed_intercept
         if theta_names is None:
-            if fixed_intercept:
+            if fixed_intercept is not None:
                 theta_names = ("L", "k")
             else:
                 theta_names = ("I", "L", "k")
