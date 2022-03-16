@@ -1418,6 +1418,22 @@ class TestBaseAsymmetricLogisticModelT:
         pass
 
 
+class TestBaseLogIndependentAsymmetricLogisticN:
+    def test_last_scale_parameter_not_ignored(self):
+        class _TestModel(calibr8.BaseLogIndependentAsymmetricLogisticN):
+            def __init__(self):
+                super().__init__(independent_key="I", dependent_key="S", sigma_degree=2)
+
+        theta_mu = (-0.5, 0.5, 1, 1, -1)
+        theta_scale = (3.1, 0.4, 0.2)
+        theta = theta_mu + theta_scale
+
+        cm = _TestModel()
+        mu, sigma = cm.predict_dependent([0, 1, 2], theta=theta)
+        numpy.testing.assert_array_equal(sigma, calibr8.polynomial(mu, theta_scale))
+        pass
+
+
 class TestBaseLogIndependentAsymmetricModelT:
     @pytest.mark.parametrize("scale_degree", [0, 1, 2])
     def test_predict_dependent(self, scale_degree):
