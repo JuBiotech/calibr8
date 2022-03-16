@@ -232,7 +232,7 @@ class BaseLogIndependentAsymmetricLogisticN(core.ContinuousUnivariateModel, nois
         if self.sigma_degree == 0:
             sigma = theta[-1]
         else:
-            sigma = core.polynomial(mu, theta[5:-1])
+            sigma = core.polynomial(mu, theta[5:])
         return mu, sigma
 
     def predict_independent(self, y, *, theta=None):
