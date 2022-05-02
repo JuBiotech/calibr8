@@ -5,8 +5,8 @@ with Students-t distributions for the dependent variable.
 import typing
 import warnings
 
-from . import noise
 from .. import core
+from . import noise
 
 
 class BaseModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
@@ -14,23 +14,24 @@ class BaseModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
         warnings.warn(
             "The`BaseModelT` class is deprecated. "
             "Inherit `core.ContinuousUnivariateModel, noise.StudentTNoise` directly.",
-            FutureWarning
+            FutureWarning,
         )
         super().__init__(
-            independent_key=independent_key,
-            dependent_key=dependent_key,
-            theta_names=theta_names
+            independent_key=independent_key, dependent_key=dependent_key, theta_names=theta_names
         )
 
 
 class BasePolynomialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
     def __init__(
-        self, *,
-        independent_key: str, dependent_key: str,
-        mu_degree: int, scale_degree: int=0,
-        theta_names: typing.Optional[typing.Tuple[str]]=None,
+        self,
+        *,
+        independent_key: str,
+        dependent_key: str,
+        mu_degree: int,
+        scale_degree: int = 0,
+        theta_names: typing.Optional[typing.Tuple[str]] = None,
     ):
-        """ Template for a model with polynomial trend (mu) and scale (as a function of mu)
+        """Template for a model with polynomial trend (mu) and scale (as a function of mu)
         with a Student-t distributed observation noise.
 
         Parameters
@@ -51,14 +52,14 @@ class BasePolynomialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
         self.mu_degree = mu_degree
         self.scale_degree = scale_degree
         if theta_names is None:
-            theta_names = tuple(
-                f'mu_{d}'
-                for d in range(mu_degree + 1)
-            ) + tuple(
-                f'scale_{d}'
-                for d in range(scale_degree + 1)
-            ) + ('df',)
-        super().__init__(independent_key=independent_key, dependent_key=dependent_key, theta_names=theta_names)
+            theta_names = (
+                tuple(f"mu_{d}" for d in range(mu_degree + 1))
+                + tuple(f"scale_{d}" for d in range(scale_degree + 1))
+                + ("df",)
+            )
+        super().__init__(
+            independent_key=independent_key, dependent_key=dependent_key, theta_names=theta_names
+        )
 
     def predict_dependent(self, x, *, theta=None):
         """Predicts the parameters mu and scale of a Student-t distribution which
@@ -85,11 +86,13 @@ class BasePolynomialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
         """
         if theta is None:
             theta = self.theta_fitted
-        mu = core.polynomial(x, theta=theta[:self.mu_degree+1])
+        mu = core.polynomial(x, theta=theta[: self.mu_degree + 1])
         if self.scale_degree == 0:
             scale = theta[-2]
         else:
-            scale = core.polynomial(mu, theta=theta[self.mu_degree+1:self.mu_degree+1 + self.scale_degree+1])
+            scale = core.polynomial(
+                mu, theta=theta[self.mu_degree + 1 : self.mu_degree + 1 + self.scale_degree + 1]
+            )
         df = theta[-1]
         return mu, scale, df
 
@@ -114,19 +117,21 @@ class BasePolynomialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
         if theta is None:
             theta = self.theta_fitted
         if self.mu_degree > 1:
-            raise NotImplementedError('Inverse prediction of higher order polynomials are not implemented.')      
+            raise NotImplementedError("Inverse prediction of higher order polynomials are not implemented.")
         a, b = theta[:2]
         return (y - a) / b
 
 
 class BaseAsymmetricLogisticT(core.ContinuousUnivariateModel, noise.StudentTNoise):
     def __init__(
-        self, *,
-        independent_key:str, dependent_key:str,
-        scale_degree:int=0,
-        theta_names: typing.Optional[typing.Tuple[str]]=None,
+        self,
+        *,
+        independent_key: str,
+        dependent_key: str,
+        scale_degree: int = 0,
+        theta_names: typing.Optional[typing.Tuple[str]] = None,
     ):
-        """ Template for a model with asymmetric logistic trend (mu) and polynomial scale (as a function of mu).
+        """Template for a model with asymmetric logistic trend (mu) and polynomial scale (as a function of mu).
 
         Parameters
         ----------
@@ -141,10 +146,11 @@ class BaseAsymmetricLogisticT(core.ContinuousUnivariateModel, noise.StudentTNois
         """
         self.scale_degree = scale_degree
         if theta_names is None:
-            theta_names = tuple('L_L,L_U,I_x,S,c'.split(',')) + tuple(
-                f'scale_{d}'
-                for d in range(scale_degree + 1)
-            ) + ('df',)
+            theta_names = (
+                tuple("L_L,L_U,I_x,S,c".split(","))
+                + tuple(f"scale_{d}" for d in range(scale_degree + 1))
+                + ("df",)
+            )
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
@@ -205,12 +211,14 @@ class BaseAsymmetricLogisticT(core.ContinuousUnivariateModel, noise.StudentTNois
 
 class BaseLogIndependentAsymmetricLogisticT(core.ContinuousUnivariateModel, noise.StudentTNoise):
     def __init__(
-        self, *,
-        independent_key:str, dependent_key:str,
-        scale_degree:int=0,
-        theta_names: typing.Optional[typing.Tuple[str]]=None,
+        self,
+        *,
+        independent_key: str,
+        dependent_key: str,
+        scale_degree: int = 0,
+        theta_names: typing.Optional[typing.Tuple[str]] = None,
     ):
-        """ Template for a model with asymmetric logistic trend (mu) and polynomial scale (as a function of mu).
+        """Template for a model with asymmetric logistic trend (mu) and polynomial scale (as a function of mu).
 
         Parameters
         ----------
@@ -225,10 +233,11 @@ class BaseLogIndependentAsymmetricLogisticT(core.ContinuousUnivariateModel, nois
         """
         self.scale_degree = scale_degree
         if theta_names is None:
-            theta_names = tuple('L_L,L_U,log_I_x,S,c'.split(',')) + tuple(
-                f'scale_{d}'
-                for d in range(scale_degree + 1)
-            ) + ('df',)
+            theta_names = (
+                tuple("L_L,L_U,log_I_x,S,c".split(","))
+                + tuple(f"scale_{d}" for d in range(scale_degree + 1))
+                + ("df",)
+            )
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
@@ -289,13 +298,15 @@ class BaseLogIndependentAsymmetricLogisticT(core.ContinuousUnivariateModel, nois
 
 class BaseExponentialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
     def __init__(
-        self, *,
-        independent_key:str, dependent_key:str,
-        scale_degree:int=0,
-        fixed_intercept: typing.Optional[float]=None,
-        theta_names: typing.Optional[typing.Tuple[str]]=None,
+        self,
+        *,
+        independent_key: str,
+        dependent_key: str,
+        scale_degree: int = 0,
+        fixed_intercept: typing.Optional[float] = None,
+        theta_names: typing.Optional[typing.Tuple[str]] = None,
     ):
-        """ Template for a model with exponential trend (mu) and polynomial scale (as a function of mu).
+        """Template for a model with exponential trend (mu) and polynomial scale (as a function of mu).
 
         Parameters
         ----------
@@ -305,7 +316,7 @@ class BaseExponentialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise)
             Name of the dependent variable.
         scale_degree : optional, int
             Degree of the polynomial model describing the scale as a function of mu.
-            ⚠ Attention: for scale_degree > 0, ensure that scale is always positive! 
+            ⚠ Attention: for scale_degree > 0, ensure that scale is always positive!
         fixed_intercept : optional, float
             If set, the y-axis intercept will be fixed to this value.
             Otherwise the intercept becomes a free parameter.
@@ -319,10 +330,7 @@ class BaseExponentialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise)
                 theta_names = ("L", "k")
             else:
                 theta_names = ("I", "L", "k")
-            theta_names += tuple(
-                f"scale_{d}"
-                for d in range(scale_degree + 1)
-            ) + ("df",)
+            theta_names += tuple(f"scale_{d}" for d in range(scale_degree + 1)) + ("df",)
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):

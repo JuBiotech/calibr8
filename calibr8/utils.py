@@ -3,18 +3,20 @@ This module implements helper functions for a variety of tasks, including
 imports, timestamp parsing and plotting.
 """
 import datetime
-from  collections.abc import Iterable
+import typing
+import warnings
+from collections.abc import Iterable
+from typing import Optional, Sequence, Tuple
+
 import matplotlib
-from matplotlib import pyplot
 import numpy
 import scipy.stats
-import typing
-from typing import Tuple, Optional, Sequence
-import warnings
+from matplotlib import pyplot
 
 
 class ImportWarner:
     """Mock for an uninstalled package, raises `ImportError` when used."""
+
     __all__ = []
 
     def __init__(self, module_name):
@@ -22,7 +24,7 @@ class ImportWarner:
 
     def __getattr__(self, attr):
         raise ImportError(
-            f'{self.module_name} is not installed. In order to use this function try:\npip install {self.module_name}'
+            f"{self.module_name} is not installed. In order to use this function try:\npip install {self.module_name}"
         )
 
 
@@ -30,6 +32,7 @@ try:
     # Aesara
     import aesara
     from aesara.graph.basic import Variable
+
     HAS_TENSORS = True
 except ModuleNotFoundError:
     # Aesara is not available
@@ -37,6 +40,7 @@ except ModuleNotFoundError:
         # Theano-PyMC 1.1.2
         import theano
         from theano.graph.basic import Variable
+
         HAS_TENSORS = True
     except ModuleNotFoundError:
         HAS_TENSORS = False
@@ -52,11 +56,11 @@ try:
     HAS_PYMC = True
 except ModuleNotFoundError:
     HAS_PYMC = False
-    pm = ImportWarner('pymc')
+    pm = ImportWarner("pymc")
 
 
 def parse_datetime(s: typing.Optional[str]) -> typing.Optional[datetime.datetime]:
-    """ Parses a timezone-aware datetime formatted like 2020-08-05T13:37:00Z.
+    """Parses a timezone-aware datetime formatted like 2020-08-05T13:37:00Z.
 
     Returns
     -------
@@ -65,11 +69,11 @@ def parse_datetime(s: typing.Optional[str]) -> typing.Optional[datetime.datetime
     """
     if s is None:
         return None
-    return datetime.datetime.strptime(s.replace('Z', '+0000'), '%Y-%m-%dT%H:%M:%S%z')
+    return datetime.datetime.strptime(s.replace("Z", "+0000"), "%Y-%m-%dT%H:%M:%S%z")
 
 
 def format_datetime(dt: typing.Optional[datetime.datetime]) -> typing.Optional[str]:
-    """ Formats a datetime like 2020-08-05T13:37:00Z.
+    """Formats a datetime like 2020-08-05T13:37:00Z.
 
     Returns
     -------
@@ -78,18 +82,18 @@ def format_datetime(dt: typing.Optional[datetime.datetime]) -> typing.Optional[s
     """
     if dt is None:
         return None
-    return dt.astimezone(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S%z').replace('+0000', 'Z')
+    return dt.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S%z").replace("+0000", "Z")
 
 
-def istensor(input:object) -> bool:
-    """"Convenience function to test whether an input is a TensorVariable
+def istensor(input: object) -> bool:
+    """ "Convenience function to test whether an input is a TensorVariable
         or if an input array or list contains TensorVariables.
-    
+
     Parameters
     ----------
     input : object
         an object shat shall be analyzed
-    
+
     Return
     ------
     result : bool
@@ -104,9 +108,9 @@ def istensor(input:object) -> bool:
     elif isinstance(input, dict):
         for element in input.values():
             if istensor(element):
-                return True  
+                return True
     elif isinstance(input, Iterable):
-        if len(input)>1:
+        if len(input) > 1:
             for element in input:
                 if istensor(element):
                     return True
@@ -115,7 +119,7 @@ def istensor(input:object) -> bool:
 
 def plot_norm_band(ax, independent, mu, scale):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a Normal distribution.
-    
+
     Parameters
     ----------
     ax : matplotlib.Axes
@@ -126,7 +130,7 @@ def plot_norm_band(ax, independent, mu, scale):
         mu parameter of the Normal distribution
     scale : array-like
         scale parameter of the Normal distribution
-    
+
     Returns
     -------
     artists : list of matplotlib.Artist
@@ -137,26 +141,27 @@ def plot_norm_band(ax, independent, mu, scale):
         "It will be removed in a future release.",
         DeprecationWarning,
     )
-    artists = ax.plot(independent, mu, color='green')
-    for q, c in zip([97.5, 95, 84], ['#d9ecd9', '#b8dbb8', '#9ccd9c']):
+    artists = ax.plot(independent, mu, color="green")
+    for q, c in zip([97.5, 95, 84], ["#d9ecd9", "#b8dbb8", "#9ccd9c"]):
         percent = q - (100 - q)
-        artists.append(ax.fill_between(independent,
-            # by using the Percent Point Function (PPF), which is the inverse of the CDF,
-            # the visualization will show symmetric intervals of <percent> probability
-            scipy.stats.norm.ppf(1-q/100, loc=mu, scale=scale),
-            scipy.stats.norm.ppf(q/100, loc=mu, scale=scale),
-            alpha=.15, color='green'
-        ))
-        artists.append(ax.fill_between(
-            [], [], [],
-            color=c, label=f'{percent:.1f} % likelihood band'
-        ))
+        artists.append(
+            ax.fill_between(
+                independent,
+                # by using the Percent Point Function (PPF), which is the inverse of the CDF,
+                # the visualization will show symmetric intervals of <percent> probability
+                scipy.stats.norm.ppf(1 - q / 100, loc=mu, scale=scale),
+                scipy.stats.norm.ppf(q / 100, loc=mu, scale=scale),
+                alpha=0.15,
+                color="green",
+            )
+        )
+        artists.append(ax.fill_between([], [], [], color=c, label=f"{percent:.1f} % likelihood band"))
     return artists
-    
 
-def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optional[str]=None):
+
+def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optional[str] = None):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a t-distribution.
-    
+
     Parameters
     ----------
     ax : matplotlib.Axes
@@ -172,7 +177,7 @@ def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optiona
     residual_type : str, optional
         One of { None, "absolute", "relative" }.
         Specifies if bands are for no, absolute or relative residuals.
-    
+
     Returns
     -------
     artists : list of matplotlib.Artist
@@ -184,44 +189,44 @@ def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optiona
         DeprecationWarning,
     )
     if residual_type:
-        artists = ax.plot(independent, numpy.repeat(0, len(independent)), color='green')
+        artists = ax.plot(independent, numpy.repeat(0, len(independent)), color="green")
     else:
-        artists = ax.plot(independent, mu, color='green')
-    for q, c in zip([97.5, 95, 84], ['#d9ecd9', '#b8dbb8', '#9ccd9c']):
+        artists = ax.plot(independent, mu, color="green")
+    for q, c in zip([97.5, 95, 84], ["#d9ecd9", "#b8dbb8", "#9ccd9c"]):
         percent = q - (100 - q)
-        
-        if residual_type == 'absolute':
-            mu = numpy.repeat(0, len(independent))
-        lower = scipy.stats.t.ppf(1-q/100, loc=mu, scale=scale, df=df)
-        upper = scipy.stats.t.ppf(q/100, loc=mu, scale=scale, df=df)
-        
-        if residual_type == 'relative':
-            lower = (lower-mu)/mu
-            upper = (upper-mu)/mu
-            
 
-        elif residual_type=='absolute' or residual_type is None:
+        if residual_type == "absolute":
+            mu = numpy.repeat(0, len(independent))
+        lower = scipy.stats.t.ppf(1 - q / 100, loc=mu, scale=scale, df=df)
+        upper = scipy.stats.t.ppf(q / 100, loc=mu, scale=scale, df=df)
+
+        if residual_type == "relative":
+            lower = (lower - mu) / mu
+            upper = (upper - mu) / mu
+
+        elif residual_type == "absolute" or residual_type is None:
             pass
         else:
             raise Exception(f'Only "relative" or "absolute" residuals supported. You passed {residual_type}')
-            
-        artists.append(ax.fill_between(independent,
-            # by using the Percent Point Function (PPF), which is the inverse of the CDF,
-            # the visualization will show symmetric intervals of <percent> probability
-            lower,
-            upper,
-            alpha=.15, color='green'
-        ))
-        artists.append(ax.fill_between(
-            [], [], [],
-            color=c, label=f'{percent:.1f} % likelihood band'
-        ))
+
+        artists.append(
+            ax.fill_between(
+                independent,
+                # by using the Percent Point Function (PPF), which is the inverse of the CDF,
+                # the visualization will show symmetric intervals of <percent> probability
+                lower,
+                upper,
+                alpha=0.15,
+                color="green",
+            )
+        )
+        artists.append(ax.fill_between([], [], [], color=c, label=f"{percent:.1f} % likelihood band"))
     return artists
 
 
-def plot_continuous_band(ax, independent, model, residual_type: typing.Optional[str]=None):
+def plot_continuous_band(ax, independent, model, residual_type: typing.Optional[str] = None):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a univariate distribution.
-    
+
     Parameters
     ----------
     ax : matplotlib.Axes
@@ -241,41 +246,44 @@ def plot_continuous_band(ax, independent, model, residual_type: typing.Optional[
         the created artists (1x Line2D, 6x PolyCollection (alternating plot & legend))
     """
     if not hasattr(model.scipy_dist, "ppf"):
-        raise ValueError("Only Scipy distributions with a ppf method can be used for the continuous likelihood bands.")
-    params =  model.predict_dependent(independent)
+        raise ValueError(
+            "Only Scipy distributions with a ppf method can be used for the continuous likelihood bands."
+        )
+    params = model.predict_dependent(independent)
     median = model.scipy_dist.ppf(0.5, **model.to_scipy(*params))
     if residual_type:
-        artists = ax.plot(independent, numpy.repeat(0, len(independent)), color='green')
+        artists = ax.plot(independent, numpy.repeat(0, len(independent)), color="green")
     else:
-        artists = ax.plot(independent, median, color='green')
-    for q, c in zip([97.5, 95, 84], ['#d9ecd9', '#b8dbb8', '#9ccd9c']):
+        artists = ax.plot(independent, median, color="green")
+    for q, c in zip([97.5, 95, 84], ["#d9ecd9", "#b8dbb8", "#9ccd9c"]):
         percent = q - (100 - q)
-        
+
         if residual_type:
-            lower = model.scipy_dist.ppf(1-q/100, **model.to_scipy(*params)) - median
-            upper = model.scipy_dist.ppf(q/100, **model.to_scipy(*params)) - median
-        
-            if residual_type == 'relative':
-                lower = (lower)/median
-                upper = (upper)/median
-            
+            lower = model.scipy_dist.ppf(1 - q / 100, **model.to_scipy(*params)) - median
+            upper = model.scipy_dist.ppf(q / 100, **model.to_scipy(*params)) - median
+
+            if residual_type == "relative":
+                lower = (lower) / median
+                upper = (upper) / median
+
         elif residual_type is None:
-            lower = model.scipy_dist.ppf(1-q/100, **model.to_scipy(*params))
-            upper = model.scipy_dist.ppf(q/100, **model.to_scipy(*params))
+            lower = model.scipy_dist.ppf(1 - q / 100, **model.to_scipy(*params))
+            upper = model.scipy_dist.ppf(q / 100, **model.to_scipy(*params))
         else:
             raise Exception(f'Only "relative" or "absolute" residuals supported. You passed {residual_type}')
-            
-        artists.append(ax.fill_between(independent,
-            # by using the Percent Point Function (PPF), which is the inverse of the CDF,
-            # the visualization will show symmetric intervals of <percent> probability
-            lower,
-            upper,
-            alpha=.15, color='green'
-        ))
-        artists.append(ax.fill_between(
-            [], [], [],
-            color=c, label=f'{percent:.1f} % likelihood band'
-        ))
+
+        artists.append(
+            ax.fill_between(
+                independent,
+                # by using the Percent Point Function (PPF), which is the inverse of the CDF,
+                # the visualization will show symmetric intervals of <percent> probability
+                lower,
+                upper,
+                alpha=0.15,
+                color="green",
+            )
+        )
+        artists.append(ax.fill_between([], [], [], color=c, label=f"{percent:.1f} % likelihood band"))
     return artists
 
 
@@ -299,7 +307,7 @@ class BuildMismatchException(CompatibilityException):
     pass
 
 
-def assert_version_match(vA:str, vB:str):
+def assert_version_match(vA: str, vB: str):
     """Compares two version numbers and raises exceptions that indicate where they missmatch.
 
     Parameters
@@ -324,21 +332,22 @@ def assert_version_match(vA:str, vB:str):
         MajorMismatchException,
         MinorMismatchException,
         PatchMismatchException,
-        BuildMismatchException
+        BuildMismatchException,
     )
-    versions_A = vA.split('.')
-    versions_B = vB.split('.')
+    versions_A = vA.split(".")
+    versions_B = vB.split(".")
     for ex, a, b in zip(level_exceptions, versions_A, versions_B):
         if int(a) != int(b):
-            raise ex(f'{vA} != {vB}')
+            raise ex(f"{vA} != {vB}")
     return
 
 
 def plot_model(
-    model, *,
+    model,
+    *,
     fig: Optional[matplotlib.figure.Figure] = None,
     axs: Optional[Sequence[matplotlib.axes.Axes]] = None,
-    residual_type='absolute',
+    residual_type="absolute",
     band_xlim: Tuple[Optional[float], Optional[float]] = (None, None),
 ):
     """Makes a plot of the model with its data.
@@ -438,9 +447,9 @@ def plot_model(
             residual_type=residual_type,
         )
 
-    if residual_type == 'relative':
+    if residual_type == "relative":
         ax.scatter(X, (Y - model.predict_dependent(X)[0]) / model.predict_dependent(X)[0])
-    elif residual_type == 'absolute':
+    elif residual_type == "absolute":
         ax.scatter(X, Y - model.predict_dependent(X)[0])
     else:
         raise ValueError('Residual type must be "absolute" or "relative".')

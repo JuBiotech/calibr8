@@ -1,32 +1,31 @@
-
 from .contrib.noise import (
-    NormalNoise,
     LaplaceNoise,
     LogNormalNoise,
-    StudentTNoise,
+    NormalNoise,
     PoissonNoise,
+    StudentTNoise,
 )
 from .contrib.normal import (
     BaseAsymmetricLogisticN,
+    BaseExponentialModelN,
     BaseLogIndependentAsymmetricLogisticN,
     BasePolynomialModelN,
-    BaseExponentialModelN,
 )
 from .contrib.studentt import (
     BaseAsymmetricLogisticT,
+    BaseExponentialModelT,
     BaseLogIndependentAsymmetricLogisticT,
     BaseModelT,
     BasePolynomialModelT,
-    BaseExponentialModelT,
 )
 from .core import (
     CalibrationModel,
-    DistributionMixin,
-    ContinuousMultivariateModel,
-    ContinuousUnivariateModel,
-    InferenceResult,
     ContinuousMultivariateInference,
+    ContinuousMultivariateModel,
     ContinuousUnivariateInference,
+    ContinuousUnivariateModel,
+    DistributionMixin,
+    InferenceResult,
     __version__,
     asymmetric_logistic,
     exponential,
@@ -46,18 +45,18 @@ from .core import (
 )
 from .optimization import fit_pygmo, fit_scipy
 from .utils import (
+    HAS_PYMC,
+    HAS_TENSORS,
     BuildMismatchException,
     CompatibilityException,
     MajorMismatchException,
     MinorMismatchException,
     PatchMismatchException,
-    HAS_TENSORS,
-    HAS_PYMC,
     istensor,
-    plot_model,
-    plot_t_band,
-    plot_norm_band,
     plot_continuous_band,
+    plot_model,
+    plot_norm_band,
+    plot_t_band,
 )
 
 
@@ -75,6 +74,7 @@ class ErrorModel(CalibrationModel):
 
 class NumericPosterior(ContinuousUnivariateInference):
     """Deprecated alias for ContinuousUnivariateInference"""
+
     def __init__(self, *args, **kwargs) -> None:
         import warnings
 
