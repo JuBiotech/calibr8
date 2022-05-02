@@ -19,7 +19,7 @@ jobs:
         python-version: 3.7
     - name: Install dependencies
       run: |
-        pip install -e . 
+        pip install -e .
         pip install flake8 pytest pytest-cov twine wheel
     - name: Test with pytest
       run: |

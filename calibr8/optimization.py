@@ -2,25 +2,25 @@
 The optimization module implements convenience functions for maximum
 likelihood estimation of calibration model parameters.
 """
-import fastprogress
-import numpy
 import logging
-import scipy.optimize
 import typing
 
-from . import core
-from . import utils
+import fastprogress
+import numpy
+import scipy.optimize
+
+from . import core, utils
 
 try:
     import pygmo
 except ModuleNotFoundError:
-    pygmo = utils.ImportWarner('pygmo')
+    pygmo = utils.ImportWarner("pygmo")
 
-_log = logging.getLogger('calibr8.optimization')
+_log = logging.getLogger("calibr8.optimization")
 
 
-def _mask_and_warn_inf_or_nan(x: numpy.ndarray, y: numpy.ndarray, on: typing.Optional[str]=None):
-    """ Filters `x` and `y` such that only finite elements remain.
+def _mask_and_warn_inf_or_nan(x: numpy.ndarray, y: numpy.ndarray, on: typing.Optional[str] = None):
+    """Filters `x` and `y` such that only finite elements remain.
 
     Parameters
     ----------
@@ -46,7 +46,7 @@ def _mask_and_warn_inf_or_nan(x: numpy.ndarray, y: numpy.ndarray, on: typing.Opt
     mask_y = ~numpy.ma.masked_invalid(y).mask
     if on == "y":
         mask = mask_y
-    elif on =="x":
+    elif on == "x":
         mask = mask_x
     else:
         mask = numpy.logical_and(mask_x, mask_y)
@@ -56,7 +56,7 @@ def _mask_and_warn_inf_or_nan(x: numpy.ndarray, y: numpy.ndarray, on: typing.Opt
 
 
 def _warn_hit_bounds(theta, bounds, theta_names) -> bool:
-    """ Helper function that logs a warning for every parameter that hits a bound.
+    """Helper function that logs a warning for every parameter that hits a bound.
 
     Parameters
     ----------
@@ -74,17 +74,25 @@ def _warn_hit_bounds(theta, bounds, theta_names) -> bool:
     """
     bound_hit = False
     for (ip, p), (lb, ub) in zip(enumerate(theta), bounds):
-        pname = f'{ip+1}' if not theta_names else theta_names[ip]
+        pname = f"{ip+1}" if not theta_names else theta_names[ip]
         if numpy.isclose(p, lb):
-            _log.warn(f'Parameter {pname} ({p}) is close to its lower bound ({lb}).')
+            _log.warn(f"Parameter {pname} ({p}) is close to its lower bound ({lb}).")
             bound_hit = True
         if numpy.isclose(p, ub):
-            _log.warn(f'Parameter {pname} ({p}) is close to its upper bound ({ub}).')
+            _log.warn(f"Parameter {pname} ({p}) is close to its upper bound ({ub}).")
             bound_hit = True
     return bound_hit
 
 
-def fit_scipy(model:core.CalibrationModel, *, independent:numpy.ndarray, dependent:numpy.ndarray, theta_guess:list, theta_bounds:list, minimize_kwargs:dict=None):
+def fit_scipy(
+    model: core.CalibrationModel,
+    *,
+    independent: numpy.ndarray,
+    dependent: numpy.ndarray,
+    theta_guess: list,
+    theta_bounds: list,
+    minimize_kwargs: dict = None,
+):
     """Function to fit the calibration model with observed data.
 
     Parameters
@@ -111,9 +119,13 @@ def fit_scipy(model:core.CalibrationModel, *, independent:numpy.ndarray, depende
     """
     n_theta = len(model.theta_names)
     if len(theta_guess) != n_theta:
-        raise ValueError(f'The length of theta_guess ({len(theta_guess)}) does not match the number of model parameters ({n_theta}).')
+        raise ValueError(
+            f"The length of theta_guess ({len(theta_guess)}) does not match the number of model parameters ({n_theta})."
+        )
     if len(theta_bounds) != n_theta:
-        raise ValueError(f'The length of theta_bounds ({len(theta_bounds)}) does not match the number of model parameters ({n_theta}).')
+        raise ValueError(
+            f"The length of theta_bounds ({len(theta_bounds)}) does not match the number of model parameters ({n_theta})."
+        )
 
     if not minimize_kwargs:
         minimize_kwargs = {}
@@ -126,7 +138,7 @@ def fit_scipy(model:core.CalibrationModel, *, independent:numpy.ndarray, depende
         x0=theta_guess,
         bounds=theta_bounds,
         callback=lambda x: history.append(x),
-        **minimize_kwargs
+        **minimize_kwargs,
     )
 
     # check for fit success
@@ -134,7 +146,7 @@ def fit_scipy(model:core.CalibrationModel, *, independent:numpy.ndarray, depende
         bound_hit = _warn_hit_bounds(fit.x, theta_bounds, model.theta_names)
 
     if not fit.success or bound_hit:
-        _log.warning(f'Fit of {type(model).__name__} has failed:')
+        _log.warning(f"Fit of {type(model).__name__} has failed:")
         _log.warning(fit)
     model.theta_bounds = theta_bounds
     model.theta_guess = theta_guess
@@ -144,7 +156,16 @@ def fit_scipy(model:core.CalibrationModel, *, independent:numpy.ndarray, depende
     return fit.x, history
 
 
-def fit_pygmo(model:core.CalibrationModel, *, independent:numpy.ndarray, dependent:numpy.ndarray, theta_bounds:list, theta_guess:list=None, algos:list=None, evolutions:int=50):
+def fit_pygmo(
+    model: core.CalibrationModel,
+    *,
+    independent: numpy.ndarray,
+    dependent: numpy.ndarray,
+    theta_bounds: list,
+    theta_guess: list = None,
+    algos: list = None,
+    evolutions: int = 50,
+):
     """Use PyGMO to fit a calibration model.
 
     Reference: https://esa.github.io/pygmo2/index.html
@@ -175,9 +196,13 @@ def fit_pygmo(model:core.CalibrationModel, *, independent:numpy.ndarray, depende
     """
     n_theta = len(model.theta_names)
     if theta_guess is not None and len(theta_guess) != n_theta:
-        raise ValueError(f'The length of theta_guess ({len(theta_guess)}) does not match the number of model parameters ({n_theta}).')
+        raise ValueError(
+            f"The length of theta_guess ({len(theta_guess)}) does not match the number of model parameters ({n_theta})."
+        )
     if len(theta_bounds) != n_theta:
-        raise ValueError(f'The length of theta_bounds ({len(theta_bounds)}) does not match the number of model parameters ({n_theta}).')
+        raise ValueError(
+            f"The length of theta_bounds ({len(theta_bounds)}) does not match the number of model parameters ({n_theta})."
+        )
 
     independent_finite, dependent_finite = _mask_and_warn_inf_or_nan(independent, dependent)
 
@@ -185,20 +210,26 @@ def fit_pygmo(model:core.CalibrationModel, *, independent:numpy.ndarray, depende
 
     # problem specification
     objective = model.objective(independent=independent_finite, dependent=dependent_finite, minimize=True)
+
     class ObjectiveWrapper:
         def get_bounds(self):
             return bounds
 
         def fitness(self, x):
             return (objective(x),)
+
     prob = pygmo.problem(ObjectiveWrapper())
-    
+
     # to leverage the full power of PyGMO, we'll use many algorithms at the same time
-    algos = [
-        pygmo.de1220(gen=30),
-        pygmo.pso(gen=30),
-        pygmo.simulated_annealing(),
-    ] if algos is None else algos
+    algos = (
+        [
+            pygmo.de1220(gen=30),
+            pygmo.pso(gen=30),
+            pygmo.simulated_annealing(),
+        ]
+        if algos is None
+        else algos
+    )
 
     # for each algorithm there will be one "island" with a "population" of parameter vectors
     # in every "evolution" of the island, the algorithm acts upon the population
@@ -211,11 +242,14 @@ def fit_pygmo(model:core.CalibrationModel, *, independent:numpy.ndarray, depende
             # add initial guess to population
             pop.push_back(theta_guess)
         # create an island where this algorithm rules
-        islands.append(pygmo.island(
-            algo=algo, pop=pop,
-            # islands are parallelized via multiprocessing
-            udi=pygmo.islands.mp_island(),
-        ))
+        islands.append(
+            pygmo.island(
+                algo=algo,
+                pop=pop,
+                # islands are parallelized via multiprocessing
+                udi=pygmo.islands.mp_island(),
+            )
+        )
 
     # All "islands" are aggregated in an "archipelago".
     # In every "evolution" step, there is "migration" between the populations.
@@ -230,11 +264,11 @@ def fit_pygmo(model:core.CalibrationModel, *, independent:numpy.ndarray, depende
         archipel.evolve(n=1)
         archipel.wait_check()
         history.append(archipel.get_champions_x()[numpy.argmin(archipel.get_champions_f())])
-        
+
     theta_best = archipel.get_champions_x()[numpy.argmin(archipel.get_champions_f())]
     bound_hit = _warn_hit_bounds(theta_best, theta_bounds, model.theta_names)
     if bound_hit:
-        _log.warning(f'Bounds were hit during fit of {type(model).__name__} model.')
+        _log.warning(f"Bounds were hit during fit of {type(model).__name__} model.")
 
     model.theta_bounds = theta_bounds
     model.theta_guess = theta_guess

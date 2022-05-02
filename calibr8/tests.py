@@ -1,17 +1,17 @@
 import collections
 import datetime
 import logging
-import matplotlib
-from matplotlib import pyplot
-import numpy
 import pathlib
+
+import matplotlib
+import numpy
 import pytest
 import scipy
 import scipy.stats as stats
+from matplotlib import pyplot
 
 import calibr8
 import calibr8.utils
-
 
 try:
     try:
@@ -19,9 +19,9 @@ try:
         import theano as backend
         import theano.tensor as at
     except ModuleNotFoundError:
-        import pymc as pm
         import aesara as backend
         import aesara.tensor as at
+        import pymc as pm
     config = backend.config
     HAS_PYMC = True
 except ModuleNotFoundError:
@@ -29,24 +29,27 @@ except ModuleNotFoundError:
 
 try:
     import pygmo
+
     HAS_PYGMO = True
 except ModuleNotFoundError:
     HAS_PYGMO = False
 
 
-dir_testfiles = pathlib.Path(pathlib.Path(__file__).absolute().parent, 'testfiles')
+dir_testfiles = pathlib.Path(pathlib.Path(__file__).absolute().parent, "testfiles")
 
 
 class _TestModel(calibr8.CalibrationModel, calibr8.NormalNoise):
     def __init__(self, independent_key=None, dependent_key=None, theta_names=None):
         if theta_names is None:
-            theta_names = tuple('a,b,c'.split(','))
-        super().__init__(independent_key='I', dependent_key='D', theta_names=theta_names, ndim=1)
+            theta_names = tuple("a,b,c".split(","))
+        super().__init__(independent_key="I", dependent_key="D", theta_names=theta_names, ndim=1)
 
 
 class _TestBivariateLinearModel(calibr8.ContinuousMultivariateModel, calibr8.NormalNoise):
-    def __init__(self, independent_key: str=None, dependent_key: str=None, theta_names=None):
-        super().__init__(independent_key="x1,x2", dependent_key="y", theta_names="i,s1,s2,sd".split(","), ndim=2)
+    def __init__(self, independent_key: str = None, dependent_key: str = None, theta_names=None):
+        super().__init__(
+            independent_key="x1,x2", dependent_key="y", theta_names="i,s1,s2,sd".split(","), ndim=2
+        )
 
     def predict_dependent(self, x, *, theta=None):
         x = numpy.array(x)
@@ -57,25 +60,29 @@ class _TestBivariateLinearModel(calibr8.ContinuousMultivariateModel, calibr8.Nor
 
 
 class _TestPolynomialModel(calibr8.BasePolynomialModelT):
-    def __init__(self, independent_key=None, dependent_key=None, theta_names=None, *, scale_degree=0, mu_degree=1):
-        super().__init__(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
+    def __init__(
+        self, independent_key=None, dependent_key=None, theta_names=None, *, scale_degree=0, mu_degree=1
+    ):
+        super().__init__(
+            independent_key="I", dependent_key="D", mu_degree=mu_degree, scale_degree=scale_degree
+        )
 
 
 class _TestLogisticModel(calibr8.BaseAsymmetricLogisticT):
     def __init__(self, independent_key=None, dependent_key=None, theta_names=None, *, scale_degree=0):
-        super().__init__(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+        super().__init__(independent_key="I", dependent_key="D", scale_degree=scale_degree)
 
 
 class _TestLogIndependentLogisticModel(calibr8.BaseLogIndependentAsymmetricLogisticT):
     def __init__(self, independent_key=None, dependent_key=None, theta_names=None, *, scale_degree=0):
-        super().__init__(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+        super().__init__(independent_key="I", dependent_key="D", scale_degree=scale_degree)
 
 
 class TestDeprecatedClasses:
     def test_warns_errormodel(self):
         class _TestEM(calibr8.ErrorModel, calibr8.NormalNoise):
             def __init__(self, *args, **kwargs):
-                super().__init__("A", "B", theta_names=tuple('abc'), ndim=1)
+                super().__init__("A", "B", theta_names=tuple("abc"), ndim=1)
 
         with pytest.warns(DeprecationWarning, match="was renamed to `CalibrationModel`"):
             _TestEM()
@@ -86,23 +93,27 @@ class TestDeprecatedClasses:
             arr = numpy.arange(10)
             calibr8.NumericPosterior(
                 0.5,
-                eti_x=arr+0.1, eti_pdf=arr+0.2, eti_prob=0.3,
-                hdi_x=arr*1.1+0.4, hdi_pdf=arr+0.5, hdi_prob=0.6,
+                eti_x=arr + 0.1,
+                eti_pdf=arr + 0.2,
+                eti_prob=0.3,
+                hdi_x=arr * 1.1 + 0.4,
+                hdi_pdf=arr + 0.5,
+                hdi_prob=0.6,
             )
         pass
-    
+
     def test_warns_plot_t_band(self):
         _, ax = pyplot.subplots()
 
         with pytest.warns(DeprecationWarning, match="`plot_t_band` is substituted"):
-            calibr8.utils.plot_t_band(ax=ax, independent=[1,2,3], mu=[3,4,5], scale=[6,7,8], df=1)
+            calibr8.utils.plot_t_band(ax=ax, independent=[1, 2, 3], mu=[3, 4, 5], scale=[6, 7, 8], df=1)
         pass
 
     def test_warns_plot_norm_band(self):
         _, ax = pyplot.subplots()
-        
+
         with pytest.warns(DeprecationWarning, match="`plot_norm_band` is substituted"):
-            calibr8.utils.plot_norm_band(ax=ax, independent=[1,2,3], mu=[3,4,5], scale=[6,7,8])
+            calibr8.utils.plot_norm_band(ax=ax, independent=[1, 2, 3], mu=[3, 4, 5], scale=[6, 7, 8])
         pass
 
 
@@ -111,17 +122,21 @@ class TestInferenceResult:
         arr = numpy.arange(10)
         pst = calibr8.ContinuousUnivariateInference(
             0.5,
-            eti_x=arr+0.1, eti_pdf=arr+0.2, eti_prob=0.3,
-            hdi_x=arr*1.1+0.4, hdi_pdf=arr+0.5, hdi_prob=0.6,
+            eti_x=arr + 0.1,
+            eti_pdf=arr + 0.2,
+            eti_prob=0.3,
+            hdi_x=arr * 1.1 + 0.4,
+            hdi_pdf=arr + 0.5,
+            hdi_prob=0.6,
         )
         # Directly forwarded
         assert isinstance(pst, calibr8.InferenceResult)
         assert isinstance(pst, calibr8.ContinuousUnivariateInference)
-        numpy.testing.assert_array_equal(pst.eti_x, arr+0.1)
-        numpy.testing.assert_array_equal(pst.eti_pdf, arr+0.2)
+        numpy.testing.assert_array_equal(pst.eti_x, arr + 0.1)
+        numpy.testing.assert_array_equal(pst.eti_pdf, arr + 0.2)
         assert pst.eti_prob == 0.3
-        numpy.testing.assert_array_equal(pst.hdi_x, arr*1.1+0.4)
-        numpy.testing.assert_array_equal(pst.hdi_pdf, arr+0.5)
+        numpy.testing.assert_array_equal(pst.hdi_x, arr * 1.1 + 0.4)
+        numpy.testing.assert_array_equal(pst.hdi_pdf, arr + 0.5)
         assert pst.hdi_prob == 0.6
         # Derived properties
         assert pst.eti_lower == 0.1
@@ -146,15 +161,16 @@ class TestNoiseModels:
             assert calibr8.DistributionMixin.to_pymc()
         pass
 
-    @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
+    @pytest.mark.skipif(not HAS_PYMC, reason="requires PyMC")
     @pytest.mark.parametrize(
-        "cls,a,b,params", [
+        "cls,a,b,params",
+        [
             (calibr8.NormalNoise, -1, 1, (0.2, 1.2)),
             (calibr8.LaplaceNoise, -1, 1, (-0.2, 0.8)),
             (calibr8.LogNormalNoise, 0.1, 2, (-0.1, 0.2)),
             (calibr8.StudentTNoise, -2, 10, (1.5, 0.3, 4)),
             (calibr8.PoissonNoise, 1, 7, (1.5,)),
-        ]
+        ],
     )
     def test_parametrization_equivalence(self, cls: calibr8.DistributionMixin, a, b, params):
         """Validates that SciPy and PyMC parametrization give the same distribution."""
@@ -194,7 +210,7 @@ class TestNoiseModels:
         with pytest.raises(NotImplementedError, match="logpdf or logpmf methods"):
             cm.loglikelihood(
                 x=numpy.arange(3),
-                y=[1,2,3],
+                y=[1, 2, 3],
                 theta=[5],
             )
         pass
@@ -202,10 +218,10 @@ class TestNoiseModels:
 
 class TestBaseCalibrationModel:
     def test_init(self):
-        em = _TestModel('I', 'D', theta_names=tuple('c,d,e'.split(',')))
-        assert em.independent_key == 'I'
-        assert em.dependent_key == 'D'
-        assert em.theta_names == ('c', 'd', 'e')
+        em = _TestModel("I", "D", theta_names=tuple("c,d,e".split(",")))
+        assert em.independent_key == "I"
+        assert em.dependent_key == "D"
+        assert em.theta_names == ("c", "d", "e")
         assert em.theta_bounds is None
         assert em.theta_guess is None
         assert em.theta_fitted is None
@@ -219,7 +235,7 @@ class TestBaseCalibrationModel:
 
         class _InvalidModel(calibr8.CalibrationModel):
             def __init__(self):
-                super().__init__("A", "B", theta_names=tuple('abc'), ndim=1)
+                super().__init__("A", "B", theta_names=tuple("abc"), ndim=1)
 
         assert not calibr8.core._inherits_noisemodel(calibr8.DistributionMixin)
         assert not calibr8.core._inherits_noisemodel(calibr8.CalibrationModel)
@@ -238,30 +254,33 @@ class TestBaseCalibrationModel:
 
         assert issubclass(_TestModel, calibr8.DistributionMixin)
         pass
-    
+
     def test_constructor_signature_check(self):
         class EM_OK(calibr8.ContinuousUnivariateModel):
             def __init__(self, arg1=1, *, kwonly=2, kwonlydefault=4):
-                super().__init__('I', 'D', theta_names=tuple('abc'))
+                super().__init__("I", "D", theta_names=tuple("abc"))
+
         EM_OK()
 
         class EM_args(calibr8.ContinuousUnivariateModel):
             def __init__(self, arg1):
-                super().__init__('I', 'D', theta_names=tuple('abc'))
+                super().__init__("I", "D", theta_names=tuple("abc"))
+
         with pytest.raises(TypeError, match=r"constructor must not have any required \(kw\)arguments"):
             EM_args(arg1=3)
 
         class EM_kwargs(calibr8.ContinuousUnivariateModel):
             def __init__(self, *, kwonly, kwonlydefault=4):
-                super().__init__('I', 'D', theta_names=tuple('abc'))
+                super().__init__("I", "D", theta_names=tuple("abc"))
+
         with pytest.raises(TypeError, match=r"constructor must not have any required \(kw\)arguments"):
             EM_kwargs(kwonly=3)
-        
+
         pass
 
     def test_exceptions(self):
-        x = numpy.array([1,2,3])
-        y = numpy.array([4,5,6])
+        x = numpy.array([1, 2, 3])
+        y = numpy.array([4, 5, 6])
         cmodel = _TestModel()
         with pytest.raises(NotImplementedError, match="predict_dependent function"):
             cmodel.predict_dependent(x)
@@ -281,38 +300,34 @@ class TestBaseCalibrationModel:
 
     def test_save_and_load_version_check(self):
         em = _TestModel()
-        em.theta_guess = (1,1,1)
-        em.theta_fitted = (1,2,3)
-        em.theta_bounds = (
-            (None, None),
-            (0, 5),
-            (0, 10)
-        )
+        em.theta_guess = (1, 1, 1)
+        em.theta_fitted = (1, 2, 3)
+        em.theta_bounds = ((None, None), (0, 5), (0, 10))
 
         # save and load
-        em.save('save_load_test.json')
-        em_loaded = _TestModel.load('save_load_test.json')
+        em.save("save_load_test.json")
+        em_loaded = _TestModel.load("save_load_test.json")
 
         # test version checking
-        vactual = tuple(map(int, calibr8.__version__.split('.')))
+        vactual = tuple(map(int, calibr8.__version__.split(".")))
         # increment patch
-        calibr8.core.__version__ = f'{vactual[0]}.{vactual[1]}.{vactual[2]+1}'
-        _TestModel.load('save_load_test.json')
+        calibr8.core.__version__ = f"{vactual[0]}.{vactual[1]}.{vactual[2]+1}"
+        _TestModel.load("save_load_test.json")
         # increment minor version
-        calibr8.core.__version__ = f'{vactual[0]}.{vactual[1]+1}.{vactual[2]}'
-        _TestModel.load('save_load_test.json')
+        calibr8.core.__version__ = f"{vactual[0]}.{vactual[1]+1}.{vactual[2]}"
+        _TestModel.load("save_load_test.json")
         # change major version
-        calibr8.core.__version__ = f'{vactual[0]-1}.{vactual[1]}.{vactual[2]}'
+        calibr8.core.__version__ = f"{vactual[0]-1}.{vactual[1]}.{vactual[2]}"
         with pytest.raises(calibr8.MajorMismatchException):
-            _TestModel.load('save_load_test.json')
-        calibr8.core.__version__ = '.'.join(map(str, vactual))
-        
+            _TestModel.load("save_load_test.json")
+        calibr8.core.__version__ = ".".join(map(str, vactual))
+
         # load with the wrong model
         class DifferentEM(calibr8.CalibrationModel):
             pass
 
         with pytest.raises(calibr8.CompatibilityException):
-            DifferentEM.load('save_load_test.json')
+            DifferentEM.load("save_load_test.json")
         return
 
     @pytest.mark.parametrize("ndim", [1, 2, 3])
@@ -321,20 +336,16 @@ class TestBaseCalibrationModel:
         assert len(shape) == ndim
 
         em = _TestModel()
-        em.theta_guess = (1,1,1)
-        em.theta_fitted = (1,2,3)
+        em.theta_guess = (1, 1, 1)
+        em.theta_fitted = (1, 2, 3)
         theta_timestamp = em.theta_timestamp
-        em.theta_bounds = (
-            (None, None),
-            (0, 5),
-            (0, 10)
-        )
+        em.theta_bounds = ((None, None), (0, 5), (0, 10))
         em.cal_independent = numpy.random.uniform(0, 10, size=shape)
         em.cal_dependent = numpy.random.normal(size=len(em.cal_independent))
 
         # save and load
-        em.save('save_load_test.json')
-        em_loaded = _TestModel.load('save_load_test.json')
+        em.save("save_load_test.json")
+        em_loaded = _TestModel.load("save_load_test.json")
 
         assert isinstance(em_loaded, _TestModel)
         assert em_loaded.independent_key == em.independent_key
@@ -380,10 +391,7 @@ class TestBaseCalibrationModel:
         LL_elemwise = cm.scipy_dist.logpdf(x=y_obs, loc=Y, scale=0.4).sum()
 
         # Expected likelihoods of all observation at each coordinate
-        LL_scan = numpy.array([
-            cm.scipy_dist.logpdf(x=y_obs, loc=y, scale=0.4).sum()
-            for y in Y
-        ])
+        LL_scan = numpy.array([cm.scipy_dist.logpdf(x=y_obs, loc=y, scale=0.4).sum() for y in Y])
 
         assert LL_elemwise.shape == ()
         assert LL_scan.shape == (3,)
@@ -405,13 +413,13 @@ class TestContinuousUnivariateModel:
             cmodel.infer_independent(42, lower=0, upper=10, steps=10, ci_prob=None)
         pass
 
-    @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
+    @pytest.mark.skipif(not HAS_PYMC, reason="requires PyMC")
     def test_symbolic_loglikelihood_checks_and_warnings(self):
-        cmodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
+        cmodel = _TestPolynomialModel(independent_key="S", dependent_key="A", mu_degree=1, scale_degree=1)
         cmodel.theta_fitted = [0, 1, 0.1, 1, 5]
-       
+
         # create test data
-        x_true = numpy.array([1,2,3,4,5])
+        x_true = numpy.array([1, 2, 3, 4, 5])
         y_obs = cmodel.predict_dependent(x_true)[0]
 
         with pm.Model():
@@ -420,48 +428,46 @@ class TestContinuousUnivariateModel:
                 cmodel.loglikelihood(x=x_hat, y=y_obs)
 
             with pytest.warns(DeprecationWarning, match="Use `name` instead"):
-                cmodel.loglikelihood(x=x_hat, y=y_obs, replicate_id='A01', dependent_key='A')
+                cmodel.loglikelihood(x=x_hat, y=y_obs, replicate_id="A01", dependent_key="A")
         pass
 
-    @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
+    @pytest.mark.skipif(not HAS_PYMC, reason="requires PyMC")
     def test_symbolic_loglikelihood(self):
-        cmodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
+        cmodel = _TestPolynomialModel(independent_key="S", dependent_key="A", mu_degree=1, scale_degree=1)
         cmodel.theta_fitted = [0, 1, 0.1, 1, 3]
-       
+
         # create test data
-        x_true = numpy.array([1,2,3,4,5])
+        x_true = numpy.array([1, 2, 3, 4, 5])
         y_obs = cmodel.predict_dependent(x_true)[0]
 
         x_hat = at.vector()
         x_hat.tag.test_value = x_true
-        L = cmodel.loglikelihood(x=x_hat, y=y_obs, name='L_A01_A')
+        L = cmodel.loglikelihood(x=x_hat, y=y_obs, name="L_A01_A")
         assert isinstance(L, at.TensorVariable)
         assert L.ndim == 0
 
         # compare the two loglikelihood computation methods
         x_test = numpy.random.normal(x_true, scale=0.1)
-        actual = L.eval({
-            x_hat: x_test
-        })
+        actual = L.eval({x_hat: x_test})
         expected = cmodel.loglikelihood(x=x_test, y=y_obs)
         assert numpy.ndim(expected) == 0
         assert numpy.ndim(actual) == 0
         numpy.testing.assert_almost_equal(actual, expected, 6)
         pass
 
-    @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
+    @pytest.mark.skipif(not HAS_PYMC, reason="requires PyMC")
     def test_symbolic_loglikelihood_in_modelcontext(self):
-        cmodel = _TestPolynomialModel(independent_key='S', dependent_key='A', mu_degree=1, scale_degree=1)
+        cmodel = _TestPolynomialModel(independent_key="S", dependent_key="A", mu_degree=1, scale_degree=1)
         cmodel.theta_fitted = [0, 0.5, 0.1, 1, 7]
-       
+
         # create test data
-        x_true = numpy.array([1,2,3,4,5])
+        x_true = numpy.array([1, 2, 3, 4, 5])
         y_obs = cmodel.predict_dependent(x_true)[0]
 
         # create a PyMC model using the calibration model
         with pm.Model() as pmodel:
             x_hat = pm.Uniform("x_hat", 0, 1, shape=x_true.shape, transform=None)
-            L = cmodel.loglikelihood(x=x_hat, y=y_obs, name='L_A01_A')
+            L = cmodel.loglikelihood(x=x_hat, y=y_obs, name="L_A01_A")
         assert isinstance(L, at.TensorVariable)
         assert L.ndim == 0
 
@@ -471,25 +477,29 @@ class TestContinuousUnivariateModel:
 
         # compare the two loglikelihood computation methods
         x_test = numpy.random.normal(x_true, scale=0.1)
-        actual = L.eval({
-            x_hat: x_test
-        })
+        actual = L.eval({x_hat: x_test})
         expected = cmodel.loglikelihood(x=x_test, y=y_obs)
         assert numpy.ndim(expected) == 0
         assert numpy.ndim(actual) == 0
         numpy.testing.assert_almost_equal(actual, expected, 6)
         pass
 
-    @pytest.mark.parametrize("x", [
-        numpy.array([1,2,3]),
-        4,
-    ])
-    @pytest.mark.parametrize("y", [
-        numpy.array([2,4,8]),
-        5,
-    ])
+    @pytest.mark.parametrize(
+        "x",
+        [
+            numpy.array([1, 2, 3]),
+            4,
+        ],
+    )
+    @pytest.mark.parametrize(
+        "y",
+        [
+            numpy.array([2, 4, 8]),
+            5,
+        ],
+    )
     def test_loglikelihood(self, x, y):
-        cmodel = _TestPolynomialModel(independent_key='S', dependent_key='OD', mu_degree=1, scale_degree=1)
+        cmodel = _TestPolynomialModel(independent_key="S", dependent_key="OD", mu_degree=1, scale_degree=1)
         cmodel.theta_fitted = [0, 1, 0.1, 1.6, 3]
 
         actual = cmodel.loglikelihood(y=y, x=x)
@@ -518,20 +528,20 @@ class TestContinuousUnivariateModel:
         pass
 
     def test_loglikelihood_exceptions(self):
-        cmodel = _TestPolynomialModel(independent_key='S', dependent_key='OD', mu_degree=1, scale_degree=1)
+        cmodel = _TestPolynomialModel(independent_key="S", dependent_key="OD", mu_degree=1, scale_degree=1)
         with pytest.raises(Exception, match="No parameter vector"):
-            cmodel.loglikelihood(y=[2,3], x=[4,5])
+            cmodel.loglikelihood(y=[2, 3], x=[4, 5])
 
         cmodel.theta_fitted = [0, 1, 0.1, 1.6, 2]
 
         with pytest.raises(TypeError):
-            cmodel.loglikelihood(4, x=[2,3])
+            cmodel.loglikelihood(4, x=[2, 3])
         with pytest.raises(ValueError, match="Input x must be"):
-            cmodel.loglikelihood(y=[2,3], x="hello")
+            cmodel.loglikelihood(y=[2, 3], x="hello")
         with pytest.raises(ValueError, match="Input y must be"):
             cmodel.loglikelihood(y="🤔", x=2)
         with pytest.raises(ValueError, match="operands could not be broadcast"):
-            cmodel.loglikelihood(y=[1,2,3], x=[1,2])
+            cmodel.loglikelihood(y=[1, 2, 3], x=[1, 2])
         return
 
     def test_likelihood(self):
@@ -543,7 +553,7 @@ class TestContinuousUnivariateModel:
         assert numpy.isscalar(cmodel.likelihood(y=[2, 3], x=[3, 4]))
 
         with pytest.raises(ValueError, match="operands could not be broadcast"):
-            cmodel.likelihood(y=[1,2,3], x=[1,2])
+            cmodel.likelihood(y=[1, 2, 3], x=[1, 2])
 
         x_dense = numpy.linspace(0, 4, 501)
         actual = cmodel.likelihood(x=x_dense, y=2, scan_x=True)
@@ -558,7 +568,9 @@ class TestContinuousUnivariateModel:
             def __init__(self):
                 self.x_shapes = []
                 self.can_broadcast = False
-                super().__init__(independent_key="I", dependent_key="D", theta_names="i,s,sd".split(","), ndim=1)
+                super().__init__(
+                    independent_key="I", dependent_key="D", theta_names="i,s,sd".split(","), ndim=1
+                )
 
             def predict_dependent(self, x, *, theta=None):
                 if theta is None:
@@ -611,16 +623,13 @@ class TestContinuousUnivariateModel:
         numpy.testing.assert_array_equal(L_broadcasted, L_looped)
 
         # Of course the values should also be correct.
-        L_expected = numpy.exp([
-            cm.scipy_dist.logpdf(x=y_obs, loc=mui, scale=sd).sum()
-            for mui in mu
-        ])
+        L_expected = numpy.exp([cm.scipy_dist.logpdf(x=y_obs, loc=mui, scale=sd).sum() for mui in mu])
         assert numpy.shape(L_expected) == (3,)
         numpy.testing.assert_array_equal(L_broadcasted, L_expected)
         pass
 
     def test_infer_independent(self):
-        em = _TestPolynomialModel(independent_key='S', dependent_key='A365', mu_degree=1, scale_degree=1)
+        em = _TestPolynomialModel(independent_key="S", dependent_key="A365", mu_degree=1, scale_degree=1)
         em.theta_fitted = [0, 2, 0.1, 1, 3]
         pst = em.infer_independent(y=1, lower=0, upper=20, steps=876)
 
@@ -628,8 +637,8 @@ class TestContinuousUnivariateModel:
         assert len(pst.hdi_x) == len(pst.hdi_pdf)
         assert tuple(pst.eti_x[[0, -1]]) == (0, 20)
         assert tuple(pst.hdi_x[[0, -1]]) == (0, 20)
-        assert (numpy.isclose(scipy.integrate.cumtrapz(pst.eti_pdf, pst.eti_x)[-1], 1, atol=0.0001))
-        assert (numpy.isclose(scipy.integrate.cumtrapz(pst.hdi_pdf, pst.hdi_x)[-1], 1, atol=0.0001))
+        assert numpy.isclose(scipy.integrate.cumtrapz(pst.eti_pdf, pst.eti_x)[-1], 1, atol=0.0001)
+        assert numpy.isclose(scipy.integrate.cumtrapz(pst.hdi_pdf, pst.hdi_x)[-1], 1, atol=0.0001)
         assert pst.eti_lower == pst.hdi_lower == 0
         assert pst.eti_upper == pst.hdi_upper == 20
         assert pst.eti_prob == 1
@@ -667,7 +676,7 @@ class TestUnivariateInferenceHelpers:
         eti_lower, eti_upper = calibr8.core._get_eti(
             x_cdf=x_cdf,
             cdf=cdf,
-            ci_prob=0.6827, # 👈 this should give us an HDI of 1 standard deviation
+            ci_prob=0.6827,  # 👈 this should give us an HDI of 1 standard deviation
         )
         assert isinstance(eti_lower, float)
         assert isinstance(eti_upper, float)
@@ -675,7 +684,9 @@ class TestUnivariateInferenceHelpers:
         numpy.testing.assert_allclose(eti_upper, mu + sd)
         pass
 
-    @pytest.mark.xfail(reason="The current implementation does not converge well. See https://github.com/JuBiotech/calibr8/issues/13")
+    @pytest.mark.xfail(
+        reason="The current implementation does not converge well. See https://github.com/JuBiotech/calibr8/issues/13"
+    )
     def test_interval_prob(self):
         # test with a uniform in the interval [10, 20]
         # evaluated at 10 positions including the limits
@@ -689,16 +700,20 @@ class TestUnivariateInferenceHelpers:
         numpy.testing.assert_almost_equal(calibr8.core._interval_prob(x, cdf, 10, 13), 0.3, decimal=2)
         pass
 
-    @pytest.mark.xfail(reason="The current implementation does not converge well. See https://github.com/JuBiotech/calibr8/issues/13")
+    @pytest.mark.xfail(
+        reason="The current implementation does not converge well. See https://github.com/JuBiotech/calibr8/issues/13"
+    )
     @pytest.mark.parametrize("initial_guess", [(3, 25), (13, 14)])
     def test_get_hdi(self, initial_guess):
         # The first initial guess ☝ is very wide, the other is too narrow.
         # Test with a __/|__ shaped PDF.
-        pdf = numpy.concatenate([
-            numpy.linspace(0, 1e-6, 100),
-            numpy.linspace(0, 1, 100),
-            numpy.linspace(1e-6, 0, 100),
-        ])
+        pdf = numpy.concatenate(
+            [
+                numpy.linspace(0, 1e-6, 100),
+                numpy.linspace(0, 1, 100),
+                numpy.linspace(1e-6, 0, 100),
+            ]
+        )
         pdf = pdf / pdf.sum()
         cdf = numpy.cumsum(pdf)
 
@@ -717,7 +732,7 @@ class TestUnivariateInferenceHelpers:
         )
         assert isinstance(hdi_lower, float)
         assert isinstance(hdi_upper, float)
-        assert set(history) == { "prob", "delta_prob", "a", "b", "d", "L_prob", "L_delta", "L" }
+        assert set(history) == {"prob", "delta_prob", "a", "b", "d", "L_prob", "L_delta", "L"}
         for k, hist in history.items():
             assert len(hist) > 5
             assert len(hist) == len(history["L"])
@@ -750,10 +765,7 @@ class TestContinuousMultivariateModel:
         LL_elemwise = cm.scipy_dist.logpdf(x=y_obs, loc=Y, scale=0.4).sum()
 
         # Expected likelihoods of all observation at each coordinate
-        LL_scan = numpy.array([
-            cm.scipy_dist.logpdf(x=y_obs, loc=y, scale=0.4).sum()
-            for y in Y
-        ])
+        LL_scan = numpy.array([cm.scipy_dist.logpdf(x=y_obs, loc=y, scale=0.4).sum() for y in Y])
 
         assert LL_elemwise.shape == ()
         assert LL_scan.shape == (3,)
@@ -775,35 +787,35 @@ class TestContinuousMultivariateModel:
 
 class TestModelFunctions:
     def test_exponential(self):
-        x = numpy.array([1.,2.,4.])
-        theta = [1,2,4]
-        expected = (2-1)*(1-numpy.exp(-4*x))+1
+        x = numpy.array([1.0, 2.0, 4.0])
+        theta = [1, 2, 4]
+        expected = (2 - 1) * (1 - numpy.exp(-4 * x)) + 1
         true = calibr8.exponential(x, theta)
         numpy.testing.assert_array_equal(expected, true)
         return
-    
+
     def test_inverse_exponential(self):
-        x = numpy.array([1.,2.,4.])
-        theta = [1,2,4]
+        x = numpy.array([1.0, 2.0, 4.0])
+        theta = [1, 2, 4]
         forward = calibr8.exponential(x, theta)
         reverse = calibr8.inverse_exponential(forward, theta)
         numpy.testing.assert_allclose(reverse, x)
         return
 
     def test_logistic(self):
-        x = numpy.array([1.,2.,4.])
-        theta = [2,2,4,1]
-        expected = 2*2-4+(2*(4-2))/(1+numpy.exp(-2*1/(4-2)*(x-2)))
+        x = numpy.array([1.0, 2.0, 4.0])
+        theta = [2, 2, 4, 1]
+        expected = 2 * 2 - 4 + (2 * (4 - 2)) / (1 + numpy.exp(-2 * 1 / (4 - 2) * (x - 2)))
         true = calibr8.logistic(x, theta)
-        assert (numpy.array_equal(true, expected))
+        assert numpy.array_equal(true, expected)
         return
 
     def test_inverse_logistic(self):
-        x = numpy.array([1.,2.,4.])
-        theta = [2,2,4,1]
+        x = numpy.array([1.0, 2.0, 4.0])
+        theta = [2, 2, 4, 1]
         forward = calibr8.logistic(x, theta)
         reverse = calibr8.inverse_logistic(forward, theta)
-        assert (numpy.allclose(x, reverse))
+        assert numpy.allclose(x, reverse)
         return
 
     def test_asymmetric_logistic(self):
@@ -813,35 +825,34 @@ class TestModelFunctions:
         S = 3.3
         c = -1
         theta = (L_L, L_U, I_x, S, c)
-        
+
         # test that forward and backward match
         x_test = numpy.linspace(I_x - 0.1, I_x + 0.1, 5)
         y_test = calibr8.asymmetric_logistic(x_test, theta)
         x_test_reverse = calibr8.inverse_asymmetric_logistic(y_test, theta)
         numpy.testing.assert_array_almost_equal(x_test_reverse, x_test)
-        
+
         # test I_y
-        assert (
-            calibr8.asymmetric_logistic(I_x, theta)
-            ==
-            L_L + (L_U - L_L) * (numpy.exp(c) + 1) ** (-numpy.exp(-c))
+        assert calibr8.asymmetric_logistic(I_x, theta) == L_L + (L_U - L_L) * (numpy.exp(c) + 1) ** (
+            -numpy.exp(-c)
         )
 
         # test slope at inflection point
         ϵ = 0.0001
         numpy.testing.assert_almost_equal(
-            (calibr8.asymmetric_logistic(I_x + ϵ, theta) - calibr8.asymmetric_logistic(I_x - ϵ, theta)) / (2*ϵ),
-            S
+            (calibr8.asymmetric_logistic(I_x + ϵ, theta) - calibr8.asymmetric_logistic(I_x - ϵ, theta))
+            / (2 * ϵ),
+            S,
         )
         return
 
     def test_inverse_asymmetric_logistic(self):
-        x = numpy.array([1.,2.,4.])
-        theta = [0,4,2,1,1]
+        x = numpy.array([1.0, 2.0, 4.0])
+        theta = [0, 4, 2, 1, 1]
         forward = calibr8.asymmetric_logistic(x, theta)
         reverse = calibr8.inverse_asymmetric_logistic(forward, theta)
         numpy.testing.assert_allclose(x, reverse)
-        return 
+        return
 
     def test_xlog_asymmetric_logistic(self):
         L_L = -2
@@ -852,17 +863,15 @@ class TestModelFunctions:
         theta = (L_L, L_U, log_I_x, S, c)
 
         # test that forward and backward match
-        x_test = 10**(numpy.linspace(log_I_x - 1, log_I_x + 1, 200))
+        x_test = 10 ** (numpy.linspace(log_I_x - 1, log_I_x + 1, 200))
         y_test = calibr8.xlog_asymmetric_logistic(x_test, theta)
         x_test_reverse = calibr8.inverse_xlog_asymmetric_logistic(y_test, theta)
         numpy.testing.assert_array_almost_equal(x_test_reverse, x_test)
-        
+
         # test I_y
-        assert (
-            calibr8.xlog_asymmetric_logistic(10**log_I_x, theta)
-            ==
-            L_L + (L_U - L_L) * (numpy.exp(c) + 1) ** (-numpy.exp(-c))
-        )
+        assert calibr8.xlog_asymmetric_logistic(10**log_I_x, theta) == L_L + (L_U - L_L) * (
+            numpy.exp(c) + 1
+        ) ** (-numpy.exp(-c))
 
         # test slope at inflection point
         ϵ = 0.0001
@@ -870,201 +879,174 @@ class TestModelFunctions:
         x_minus = 10**log_I_x - ϵ
         y_plus = calibr8.xlog_asymmetric_logistic(x_plus, theta)
         y_minus = calibr8.xlog_asymmetric_logistic(x_minus, theta)
-        # for the xlog model, the slope parameter refers to the 
+        # for the xlog model, the slope parameter refers to the
         dy_dlogx = (y_plus - y_minus) / (numpy.log10(x_plus) - numpy.log10(x_minus))
         numpy.testing.assert_almost_equal(dy_dlogx, S)
         return
 
     def test_inverse_xlog_asymmetric_logistic(self):
-        x = numpy.array([1., 2., 4.])
+        x = numpy.array([1.0, 2.0, 4.0])
         theta = [0, 4, 2, 1, 1]
         forward = calibr8.xlog_asymmetric_logistic(x, theta)
         reverse = calibr8.inverse_xlog_asymmetric_logistic(forward, theta)
         numpy.testing.assert_allclose(x, reverse)
-        return 
+        return
 
     def test_log_log_logistic(self):
-        x = numpy.array([1.,2.,4.])
-        theta = [2,2,4,1]
-        expected = numpy.exp(2*2-4+(2*(4-2))/(1+numpy.exp(-2*1/(4-2)*(numpy.log(x)-2))))
+        x = numpy.array([1.0, 2.0, 4.0])
+        theta = [2, 2, 4, 1]
+        expected = numpy.exp(
+            2 * 2 - 4 + (2 * (4 - 2)) / (1 + numpy.exp(-2 * 1 / (4 - 2) * (numpy.log(x) - 2)))
+        )
         true = calibr8.log_log_logistic(x, theta)
-        assert (numpy.array_equal(true, expected))
-        expected = numpy.exp(calibr8.logistic(numpy.log(x), theta))   
-        assert (numpy.array_equal(true, expected))
+        assert numpy.array_equal(true, expected)
+        expected = numpy.exp(calibr8.logistic(numpy.log(x), theta))
+        assert numpy.array_equal(true, expected)
         return
 
     def test_inverse_log_log_logistic(self):
-        x = numpy.array([1.,2.,4.])
-        theta = [2,2,4,1]
+        x = numpy.array([1.0, 2.0, 4.0])
+        theta = [2, 2, 4, 1]
         forward = calibr8.log_log_logistic(x, theta)
         reverse = calibr8.inverse_log_log_logistic(forward, theta)
-        assert (numpy.allclose(x, reverse))
+        assert numpy.allclose(x, reverse)
         return
 
     def test_xlog_logistic(self):
-        x = numpy.array([1.,2.,4.])
-        theta = [2,2,4,1]
-        expected = 2*2-4+(2*(4-2))/(1+numpy.exp(-2*1/(4-2)*(numpy.log(x)-2)))
+        x = numpy.array([1.0, 2.0, 4.0])
+        theta = [2, 2, 4, 1]
+        expected = 2 * 2 - 4 + (2 * (4 - 2)) / (1 + numpy.exp(-2 * 1 / (4 - 2) * (numpy.log(x) - 2)))
         true = calibr8.xlog_logistic(x, theta)
-        assert (numpy.array_equal(true, expected))
+        assert numpy.array_equal(true, expected)
         expected = calibr8.logistic(numpy.log(x), theta)
-        assert (numpy.array_equal(true, expected))        
+        assert numpy.array_equal(true, expected)
         return
-        
+
     def test_inverse_xlog_logistic(self):
-        x = numpy.array([1.,2.,4.])
-        theta = [2,2,4,1]
+        x = numpy.array([1.0, 2.0, 4.0])
+        theta = [2, 2, 4, 1]
         forward = calibr8.xlog_logistic(x, theta)
         reverse = calibr8.inverse_xlog_logistic(forward, theta)
-        assert (numpy.allclose(x, reverse))
+        assert numpy.allclose(x, reverse)
         return
 
     def test_ylog_logistic(self):
-        x = numpy.array([1.,2.,4.])
-        theta = [2,2,4,1]
-        expected = numpy.exp(2*2-4+(2*(4-2))/(1+numpy.exp(-2*1/(4-2)*(x-2))))
+        x = numpy.array([1.0, 2.0, 4.0])
+        theta = [2, 2, 4, 1]
+        expected = numpy.exp(2 * 2 - 4 + (2 * (4 - 2)) / (1 + numpy.exp(-2 * 1 / (4 - 2) * (x - 2))))
         true = calibr8.ylog_logistic(x, theta)
-        assert (numpy.array_equal(true, expected))
+        assert numpy.array_equal(true, expected)
         expected = numpy.exp(calibr8.logistic(x, theta))
-        assert (numpy.array_equal(true, expected))
+        assert numpy.array_equal(true, expected)
         return
 
     def test_inverse_ylog_logistic(self):
-        x = numpy.array([1.,2.,4.])
-        theta = [2,2,4,1]
+        x = numpy.array([1.0, 2.0, 4.0])
+        theta = [2, 2, 4, 1]
         forward = calibr8.ylog_logistic(x, theta)
         reverse = calibr8.inverse_ylog_logistic(forward, theta)
-        assert (numpy.allclose(x, reverse))
+        assert numpy.allclose(x, reverse)
         return
 
 
-@pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
+@pytest.mark.skipif(not HAS_PYMC, reason="requires PyMC")
 class TestSymbolicModelFunctions:
     def _check_numpy_backend_equivalence(self, function, theta):
         # make sure that test value computation is turned off (PyMC likes to turn it on)
-        with config.change_flags(compute_test_value='off'):
+        with config.change_flags(compute_test_value="off"):
             # create computation graph
-            x = at.vector('x', dtype=config.floatX)
+            x = at.vector("x", dtype=config.floatX)
             y = function(x, theta)
             assert isinstance(y, at.TensorVariable)
 
             # compile Theano/Aesara function
             f = backend.function([x], [y])
-        
+
             # check equivalence of numpy and Theano/Aesara backend computation
             x_test = [1, 2, 4]
-            numpy.testing.assert_almost_equal(
-                f(x_test)[0],
-                function(x_test, theta)
-            )
+            numpy.testing.assert_almost_equal(f(x_test)[0], function(x_test, theta))
         return
 
     def test_logistic(self):
-        self._check_numpy_backend_equivalence(
-            calibr8.logistic,
-            [2, 2, 4, 1]
-        )
+        self._check_numpy_backend_equivalence(calibr8.logistic, [2, 2, 4, 1])
         return
 
     def test_asymmetric_logistic(self):
-        self._check_numpy_backend_equivalence(
-            calibr8.asymmetric_logistic,
-            [0, 4, 2, 1, 1]
-        )
+        self._check_numpy_backend_equivalence(calibr8.asymmetric_logistic, [0, 4, 2, 1, 1])
         return
 
     def test_log_log_logistic(self):
-        self._check_numpy_backend_equivalence(
-            calibr8.log_log_logistic,
-            [2, 2, 4, 1]
-        )
+        self._check_numpy_backend_equivalence(calibr8.log_log_logistic, [2, 2, 4, 1])
         return
-    
+
     def test_xlog_logistic(self):
-        self._check_numpy_backend_equivalence(
-            calibr8.xlog_logistic,
-            [2, 2, 4, 1]
-        )
+        self._check_numpy_backend_equivalence(calibr8.xlog_logistic, [2, 2, 4, 1])
         return
 
     def test_ylog_logistic(self):
-        self._check_numpy_backend_equivalence(
-            calibr8.ylog_logistic,
-            [2, 2, 4, 1]
-        )
+        self._check_numpy_backend_equivalence(calibr8.ylog_logistic, [2, 2, 4, 1])
         return
 
 
 class TestUtils:
     def test_datetime_parsing(self):
         assert calibr8.utils.parse_datetime(None) is None
-        assert (
-            calibr8.utils.parse_datetime('2018-12-01T09:27:30Z')
-            ==
-            datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc)
+        assert calibr8.utils.parse_datetime("2018-12-01T09:27:30Z") == datetime.datetime(
+            2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc
         )
-        assert (
-            calibr8.utils.parse_datetime('2018-12-01T09:27:30+0000')
-            ==
-            datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc)
+        assert calibr8.utils.parse_datetime("2018-12-01T09:27:30+0000") == datetime.datetime(
+            2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc
         )
 
     def test_datetime_formatting(self):
         assert calibr8.utils.format_datetime(None) is None
         assert (
-            calibr8.utils.format_datetime(datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc))
-            ==
-            '2018-12-01T09:27:30Z'
+            calibr8.utils.format_datetime(
+                datetime.datetime(2018, 12, 1, 9, 27, 30, tzinfo=datetime.timezone.utc)
+            )
+            == "2018-12-01T09:27:30Z"
         )
 
-    @pytest.mark.skipif(HAS_PYMC, reason='run only if PyMC is not installed')
+    @pytest.mark.skipif(HAS_PYMC, reason="run only if PyMC is not installed")
     def test_istensor_without_pymc(self):
-        test_dict = {
-            'a': 1, 
-            'b': [1,2,3], 
-            'c': numpy.array([(1,2), (3,4)])
-        }
+        test_dict = {"a": 1, "b": [1, 2, 3], "c": numpy.array([(1, 2), (3, 4)])}
         assert not (calibr8.istensor(test_dict))
         assert not (calibr8.istensor(1.2))
         assert not (calibr8.istensor(-5))
-        assert not (calibr8.istensor([1,2,3]))
-        assert not (calibr8.istensor('hello'))
+        assert not (calibr8.istensor([1, 2, 3]))
+        assert not (calibr8.istensor("hello"))
 
-    @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
+    @pytest.mark.skipif(not HAS_PYMC, reason="requires PyMC")
     def test_istensor_with_pymc(self):
-        test_dict = {
-            'a': 1, 
-            'b': [1,2,3], 
-            'c': numpy.array([(1,2), (3,4)])
-        }
+        test_dict = {"a": 1, "b": [1, 2, 3], "c": numpy.array([(1, 2), (3, 4)])}
         assert not (calibr8.istensor(test_dict))
         assert not (calibr8.istensor(1.2))
         assert not (calibr8.istensor(-5))
-        assert not (calibr8.istensor([1,2,3]))
-        assert not (calibr8.istensor('hello'))
-            
+        assert not (calibr8.istensor([1, 2, 3]))
+        assert not (calibr8.istensor("hello"))
+
         test_dict2 = {
-            'a': 1, 
-            'b': [1,2,3], 
-            'c': numpy.array([(1, at.as_tensor_variable([1,2,3])), (3,4)])
+            "a": 1,
+            "b": [1, 2, 3],
+            "c": numpy.array([(1, at.as_tensor_variable([1, 2, 3])), (3, 4)]),
         }
-        assert (calibr8.istensor(test_dict2))
-        assert (calibr8.istensor([1, at.as_tensor_variable([1,2]), 3]))
-        assert (calibr8.istensor(numpy.array([1, at.as_tensor_variable([1,2]), 3])))
+        assert calibr8.istensor(test_dict2)
+        assert calibr8.istensor([1, at.as_tensor_variable([1, 2]), 3])
+        assert calibr8.istensor(numpy.array([1, at.as_tensor_variable([1, 2]), 3]))
 
     def test_import_warner(self):
-        dummy = calibr8.utils.ImportWarner('dummy')
+        dummy = calibr8.utils.ImportWarner("dummy")
         with pytest.raises(ImportError):
             print(dummy.__version__)
         return
 
-    @pytest.mark.skipif(HAS_PYMC, reason='run only if PyMC is not installed')
+    @pytest.mark.skipif(HAS_PYMC, reason="run only if PyMC is not installed")
     def test_has_modules(self):
         assert not calibr8.HAS_TENSORS
         assert not calibr8.HAS_PYMC
         return
 
-    @pytest.mark.skipif(not HAS_PYMC, reason='requires PyMC')
+    @pytest.mark.skipif(not HAS_PYMC, reason="requires PyMC")
     def test_has_modules(self):
         assert calibr8.HAS_TENSORS
         assert calibr8.HAS_PYMC
@@ -1094,7 +1076,7 @@ class TestUtils:
 
     @pytest.mark.parametrize("residual_type", ["relative", "absolute"])
     def test_plot_model(self, residual_type):
-        em = _TestPolynomialModel(independent_key='S', dependent_key='A365', mu_degree=1, scale_degree=1)
+        em = _TestPolynomialModel(independent_key="S", dependent_key="A365", mu_degree=1, scale_degree=1)
         em.theta_fitted = [0, 2, 0.1, 1, 2]
         em.cal_independent = numpy.linspace(0.1, 10, 7)
         mu, scale, df = em.predict_dependent(em.cal_independent)
@@ -1107,7 +1089,7 @@ class TestUtils:
         pass
 
     def test_plot_model_band_xlim(self):
-        cm = _TestPolynomialModel(independent_key='S', dependent_key='A365', mu_degree=1, scale_degree=1)
+        cm = _TestPolynomialModel(independent_key="S", dependent_key="A365", mu_degree=1, scale_degree=1)
         cm.theta_fitted = [0, 2, 0.1, 1, 4]
         cm.cal_independent = numpy.linspace(0.1, 10, 7)
         mu, scale, df = cm.predict_dependent(cm.cal_independent)
@@ -1147,9 +1129,7 @@ class TestOptimization:
 
         x = numpy.linspace(1, 10, 500)
         y = stats.t.rvs(
-            loc=calibr8.polynomial(x, theta_mu),
-            scale=calibr8.polynomial(x, theta_scale),
-            df=theta[-1]
+            loc=calibr8.polynomial(x, theta_mu), scale=calibr8.polynomial(x, theta_scale), df=theta[-1]
         )
 
         em = _TestPolynomialModel()
@@ -1157,7 +1137,7 @@ class TestOptimization:
 
     def test_finite_masking(self, caplog):
         x = numpy.random.normal(size=5)
-        y = x ** 2
+        y = x**2
         result = calibr8.optimization._mask_and_warn_inf_or_nan(x, y)
         numpy.testing.assert_array_equal(result[0], x)
         numpy.testing.assert_array_equal(result[1], y)
@@ -1185,7 +1165,7 @@ class TestOptimization:
 
     def test_finite_masking_multivariate(self, caplog):
         x = numpy.random.normal(size=(4, 5))
-        y = numpy.sum(x ** 2, axis=1)
+        y = numpy.sum(x**2, axis=1)
         assert x.ndim == 2
         assert x.shape == (4, 5)
         assert y.shape == (4,)
@@ -1225,10 +1205,10 @@ class TestOptimization:
         for fit in (calibr8.fit_scipy, calibr8.fit_pygmo):
             # wrong theta
             with pytest.raises(ValueError):
-                fit(**common, theta_guess=numpy.ones(14), theta_bounds=[(-5, 5)]*len(theta))
+                fit(**common, theta_guess=numpy.ones(14), theta_bounds=[(-5, 5)] * len(theta))
             # wrong bounds
             with pytest.raises(ValueError):
-                fit(**common, theta_guess=numpy.ones_like(theta), theta_bounds=[(-5, 5)]*14)
+                fit(**common, theta_guess=numpy.ones_like(theta), theta_bounds=[(-5, 5)] * 14)
         return
 
     def test_fit_scipy(self, caplog):
@@ -1236,9 +1216,10 @@ class TestOptimization:
         theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         theta_fit, history = calibr8.fit_scipy(
             em,
-            independent=x, dependent=y,
+            independent=x,
+            dependent=y,
             theta_guess=numpy.ones_like(theta),
-            theta_bounds=[(-5, 5)]*len(theta_mu) + [(0.02, 1), (1, 20)]
+            theta_bounds=[(-5, 5)] * len(theta_mu) + [(0.02, 1), (1, 20)],
         )
         for actual, desired, atol in zip(theta_fit, theta, [0.10, 0.05, 0.2, 2]):
             numpy.testing.assert_allclose(actual, desired, atol=atol)
@@ -1254,9 +1235,10 @@ class TestOptimization:
             y[-1] = numpy.inf
             calibr8.fit_scipy(
                 em,
-                independent=x, dependent=y,
+                independent=x,
+                dependent=y,
                 theta_guess=numpy.ones_like(theta),
-                theta_bounds=[(-5, 5)]*len(theta_mu) + [(0.02, 1), (1, 20)],
+                theta_bounds=[(-5, 5)] * len(theta_mu) + [(0.02, 1), (1, 20)],
             )
         assert "2 elements" in caplog.text
         # inf/nan should only be ignored for fitting
@@ -1264,15 +1246,18 @@ class TestOptimization:
         numpy.testing.assert_array_equal(em.cal_dependent, y)
         pass
 
-    @pytest.mark.xfail(reason="PyGMO and PyMC have dependencies (cloudpickle/dill) that are currently incompatible. See https://github.com/uqfoundation/dill/issues/383")
-    @pytest.mark.skipif(not HAS_PYGMO, reason='requires PyGMO')
+    @pytest.mark.xfail(
+        reason="PyGMO and PyMC have dependencies (cloudpickle/dill) that are currently incompatible. See https://github.com/uqfoundation/dill/issues/383"
+    )
+    @pytest.mark.skipif(not HAS_PYGMO, reason="requires PyGMO")
     def test_fit_pygmo(self, caplog):
         numpy.random.seed(1234)
         theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         theta_fit, history = calibr8.fit_pygmo(
             em,
-            independent=x, dependent=y,
-            theta_bounds=[(-5, 5)]*len(theta_mu) + [(0.02, 1), (1, 20)],
+            independent=x,
+            dependent=y,
+            theta_bounds=[(-5, 5)] * len(theta_mu) + [(0.02, 1), (1, 20)],
             evolutions=5,
         )
         for actual, desired, atol in zip(theta_fit, theta, [0.10, 0.05, 0.2, 2]):
@@ -1289,8 +1274,9 @@ class TestOptimization:
             y[-1] = float("nan")
             calibr8.fit_pygmo(
                 em,
-                independent=x, dependent=y,
-                theta_bounds=[(-5, 5)]*len(theta_mu) + [(0.02, 1), (1, 20)],
+                independent=x,
+                dependent=y,
+                theta_bounds=[(-5, 5)] * len(theta_mu) + [(0.02, 1), (1, 20)],
                 evolutions=5,
             )
         assert "2 elements" in caplog.text
@@ -1303,11 +1289,11 @@ class TestOptimization:
 class TestContribStudentT:
     def test_cant_instantiate_base_models(self):
         with pytest.raises(TypeError, match=r"constructor must not have any required \(kw\)arguments"):
-            calibr8.BaseModelT(independent_key='I', dependent_key='D', theta_names=["a", "b"])
+            calibr8.BaseModelT(independent_key="I", dependent_key="D", theta_names=["a", "b"])
         with pytest.raises(TypeError, match=r"constructor must not have any required \(kw\)arguments"):
-            calibr8.BaseAsymmetricLogisticT(independent_key='I', dependent_key='D')
+            calibr8.BaseAsymmetricLogisticT(independent_key="I", dependent_key="D")
         with pytest.raises(TypeError, match=r"constructor must not have any required \(kw\)arguments"):
-            calibr8.BasePolynomialModelT(independent_key='I', dependent_key='D', mu_degree=1, scale_degree=1)
+            calibr8.BasePolynomialModelT(independent_key="I", dependent_key="D", mu_degree=1, scale_degree=1)
         pass
 
     def test_warns_about_basemodelt(self):
@@ -1329,26 +1315,27 @@ class TestContribStudentT:
 class TestBasePolynomialModelT:
     def test_exceptions(self):
         with pytest.raises(ValueError, match="are useless"):
-            _TestPolynomialModel(independent_key='I', dependent_key='D', mu_degree=0)
+            _TestPolynomialModel(independent_key="I", dependent_key="D", mu_degree=0)
         pass
 
     @pytest.mark.parametrize("mu_degree,scale_degree", [(1, 0), (1, 1), (1, 2), (2, 0)])
     def test_predict_dependent(self, mu_degree, scale_degree):
-        theta_mu = (2.2, 1.2, 0.2)[:mu_degree+1]
-        theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
+        theta_mu = (2.2, 1.2, 0.2)[: mu_degree + 1]
+        theta_scale = (3.1, 0.4, 0.2)[: scale_degree + 1]
         theta = theta_mu + theta_scale + (1,)
 
-        em = _TestPolynomialModel(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
-        assert len(em.theta_names) == mu_degree+1 + scale_degree+1 + 1
+        em = _TestPolynomialModel(
+            independent_key="I", dependent_key="D", mu_degree=mu_degree, scale_degree=scale_degree
+        )
+        assert len(em.theta_names) == mu_degree + 1 + scale_degree + 1 + 1
         assert len(em.theta_names) == len(theta)
 
         x = numpy.linspace(0, 10, 3)
         mu, scale, df = em.predict_dependent(x, theta=theta)
 
-
         expected = numpy.polyval(theta_mu[::-1], x)
         numpy.testing.assert_array_equal(mu, expected)
-        
+
         expected = numpy.polyval(theta_scale[::-1], mu)
         numpy.testing.assert_array_equal(scale, expected)
 
@@ -1357,13 +1344,15 @@ class TestBasePolynomialModelT:
 
     @pytest.mark.parametrize("mu_degree,scale_degree", [(1, 0), (1, 1), (1, 2), (2, 0)])
     def test_predict_independent(self, mu_degree, scale_degree):
-        theta_mu = (2.2, 1.2, 0.2)[:mu_degree+1]
-        theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
+        theta_mu = (2.2, 1.2, 0.2)[: mu_degree + 1]
+        theta_scale = (3.1, 0.4, 0.2)[: scale_degree + 1]
         theta = theta_mu + theta_scale + (1,)
 
-        em = _TestPolynomialModel(independent_key='I', dependent_key='D', mu_degree=mu_degree, scale_degree=scale_degree)
+        em = _TestPolynomialModel(
+            independent_key="I", dependent_key="D", mu_degree=mu_degree, scale_degree=scale_degree
+        )
         em.theta_fitted = theta
-        assert len(em.theta_names) == mu_degree+1 + scale_degree+1 + 1
+        assert len(em.theta_names) == mu_degree + 1 + scale_degree + 1 + 1
         assert len(em.theta_names) == len(theta)
 
         x = numpy.linspace(0, 10, 7)
@@ -1382,11 +1371,11 @@ class TestBaseAsymmetricLogisticModelT:
     @pytest.mark.parametrize("scale_degree", [0, 1, 2])
     def test_predict_dependent(self, scale_degree):
         theta_mu = (-0.5, 0.5, 1, 1, -1)
-        theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
+        theta_scale = (3.1, 0.4, 0.2)[: scale_degree + 1]
         theta = theta_mu + theta_scale + (1,)
 
-        em = _TestLogisticModel(independent_key='I', dependent_key='D', scale_degree=scale_degree)
-        assert len(em.theta_names) == 5 + scale_degree+1 + 1
+        em = _TestLogisticModel(independent_key="I", dependent_key="D", scale_degree=scale_degree)
+        assert len(em.theta_names) == 5 + scale_degree + 1 + 1
         assert len(em.theta_names) == len(theta)
 
         x = numpy.linspace(1, 5, 3)
@@ -1394,7 +1383,7 @@ class TestBaseAsymmetricLogisticModelT:
 
         expected = calibr8.asymmetric_logistic(x, theta_mu)
         numpy.testing.assert_array_equal(mu, expected)
-        
+
         expected = numpy.polyval(theta_scale[::-1], mu)
         numpy.testing.assert_array_equal(scale, expected)
 
@@ -1404,12 +1393,12 @@ class TestBaseAsymmetricLogisticModelT:
     @pytest.mark.parametrize("scale_degree", [0, 1, 2])
     def test_predict_independent(self, scale_degree):
         theta_mu = (-0.5, 0.5, 1, 1, -1)
-        theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
+        theta_scale = (3.1, 0.4, 0.2)[: scale_degree + 1]
         theta = theta_mu + theta_scale + (1,)
 
-        em = _TestLogisticModel(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+        em = _TestLogisticModel(independent_key="I", dependent_key="D", scale_degree=scale_degree)
         em.theta_fitted = theta
-        
+
         x = numpy.linspace(1, 5, 7)
         mu, _, _ = em.predict_dependent(x)
 
@@ -1438,11 +1427,13 @@ class TestBaseLogIndependentAsymmetricModelT:
     @pytest.mark.parametrize("scale_degree", [0, 1, 2])
     def test_predict_dependent(self, scale_degree):
         theta_mu = (-0.5, 0.5, 1, 1, -1)
-        theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
+        theta_scale = (3.1, 0.4, 0.2)[: scale_degree + 1]
         theta = theta_mu + theta_scale + (1,)
 
-        em = _TestLogIndependentLogisticModel(independent_key='I', dependent_key='D', scale_degree=scale_degree)
-        assert len(em.theta_names) == 5 + scale_degree+1 + 1
+        em = _TestLogIndependentLogisticModel(
+            independent_key="I", dependent_key="D", scale_degree=scale_degree
+        )
+        assert len(em.theta_names) == 5 + scale_degree + 1 + 1
         assert len(em.theta_names) == len(theta)
 
         x = numpy.linspace(1, 5, 3)
@@ -1450,7 +1441,7 @@ class TestBaseLogIndependentAsymmetricModelT:
 
         expected = calibr8.xlog_asymmetric_logistic(x, theta_mu)
         numpy.testing.assert_array_equal(mu, expected)
-        
+
         expected = numpy.polyval(theta_scale[::-1], mu)
         numpy.testing.assert_array_equal(scale, expected)
 
@@ -1460,12 +1451,14 @@ class TestBaseLogIndependentAsymmetricModelT:
     @pytest.mark.parametrize("scale_degree", [0, 1, 2])
     def test_predict_independent(self, scale_degree):
         theta_mu = (-0.5, 0.5, 1, 1, -1)
-        theta_scale = (3.1, 0.4, 0.2)[:scale_degree+1]
+        theta_scale = (3.1, 0.4, 0.2)[: scale_degree + 1]
         theta = theta_mu + theta_scale + (1,)
 
-        em = _TestLogIndependentLogisticModel(independent_key='I', dependent_key='D', scale_degree=scale_degree)
+        em = _TestLogIndependentLogisticModel(
+            independent_key="I", dependent_key="D", scale_degree=scale_degree
+        )
         em.theta_fitted = theta
-        
+
         x = numpy.linspace(1, 5, 7)
         mu, _, _ = em.predict_dependent(x)
 
@@ -1476,7 +1469,8 @@ class TestBaseLogIndependentAsymmetricModelT:
 
 class TestBaseModels:
     @pytest.mark.parametrize(
-        "cls,init_kwargs,theta,invertible", [
+        "cls,init_kwargs,theta,invertible",
+        [
             (calibr8.BasePolynomialModelN, dict(mu_degree=1, sigma_degree=0), [1, 0.5, 0.1], True),
             (calibr8.BasePolynomialModelN, dict(mu_degree=1, sigma_degree=1), [1, 0.5, 0.1, 0.2], True),
             (calibr8.BasePolynomialModelN, dict(mu_degree=2, sigma_degree=0), [1, 0.5, 0.3, 0.1], False),
@@ -1487,17 +1481,37 @@ class TestBaseModels:
             (calibr8.BaseAsymmetricLogisticN, dict(sigma_degree=1), [-1, 2, 0.5, 0.2, 1, 0.2, 0.1], True),
             (calibr8.BaseAsymmetricLogisticT, dict(scale_degree=0), [-1, 2, 0.5, 0.2, 1, 0.2, 5], True),
             (calibr8.BaseAsymmetricLogisticT, dict(scale_degree=1), [-1, 2, 0.5, 0.2, 1, 0.2, 0.1, 5], True),
-            (calibr8.BaseLogIndependentAsymmetricLogisticN, dict(sigma_degree=0), [-1, 2, 0.5, 0.2, 1, 0.2], True),
-            (calibr8.BaseLogIndependentAsymmetricLogisticN, dict(sigma_degree=1), [-1, 2, 0.5, 0.2, 1, 0.2, 0.1], True),
-            (calibr8.BaseLogIndependentAsymmetricLogisticT, dict(scale_degree=0), [-1, 2, 0.5, 0.2, 1, 0.2, 5], True),
-            (calibr8.BaseLogIndependentAsymmetricLogisticT, dict(scale_degree=1), [-1, 2, 0.5, 0.2, 1, 0.2, 0.1, 5], True),
+            (
+                calibr8.BaseLogIndependentAsymmetricLogisticN,
+                dict(sigma_degree=0),
+                [-1, 2, 0.5, 0.2, 1, 0.2],
+                True,
+            ),
+            (
+                calibr8.BaseLogIndependentAsymmetricLogisticN,
+                dict(sigma_degree=1),
+                [-1, 2, 0.5, 0.2, 1, 0.2, 0.1],
+                True,
+            ),
+            (
+                calibr8.BaseLogIndependentAsymmetricLogisticT,
+                dict(scale_degree=0),
+                [-1, 2, 0.5, 0.2, 1, 0.2, 5],
+                True,
+            ),
+            (
+                calibr8.BaseLogIndependentAsymmetricLogisticT,
+                dict(scale_degree=1),
+                [-1, 2, 0.5, 0.2, 1, 0.2, 0.1, 5],
+                True,
+            ),
             (calibr8.BaseExponentialModelN, dict(sigma_degree=0), [-1, 5, 1, 0.1], True),
             (calibr8.BaseExponentialModelN, dict(sigma_degree=1), [2, 1, 0.4, 0.1, 0.5], True),
             (calibr8.BaseExponentialModelT, dict(scale_degree=0), [-1, 5, 1, 0.1, 3], True),
             (calibr8.BaseExponentialModelT, dict(scale_degree=1), [2, 1, 0.4, 0.1, 0.5, 3], True),
             (calibr8.BaseExponentialModelN, dict(sigma_degree=0, fixed_intercept=1), [-5, 1, 0.1], True),
             (calibr8.BaseExponentialModelT, dict(scale_degree=0, fixed_intercept=-1), [-2, 1, 0.1, 3], True),
-        ]
+        ],
     )
     def test_basic_features(self, cls, init_kwargs, theta, invertible):
         # Create a derived class that doesn't have default kwargs
@@ -1535,6 +1549,7 @@ class TestBaseModels:
         class _TestModel(cls):
             def __init__(self, **kwargs) -> None:
                 super().__init__(independent_key="I", dependent_key="D", **kwargs)
+
         with pytest.raises(ValueError, match="are useless"):
             _TestModel(mu_degree=0)
         pass

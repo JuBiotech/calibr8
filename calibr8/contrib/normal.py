@@ -4,18 +4,21 @@ with Normal distributions for the dependent variable.
 """
 from typing import Optional, Tuple
 
-from . import noise
 from .. import core
+from . import noise
 
 
 class BasePolynomialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
     def __init__(
-        self, *,
-        independent_key: str, dependent_key: str,
-        mu_degree: int, sigma_degree: int=0,
-        theta_names: Optional[Tuple[str]]=None,
+        self,
+        *,
+        independent_key: str,
+        dependent_key: str,
+        mu_degree: int,
+        sigma_degree: int = 0,
+        theta_names: Optional[Tuple[str]] = None,
     ):
-        """ Template for a model with polynomial trend (mu) and sigma (as a function of mu)
+        """Template for a model with polynomial trend (mu) and sigma (as a function of mu)
         with a normally distributed observation noise.
 
         Parameters
@@ -36,14 +39,12 @@ class BasePolynomialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         self.mu_degree = mu_degree
         self.sigma_degree = sigma_degree
         if theta_names is None:
-            theta_names = tuple(
-                f'mu_{d}'
-                for d in range(mu_degree + 1)
-            ) + tuple(
-                f'sigma_{d}'
-                for d in range(sigma_degree + 1)
+            theta_names = tuple(f"mu_{d}" for d in range(mu_degree + 1)) + tuple(
+                f"sigma_{d}" for d in range(sigma_degree + 1)
             )
-        super().__init__(independent_key=independent_key, dependent_key=dependent_key, theta_names=theta_names)
+        super().__init__(
+            independent_key=independent_key, dependent_key=dependent_key, theta_names=theta_names
+        )
 
     def predict_dependent(self, x, *, theta=None):
         """Predicts the parameters mu and sigma of a normal distribution which
@@ -67,11 +68,11 @@ class BasePolynomialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         """
         if theta is None:
             theta = self.theta_fitted
-        mu = core.polynomial(x, theta=theta[:self.mu_degree+1])
+        mu = core.polynomial(x, theta=theta[: self.mu_degree + 1])
         if self.sigma_degree == 0:
             sigma = theta[-1]
         else:
-            sigma = core.polynomial(mu, theta=theta[self.mu_degree+1:])
+            sigma = core.polynomial(mu, theta=theta[self.mu_degree + 1 :])
         return mu, sigma
 
     def predict_independent(self, y, *, theta=None):
@@ -94,19 +95,21 @@ class BasePolynomialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         if theta is None:
             theta = self.theta_fitted
         if self.mu_degree > 1:
-            raise NotImplementedError('Inverse prediction of higher order polynomials are not implemented.')      
+            raise NotImplementedError("Inverse prediction of higher order polynomials are not implemented.")
         a, b = theta[:2]
         return (y - a) / b
 
 
 class BaseAsymmetricLogisticN(core.ContinuousUnivariateModel, noise.NormalNoise):
     def __init__(
-        self, *,
-        independent_key:str, dependent_key:str,
-        sigma_degree:int=0,
-        theta_names: Optional[Tuple[str]]=None,
+        self,
+        *,
+        independent_key: str,
+        dependent_key: str,
+        sigma_degree: int = 0,
+        theta_names: Optional[Tuple[str]] = None,
     ):
-        """ Template for a model with asymmetric logistic trend (mu) and polynomial sigma (as a function of mu).
+        """Template for a model with asymmetric logistic trend (mu) and polynomial sigma (as a function of mu).
 
         Parameters
         ----------
@@ -121,9 +124,8 @@ class BaseAsymmetricLogisticN(core.ContinuousUnivariateModel, noise.NormalNoise)
         """
         self.sigma_degree = sigma_degree
         if theta_names is None:
-            theta_names = tuple('L_L,L_U,I_x,S,c'.split(',')) + tuple(
-                f'sigma_{d}'
-                for d in range(sigma_degree + 1)
+            theta_names = tuple("L_L,L_U,I_x,S,c".split(",")) + tuple(
+                f"sigma_{d}" for d in range(sigma_degree + 1)
             )
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
@@ -180,12 +182,14 @@ class BaseAsymmetricLogisticN(core.ContinuousUnivariateModel, noise.NormalNoise)
 
 class BaseLogIndependentAsymmetricLogisticN(core.ContinuousUnivariateModel, noise.NormalNoise):
     def __init__(
-        self, *,
-        independent_key:str, dependent_key:str,
-        sigma_degree:int=0,
-        theta_names: Optional[Tuple[str]]=None,
+        self,
+        *,
+        independent_key: str,
+        dependent_key: str,
+        sigma_degree: int = 0,
+        theta_names: Optional[Tuple[str]] = None,
     ):
-        """ Template for a model with asymmetric logistic trend (mu) and polynomial sigma (as a function of mu).
+        """Template for a model with asymmetric logistic trend (mu) and polynomial sigma (as a function of mu).
 
         Parameters
         ----------
@@ -200,9 +204,8 @@ class BaseLogIndependentAsymmetricLogisticN(core.ContinuousUnivariateModel, nois
         """
         self.sigma_degree = sigma_degree
         if theta_names is None:
-            theta_names = tuple('L_L,L_U,log_I_x,S,c'.split(',')) + tuple(
-                f'sigma_{d}'
-                for d in range(sigma_degree + 1)
+            theta_names = tuple("L_L,L_U,log_I_x,S,c".split(",")) + tuple(
+                f"sigma_{d}" for d in range(sigma_degree + 1)
             )
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
@@ -259,13 +262,15 @@ class BaseLogIndependentAsymmetricLogisticN(core.ContinuousUnivariateModel, nois
 
 class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
     def __init__(
-        self, *,
-        independent_key:str, dependent_key:str,
-        sigma_degree:int=0,
-        fixed_intercept: Optional[float]=None,
-        theta_names: Optional[Tuple[str]]=None,
+        self,
+        *,
+        independent_key: str,
+        dependent_key: str,
+        sigma_degree: int = 0,
+        fixed_intercept: Optional[float] = None,
+        theta_names: Optional[Tuple[str]] = None,
     ):
-        """ Template for a model with exponential trend (mu) and polynomial sigma (as a function of mu).
+        """Template for a model with exponential trend (mu) and polynomial sigma (as a function of mu).
 
         Parameters
         ----------
@@ -289,10 +294,7 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
                 theta_names = ("L", "k")
             else:
                 theta_names = ("I", "L", "k")
-            theta_names += tuple(
-                f"sigma_{d}"
-                for d in range(sigma_degree + 1)
-            )
+            theta_names += tuple(f"sigma_{d}" for d in range(sigma_degree + 1))
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):
