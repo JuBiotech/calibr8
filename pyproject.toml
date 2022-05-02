@@ -1,0 +1,11 @@
+# inspired by https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 110
+
+[tool.isort]
+profile = "black"
