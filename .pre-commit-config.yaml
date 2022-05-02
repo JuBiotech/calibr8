@@ -1,6 +1,6 @@
 # Ignore all docs content
-# Ignore CSV, ZIP and JSON files
-exclude: docs/|\.(csv|zip|json)$
+# Ignore CSV, JSON files
+exclude: docs/|\.(csv|json)$
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.2.0
