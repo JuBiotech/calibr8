@@ -21,22 +21,40 @@ Read the package documentation [here](https://calibr8.readthedocs.io/en/latest/?
 # Usage and Citing
 `calibr8` is licensed under the [GNU Affero General Public License v3.0](https://github.com/michaelosthege/calibr8/blob/master/LICENSE).
 
-Head over to Zenodo to [generate a BibTeX citation](https://doi.org/10.5281/zenodo.4127012) for the latest release.
+When using `calibr8` in your work, please cite the [Helleckes & Osthege et al. (2022) paper](https://doi.org/10.1371/journal.pcbi.1009223) __and__ the [corresponding software version](https://doi.org/10.5281/zenodo.4127012).
 
-Please cite the paper as:
+Note that the paper is a shared first co-authorship, which can be indicated by <sup>1</sup> in the bibliography.
 
-*Helleckes & Osthege et al. (2021). Bayesian calibration, process modeling and uncertainty quantification in biotechnology. bioRxiv. https://doi.org/10.1101/2021.06.30.450546*
+```bibtex
+@article{calibr8Paper,
+  doi       = {10.1371/journal.pcbi.1009223},
+  author    = {Helleckes$^1$, Laura Marie and
+  	       Osthege$^1$, Michael and
+	       Wiechert, Wolfgang and
+	       von Lieres, Eric and
+	       Oldiges, Marco},
+  journal   = {PLOS Computational Biology},
+  publisher = {Public Library of Science},
+  title     = {Bayesian and calibration, process modeling and uncertainty quantification in biotechnology},
+  year      = {2022},
+  month     = {03},
+  volume    = {18},
+  url       = {https://doi.org/10.1371/journal.pcbi.1009223},
+  pages     = {1-46},
+  number    = {3}
+}
 
-```
-@article {calibr8,
-	author = {Helleckes, Laura Marie and Osthege, Michael and Wiechert, Wolfgang and von Lieres, Eric and Oldiges, Marco},
-	title = {Bayesian calibration, process modeling and uncertainty quantification in biotechnology},
-	elocation-id = {2021.06.30.450546},
-	year = {2021},
-	doi = {10.1101/2021.06.30.450546},
-	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/early/2021/07/03/2021.06.30.450546},
-	eprint = {https://www.biorxiv.org/content/early/2021/07/03/2021.06.30.450546.full.pdf},
-	journal = {bioRxiv}
+@software{calibr8version,
+  author    = {Michael Osthege and
+               Laura Helleckes},
+  title     = {JuBiotech/calibr8: v6.5.2},
+  month     = mar,
+  year      = 2022,
+  publisher = {Zenodo},
+  version   = {v6.5.2},
+  doi       = {10.5281/zenodo.4127012},
+  url       = {https://doi.org/10.5281/zenodo.4127012}
 }
 ```
+
+Head over to Zenodo to [generate a BibTeX citation](https://doi.org/10.5281/zenodo.4127012) for the latest release.
