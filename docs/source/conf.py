@@ -14,6 +14,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 import sphinx_rtd_theme
+from calibr8 import __version__
 
 # -- Project information -----------------------------------------------------
 
@@ -22,7 +23,7 @@ copyright = '2020, Michael Osthege, Laura Helleckes'
 author = 'Michael Osthege, Laura Helleckes'
 
 # The full version, including alpha/beta/rc tags
-release = '5.0.0'
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
