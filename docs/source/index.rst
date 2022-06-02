@@ -2,14 +2,14 @@ Welcome to the ``calibr8`` documentation!
 =========================================
 
 .. image:: https://img.shields.io/badge/code%20on-Github-lightgrey
-    :target: https://github.com/michaelosthege/calibr8
+    :target: https://github.com/JuBiotech/calibr8
 
 .. image:: https://zenodo.org/badge/306862348.svg
    :target: https://zenodo.org/badge/latestdoi/306862348
 
 With ``calibr8`` we take a fresh perspective on calibration modeling.
 
-You can download the latest version from `GitHub <https://github.com/michaelosthege/calibr8>`_ or install it via ``pip install calibr8``.
+You can download the latest version from `GitHub <https://github.com/JuBiotech/calibr8>`_ or install it via ``pip install calibr8``.
 
 In the following chapters, we introduce the terminology, basic concepts and most important features.
 
