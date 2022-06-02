@@ -141,8 +141,13 @@ class ContinuousUnivariateInference(ContinuousInference):
         **kwargs : dict
             Forwarded to InferenceResult base constructor.
         """
-        self.median = median
+        self._median = median
         super().__init__(**kwargs)
+
+    @property
+    def median(self) -> float:
+        """Median of the posterior distribution. 50 % of the probability mass on either side."""
+        return self._median
 
     def __repr__(self) -> str:
         result = (
