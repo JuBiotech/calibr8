@@ -4,4 +4,3 @@ myst-parser
 numpydoc
 nbsphinx
 nbsphinx_link
-calibr8
