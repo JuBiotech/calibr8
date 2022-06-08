@@ -40,7 +40,7 @@ jobs:
       run: |
         pip uninstall -y pymc
         pip uninstall -y aesara
-        pip install "pymc3>=3.11.2,<4"
+        pip install "pymc3>=3.11.5,<4" "numpy<1.22"
         pip install pygmo
     - name: Test with PyMC3 and PyGMO
       run: |
