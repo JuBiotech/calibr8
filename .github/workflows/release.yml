@@ -24,13 +24,13 @@ jobs:
     - name: Test with pytest
       run: |
         pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
-    - name: Install PyMC v4.0.0b6
+    - name: Install PyMC
       run: |
-        pip install "pymc==4.0.0b6"
-    - name: Test with PyMC v4.0.0b6
+        pip install "pymc>=4.0.0"
+    - name: Test with PyMC
       run: |
         pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
-    - name: Install PyMC3 and PyGMO and uninstall PyMC v4
+    - name: Install PyMC3 and PyGMO and uninstall PyMC
       run: |
         pip uninstall -y pymc
         pip uninstall -y aesara
