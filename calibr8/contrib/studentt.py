@@ -373,7 +373,6 @@ class BaseExponentialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise)
         else:
             scale = core.polynomial(mu, theta_scale)
         df = theta[-1]
-        print(scale)
         return mu, scale, df
 
     def predict_independent(self, y, *, theta=None):
