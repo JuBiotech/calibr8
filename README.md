@@ -19,7 +19,7 @@ pip install calibr8
 Read the package documentation [here](https://calibr8.readthedocs.io/en/latest/?badge=latest).
 
 # Usage and Citing
-`calibr8` is licensed under the [GNU Affero General Public License v3.0](https://github.com/michaelosthege/calibr8/blob/master/LICENSE).
+`calibr8` is licensed under the [GNU Affero General Public License v3.0](https://github.com/JuBiotech/calibr8/blob/master/LICENSE).
 
 When using `calibr8` in your work, please cite the [Helleckes & Osthege et al. (2022) paper](https://doi.org/10.1371/journal.pcbi.1009223) __and__ the [corresponding software version](https://doi.org/10.5281/zenodo.4127012).
 
