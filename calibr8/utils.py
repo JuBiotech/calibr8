@@ -469,3 +469,11 @@ def plot_model(
         axs[2].xaxis.set_minor_formatter(matplotlib.ticker.ScalarFormatter())
 
     return fig, axs
+
+
+def scale_degree_check(scale_degree):
+    if scale_degree < 0:
+        raise ValueError("Scale/sigma degree should be a natural number!")
+    if scale_degree >= 2:
+        warnings.warn("Scale/sigma degree >= 2 is quite unusual. Consider a lower value.")
+    return scale_degree
