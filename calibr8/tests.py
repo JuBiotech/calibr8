@@ -2,7 +2,6 @@ import collections
 import datetime
 import logging
 import pathlib
-from msilib.schema import Class
 
 import matplotlib
 import numpy

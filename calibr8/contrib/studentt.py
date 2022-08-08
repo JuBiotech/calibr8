@@ -50,7 +50,7 @@ class BasePolynomialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
         if mu_degree == 0:
             raise ValueError("0-degree (constant) mu calibration models are useless.")
         self.mu_degree = mu_degree
-        self.scale_degree = utils.scale_degree_check(scale_degree)
+        self.scale_degree = utils.check_scale_degree(scale_degree)
         if theta_names is None:
             theta_names = (
                 tuple(f"mu_{d}" for d in range(mu_degree + 1))
@@ -144,7 +144,7 @@ class BaseAsymmetricLogisticT(core.ContinuousUnivariateModel, noise.StudentTNois
         theta_names : optional, tuple of str
             may be used to set the names of the model parameters
         """
-        self.scale_degree = utils.scale_degree_check(scale_degree)
+        self.scale_degree = utils.check_scale_degree(scale_degree)
         if theta_names is None:
             theta_names = (
                 tuple("L_L,L_U,I_x,S,c".split(","))
@@ -231,7 +231,7 @@ class BaseLogIndependentAsymmetricLogisticT(core.ContinuousUnivariateModel, nois
         theta_names : optional, tuple of str
             may be used to set the names of the model parameters
         """
-        self.scale_degree = utils.scale_degree_check(scale_degree)
+        self.scale_degree = utils.check_scale_degree(scale_degree)
         if theta_names is None:
             theta_names = (
                 tuple("L_L,L_U,log_I_x,S,c".split(","))
@@ -323,7 +323,7 @@ class BaseExponentialModelT(core.ContinuousUnivariateModel, noise.StudentTNoise)
         theta_names : optional, tuple of str
             May be used to set the names of the model parameters.
         """
-        self.scale_degree = utils.scale_degree_check(scale_degree)
+        self.scale_degree = utils.check_scale_degree(scale_degree)
         self.fixed_intercept = fixed_intercept
         if theta_names is None:
             if fixed_intercept is not None:
