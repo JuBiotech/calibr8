@@ -1561,6 +1561,11 @@ class TestScaleDegreeWarning:
             _TestPolynomialModel(scale_degree=-1)
             pass
 
+    def test_value_is_none(self):
+        with pytest.raises(ValueError, match="natural number!"):
+            _TestPolynomialModel(scale_degree=None)
+            pass
+
     def test_high_scale_value(self):
         with pytest.warns(UserWarning, match="Consider a lower value."):
             _TestPolynomialModel(scale_degree=2)
