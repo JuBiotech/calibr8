@@ -471,9 +471,30 @@ def plot_model(
     return fig, axs
 
 
-def check_scale_degree(scale_degree):
-    if scale_degree < 0:
+def check_scale_degree(scale_degree: int) -> int:
+    """
+    Evaluates user input for the scale degree and raises warning/error if the value is unexpected.
+    Returns the user input.
+
+    Parameters
+    -----------
+    scale_degree : int
+        Degree of scale as set by the user.
+
+    Returns
+    -------
+    scale_degree : int
+        Degree of scale as set by the user.
+
+    Raises
+    ------
+    ValueError
+        scale_degree is None or negative
+    UserWarning
+        scale_degree is unexpectedly high
+    """
+    if scale_degree is None or scale_degree < 0:
         raise ValueError("Scale/sigma degree should be a natural number!")
     if scale_degree >= 2:
-        warnings.warn("Scale/sigma degree >= 2 is quite unusual. Consider a lower value.")
+        warnings.warn("Scale/sigma degree >= 2 is quite unusual. Consider a lower value.", UserWarning)
     return scale_degree
