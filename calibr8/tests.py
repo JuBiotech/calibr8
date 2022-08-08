@@ -1,8 +1,8 @@
 import collections
 import datetime
 import logging
-from msilib.schema import Class
 import pathlib
+from msilib.schema import Class
 
 import matplotlib
 import numpy

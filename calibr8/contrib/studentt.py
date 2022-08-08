@@ -5,9 +5,8 @@ with Students-t distributions for the dependent variable.
 import typing
 import warnings
 
-from .. import core
+from .. import core, utils
 from . import noise
-from .. import utils
 
 
 class BaseModelT(core.ContinuousUnivariateModel, noise.StudentTNoise):
