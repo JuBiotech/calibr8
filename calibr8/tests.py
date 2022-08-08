@@ -1553,3 +1553,15 @@ class TestBaseModels:
         with pytest.raises(ValueError, match="are useless"):
             _TestModel(mu_degree=0)
         pass
+
+
+class TestScaleDegreeWarning:
+    def test_negative_value(self):
+        with pytest.raises(ValueError, match="natural number!"):
+            _TestPolynomialModel(scale_degree=-1)
+            pass
+
+    def test_high_scale_value(self):
+        with pytest.warns(UserWarning, match="Consider a lower value."):
+            _TestPolynomialModel(scale_degree=2)
+        pass
