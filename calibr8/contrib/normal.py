@@ -6,6 +6,7 @@ from typing import Optional, Tuple
 
 from .. import core
 from . import noise
+from .. import utils
 
 
 class BasePolynomialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
@@ -37,7 +38,7 @@ class BasePolynomialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         if mu_degree == 0:
             raise ValueError("0-degree (constant) mu calibration models are useless.")
         self.mu_degree = mu_degree
-        self.sigma_degree = sigma_degree
+        self.sigma_degree = utils.scale_degree_check(sigma_degree)
         if theta_names is None:
             theta_names = tuple(f"mu_{d}" for d in range(mu_degree + 1)) + tuple(
                 f"sigma_{d}" for d in range(sigma_degree + 1)
@@ -122,7 +123,7 @@ class BaseAsymmetricLogisticN(core.ContinuousUnivariateModel, noise.NormalNoise)
         theta_names : optional, tuple of str
             may be used to set the names of the model parameters
         """
-        self.sigma_degree = sigma_degree
+        self.sigma_degree = utils.scale_degree_check(sigma_degree)
         if theta_names is None:
             theta_names = tuple("L_L,L_U,I_x,S,c".split(",")) + tuple(
                 f"sigma_{d}" for d in range(sigma_degree + 1)
@@ -202,7 +203,7 @@ class BaseLogIndependentAsymmetricLogisticN(core.ContinuousUnivariateModel, nois
         theta_names : optional, tuple of str
             may be used to set the names of the model parameters
         """
-        self.sigma_degree = sigma_degree
+        self.sigma_degree = utils.scale_degree_check(sigma_degree)
         if theta_names is None:
             theta_names = tuple("L_L,L_U,log_I_x,S,c".split(",")) + tuple(
                 f"sigma_{d}" for d in range(sigma_degree + 1)
@@ -287,7 +288,7 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         theta_names : optional, tuple of str
             may be used to set the names of the model parameters
         """
-        self.sigma_degree = sigma_degree
+        self.sigma_degree = utils.scale_degree_check(sigma_degree)
         self.fixed_intercept = fixed_intercept
         if theta_names is None:
             if fixed_intercept is not None:
