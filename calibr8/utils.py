@@ -477,7 +477,7 @@ def check_scale_degree(scale_degree: int) -> int:
     Returns the user input.
 
     Parameters
-    -----------
+    ----------
     scale_degree : int
         Degree of scale as set by the user.
 
