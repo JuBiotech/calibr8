@@ -163,6 +163,7 @@ def fit_scipy_global(
     dependent: numpy.ndarray,
     theta_bounds: list,
     method: str = None,
+    maxiter: int = 5000,
     minimizer_kwargs: dict = None,
 ):
     """Function to fit the calibration model with observed data using global optimization.
@@ -178,14 +179,12 @@ def fit_scipy_global(
     theta_bounds : array-like
         bounds to fit the parameters
     method: str, optional
-        Type of solver. Should be one of
-
+        Type of solver. Should be
             - 'dual_annealing'         : ref:`(see here) <optimize.dual_annealing>`
-            - 'differential_evolution' : ref:`(see here) <optimize.differential_evolution>`
-            - 'shgo'                   : ref:`(see here) <optimize.shgo>`
-
-        If not given, chosen to be on of ``dual_annealing``, `` ``,
-        depending on user input.
+        If not given, chosen to be ``dual_annealing``.
+    maxiter: int, optional
+        Maximum number of iterations of the dual_annealing solver.
+        If not given, chosen to be 5000.
     minimize_kwargs : dict
         keyword-arguments for scipy.optimize.minimize
 
@@ -194,7 +193,17 @@ def fit_scipy_global(
     theta : array-like
         best found parameter vector
     history : list
-        history of the optimization
+        history of the optimization, containing best parameter,
+        objective value, and solver status
+
+    Raises
+    ------
+    ValueError
+        user input does not match number of parameters
+    ValueError
+        user specifies not supported optimization method
+    Warning
+        fit failed or bounds constrain optimization
     """
 
     n_theta = len(model.theta_names)
@@ -211,53 +220,25 @@ def fit_scipy_global(
 
     if method is None:
         method = "dual_annealing"
-    if method.lower() not in [
-        "dual_annealing",
-        "differential_evolution",
-        "shgo",
-    ]:
+    if method.lower() != "dual_annealing":
         raise ValueError(
             f"`{method.lower()}` is not supported. The supported global optimization "
-            "solver methods are `dual_annealing`, `differential_evolution`, `shgo`."
+            "solver method is `dual_annealing`."
         )
 
     history = []
 
-    if method.lower() == "dual_annealing":
-        fit = scipy.optimize.dual_annealing(
-            model.objective(
-                independent=independent_finite,
-                dependent=dependent_finite,
-                minimize=True,
-            ),
-            bounds=theta_bounds,
-            callback=lambda x, f, context: history.append((x, f, context)),
-            **minimizer_kwargs,
-        )
-
-    elif method.lower() == "differential_evolution":
-        fit = scipy.optimize.differential_evolution(
-            model.objective(
-                independent=independent_finite,
-                dependent=dependent_finite,
-                minimize=True,
-            ),
-            bounds=theta_bounds,
-            callback=lambda x, convergence: history.append((x, convergence)),
-            **minimizer_kwargs,
-        )
-
-    elif method.lower() == "shgo":
-        fit = scipy.optimize.shgo(
-            model.objective(
-                independent=independent_finite,
-                dependent=dependent_finite,
-                minimize=True,
-            ),
-            bounds=theta_bounds,
-            callback=lambda x: history.append(x),
-            **minimizer_kwargs,
-        )
+    fit = scipy.optimize.dual_annealing(
+        model.objective(
+            independent=independent_finite,
+            dependent=dependent_finite,
+            minimize=True,
+        ),
+        bounds=theta_bounds,
+        callback=lambda x, f, context: history.append((x, f, context)),
+        maxiter=maxiter,
+        **minimizer_kwargs,
+    )
 
     # check for fit success
     if theta_bounds:
