@@ -181,7 +181,6 @@ def fit_scipy_global(
         Type of solver. Should be one of
 
             - 'dual_annealing'         : ref:`(see here) <optimize.dual_annealing>`
-            - 'direct'                 : ref:`(see here) <optimize.direct>`
             - 'differential_evolution' : ref:`(see here) <optimize.differential_evolution>`
             - 'shgo'                   : ref:`(see here) <optimize.shgo>`
 
@@ -201,7 +200,7 @@ def fit_scipy_global(
     n_theta = len(model.theta_names)
     if len(theta_bounds) != n_theta:
         raise ValueError(
-            f"The length of theta_bounds ({len(theta_bounds)})"
+            f"The length of theta_bounds ({len(theta_bounds)}) "
             "does not match the number of model parameters ({n_theta})."
         )
 
@@ -214,31 +213,18 @@ def fit_scipy_global(
         method = "dual_annealing"
     if method.lower() not in [
         "dual_annealing",
-        "direct",
         "differential_evolution",
         "shgo",
     ]:
         raise ValueError(
-            f"{method.lower()} is not supported. The supported global optimization"
-            "solver methods are `dual_annealing`, `direct`, `differential_evolution`, `shgo`."
+            f"`{method.lower()}` is not supported. The supported global optimization "
+            "solver methods are `dual_annealing`, `differential_evolution`, `shgo`."
         )
 
     history = []
-    objective = model.objective(independent=independent_finite, dependent=dependent_finite, minimize=True)
 
     if method.lower() == "dual_annealing":
         fit = scipy.optimize.dual_annealing(
-            model.objective(
-                independent=independent_finite,
-                dependent=dependent_finite,
-                minimize=True,
-            ),
-            bounds=theta_bounds,
-            callback=lambda x, f, context: history.append((x, f, context)),
-            **minimizer_kwargs,
-        )
-    elif method.lower() == "direct":
-        fit = scipy.optimize.direct(
             model.objective(
                 independent=independent_finite,
                 dependent=dependent_finite,
@@ -257,7 +243,7 @@ def fit_scipy_global(
                 minimize=True,
             ),
             bounds=theta_bounds,
-            callback=lambda x, f, context: history.append((x, f, context)),
+            callback=lambda x, convergence: history.append((x, convergence)),
             **minimizer_kwargs,
         )
 
@@ -269,7 +255,7 @@ def fit_scipy_global(
                 minimize=True,
             ),
             bounds=theta_bounds,
-            callback=lambda x, f, context: history.append((x, f, context)),
+            callback=lambda x: history.append(x),
             **minimizer_kwargs,
         )
 

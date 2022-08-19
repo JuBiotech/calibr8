@@ -1203,7 +1203,7 @@ class TestOptimization:
         theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         common = dict(model=em, independent=x, dependent=y)
         for fit in (calibr8.fit_scipy, calibr8.fit_pygmo):
-            # wrong theta
+            # wrong guess
             with pytest.raises(ValueError):
                 fit(**common, theta_guess=numpy.ones(14), theta_bounds=[(-5, 5)] * len(theta))
             # wrong bounds
@@ -1284,6 +1284,58 @@ class TestOptimization:
         numpy.testing.assert_array_equal(em.cal_independent, x)
         numpy.testing.assert_array_equal(em.cal_dependent, y)
         pass
+
+    def test_fit_scipy_global(self, caplog):
+        numpy.random.seed(2345)
+        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
+        theta_fit, history = calibr8.fit_scipy_global(
+            em,
+            independent=x,
+            dependent=y,
+            theta_bounds=[(-10, 10)] * len(theta_mu) + [(0.001, 5), (1, 20)],
+        )
+        for actual, desired, atol in zip(theta_fit, theta, [0.10, 0.05, 0.2, 2]):
+            numpy.testing.assert_allclose(actual, desired, atol=atol)
+        assert isinstance(history, list)
+        numpy.testing.assert_array_equal(em.theta_fitted, theta_fit)
+        numpy.testing.assert_array_equal(theta_fit, history[-1][0])
+        assert em.theta_bounds is not None
+        numpy.testing.assert_array_equal(em.cal_independent, x)
+        numpy.testing.assert_array_equal(em.cal_dependent, y)
+
+        with caplog.at_level(logging.WARNING):
+            x[0] = float("nan")
+            y[-1] = numpy.inf
+            calibr8.fit_scipy_global(
+                em,
+                independent=x,
+                dependent=y,
+                theta_bounds=[(-10, 10)] * len(theta_mu) + [(0.001, 5), (1, 20)],
+            )
+        assert "2 elements" in caplog.text
+        # inf/nan should only be ignored for fitting
+        numpy.testing.assert_array_equal(em.cal_independent, x)
+        numpy.testing.assert_array_equal(em.cal_dependent, y)
+        pass
+
+    def test_global_solver_method_error(self):
+        with pytest.raises(ValueError, match="supported global optimization solver methods are"):
+            theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
+            theta_fit, history = calibr8.fit_scipy_global(
+                em,
+                independent=x,
+                dependent=y,
+                theta_bounds=[(-10, 10)] * len(theta_mu) + [(0.001, 5), (1, 20)],
+                method="direct",
+            )
+            pass
+
+    def test_global_fit_checks_bounds_count(self):
+        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
+        common = dict(model=em, independent=x, dependent=y)
+        with pytest.raises(ValueError):
+            calibr8.fit_scipy_global(**common, theta_bounds=[(-5, 5)] * 14)
+        return
 
 
 class TestContribStudentT:
