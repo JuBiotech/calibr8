@@ -179,12 +179,12 @@ def fit_scipy_global(
     theta_bounds : array-like
         bounds to fit the parameters
     method: str, optional
-        Type of solver. Should be
-            - 'dual_annealing'         : ref:`(see here) <optimize.dual_annealing>`
-        If not given, chosen to be ``dual_annealing``.
+        Type of solver. Must be one of the following:
+            - ``"dual_annealing"``
+        If not given, defaults to ``"dual_annealing"``.
     maxiter: int, optional
         Maximum number of iterations of the dual_annealing solver.
-        If not given, chosen to be 5000.
+        If not given, defaults to 5000.
     minimize_kwargs : dict
         keyword-arguments for scipy.optimize.minimize
 
