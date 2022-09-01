@@ -156,6 +156,104 @@ def fit_scipy(
     return fit.x, history
 
 
+def fit_scipy_global(
+    model: core.CalibrationModel,
+    *,
+    independent: numpy.ndarray,
+    dependent: numpy.ndarray,
+    theta_bounds: list,
+    method: str = None,
+    maxiter: int = 5000,
+    minimizer_kwargs: dict = None,
+):
+    """Function to fit the calibration model with observed data using global optimization.
+
+    Parameters
+    ----------
+    model : calibr8.CalibrationModel
+        the calibration model to fit (inplace)
+    independent : array-like
+        desired values of the independent variable or measured values of the same
+    dependent : array-like
+        observations of dependent variable
+    theta_bounds : array-like
+        bounds to fit the parameters
+    method: str, optional
+        Type of solver. Must be one of the following:
+            - ``"dual_annealing"``
+        If not given, defaults to ``"dual_annealing"``.
+    maxiter: int, optional
+        Maximum number of iterations of the dual_annealing solver.
+        If not given, defaults to 5000.
+    minimize_kwargs : dict
+        keyword-arguments for scipy.optimize.minimize
+
+    Returns
+    -------
+    theta : array-like
+        best found parameter vector
+    history : list
+        history of the optimization, containing best parameter,
+        objective value, and solver status
+
+    Raises
+    ------
+    ValueError
+        user input does not match number of parameters
+    ValueError
+        user specifies not supported optimization method
+    Warning
+        fit failed or bounds constrain optimization
+    """
+
+    n_theta = len(model.theta_names)
+    if len(theta_bounds) != n_theta:
+        raise ValueError(
+            f"The length of theta_bounds ({len(theta_bounds)}) "
+            "does not match the number of model parameters ({n_theta})."
+        )
+
+    if not minimizer_kwargs:
+        minimizer_kwargs = {}
+
+    independent_finite, dependent_finite = _mask_and_warn_inf_or_nan(independent, dependent)
+
+    if method is None:
+        method = "dual_annealing"
+    if method.lower() != "dual_annealing":
+        raise ValueError(
+            f"`{method.lower()}` is not supported. The supported global optimization "
+            "solver method is `dual_annealing`."
+        )
+
+    history = []
+
+    fit = scipy.optimize.dual_annealing(
+        model.objective(
+            independent=independent_finite,
+            dependent=dependent_finite,
+            minimize=True,
+        ),
+        bounds=theta_bounds,
+        callback=lambda x, f, context: history.append((x, f, context)),
+        maxiter=maxiter,
+        **minimizer_kwargs,
+    )
+
+    # check for fit success
+    if theta_bounds:
+        bound_hit = _warn_hit_bounds(fit.x, theta_bounds, model.theta_names)
+
+    if not fit.success or bound_hit:
+        _log.warning(f"Fit of {type(model).__name__} has failed:")
+        _log.warning(fit)
+    model.theta_bounds = theta_bounds
+    model.theta_fitted = fit.x
+    model.cal_independent = numpy.array(independent)
+    model.cal_dependent = numpy.array(dependent)
+    return fit.x, history
+
+
 def fit_pygmo(
     model: core.CalibrationModel,
     *,
