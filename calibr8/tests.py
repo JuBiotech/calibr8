@@ -1319,7 +1319,7 @@ class TestOptimization:
         pass
 
     def test_global_solver_method_error(self):
-        with pytest.raises(ValueError, match="supported global optimization solver methods are"):
+        with pytest.raises(ValueError, match="supported global optimization solver method is"):
             theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
             theta_fit, history = calibr8.fit_scipy_global(
                 em,
