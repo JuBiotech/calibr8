@@ -247,6 +247,8 @@ def fit_scipy_global(
     if not fit.success or bound_hit:
         _log.warning(f"Fit of {type(model).__name__} has failed:")
         _log.warning(fit)
+    else:
+        _log.warning(fit)
     model.theta_bounds = theta_bounds
     model.theta_fitted = fit.x
     model.cal_independent = numpy.array(independent)

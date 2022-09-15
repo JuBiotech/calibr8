@@ -619,7 +619,7 @@ class CalibrationModel(DistributionMixin):
             model_type=".".join([self.__module__, self.__class__.__qualname__]),
             theta_names=tuple(self.theta_names),
             theta_bounds=tuple(self.theta_bounds),
-            theta_guess=tuple(self.theta_guess),
+            theta_guess=tuple(self.theta_guess) if self.theta_guess is not None else {},
             theta_fitted=self.theta_fitted,
             theta_timestamp=utils.format_datetime(self.theta_timestamp),
             independent_key=self.independent_key,
