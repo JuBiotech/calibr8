@@ -619,7 +619,7 @@ class CalibrationModel(DistributionMixin):
             model_type=".".join([self.__module__, self.__class__.__qualname__]),
             theta_names=tuple(self.theta_names),
             theta_bounds=tuple(self.theta_bounds),
-            theta_guess=tuple(self.theta_guess) if self.theta_guess is not None else {},
+            theta_guess=tuple(self.theta_guess) if self.theta_guess is not None else None,
             theta_fitted=self.theta_fitted,
             theta_timestamp=utils.format_datetime(self.theta_timestamp),
             independent_key=self.independent_key,
@@ -677,7 +677,9 @@ class CalibrationModel(DistributionMixin):
 
         # assign additional attributes (check keys for backwards compatibility)
         obj.theta_bounds = tuple(map(tuple, data["theta_bounds"])) if "theta_bounds" in data else None
-        obj.theta_guess = tuple(data["theta_guess"]) if "theta_guess" in data else None
+        obj.theta_guess = (
+            tuple(data["theta_guess"]) if "theta_guess" in data and data.get("theta_guess") != None else None
+        )
         obj.__theta_fitted = tuple(data["theta_fitted"]) if "theta_fitted" in data else None
         obj.__theta_timestamp = utils.parse_datetime(data.get("theta_timestamp", None))
         obj.cal_independent = numpy.array(data["cal_independent"]) if "cal_independent" in data else None
