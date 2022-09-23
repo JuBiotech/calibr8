@@ -678,7 +678,7 @@ class CalibrationModel(DistributionMixin):
         # assign additional attributes (check keys for backwards compatibility)
         obj.theta_bounds = tuple(map(tuple, data["theta_bounds"])) if "theta_bounds" in data else None
         obj.theta_guess = (
-            tuple(data["theta_guess"]) if "theta_guess" in data and data.get("theta_guess") != None else None
+            tuple(data["theta_guess"]) if "theta_guess" in data and data.get("theta_guess") is not None else None
         )
         obj.__theta_fitted = tuple(data["theta_fitted"]) if "theta_fitted" in data else None
         obj.__theta_timestamp = utils.parse_datetime(data.get("theta_timestamp", None))
