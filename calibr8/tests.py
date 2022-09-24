@@ -359,6 +359,33 @@ class TestBaseCalibrationModel:
         numpy.testing.assert_array_equal(em_loaded.cal_dependent, em.cal_dependent)
         pass
 
+    @pytest.mark.parametrize("ndim", [1, 2, 3])
+    def test_save_and_load_attributes_wo_guess(self, ndim):
+        shape = tuple(3 + numpy.arange(ndim))
+        assert len(shape) == ndim
+
+        em = _TestModel()
+        em.theta_fitted = (1, 2, 3)
+        theta_timestamp = em.theta_timestamp
+        em.theta_bounds = ((None, None), (0, 5), (0, 10))
+        em.cal_independent = numpy.random.uniform(0, 10, size=shape)
+        em.cal_dependent = numpy.random.normal(size=len(em.cal_independent))
+
+        # save and load
+        em.save("save_load_test.json")
+        em_loaded = _TestModel.load("save_load_test.json")
+
+        assert isinstance(em_loaded, _TestModel)
+        assert em_loaded.independent_key == em.independent_key
+        assert em_loaded.dependent_key == em.dependent_key
+        assert em_loaded.theta_bounds == em.theta_bounds
+        assert em_loaded.theta_fitted == em.theta_fitted
+        assert em_loaded.theta_timestamp is not None
+        assert em_loaded.theta_timestamp == theta_timestamp
+        numpy.testing.assert_array_equal(em_loaded.cal_independent, em.cal_independent)
+        numpy.testing.assert_array_equal(em_loaded.cal_dependent, em.cal_dependent)
+        pass
+
     def test_objective(self):
         cm = _TestPolynomialModel(mu_degree=1, scale_degree=0)
         calX = numpy.linspace(1, 10, 5)

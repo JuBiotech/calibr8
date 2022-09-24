@@ -237,7 +237,6 @@ def fit_scipy_global(
         bounds=theta_bounds,
         callback=lambda x, f, context: history.append((x, f, context)),
         maxiter=maxiter,
-        **minimizer_kwargs,
     )
 
     # check for fit success
