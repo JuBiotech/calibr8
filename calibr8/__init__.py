@@ -29,6 +29,7 @@ from .core import (
     __version__,
     asymmetric_logistic,
     exponential,
+    infer_independent,
     inverse_asymmetric_logistic,
     inverse_exponential,
     inverse_log_log_logistic,
