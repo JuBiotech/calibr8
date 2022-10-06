@@ -690,9 +690,9 @@ class CalibrationModel(DistributionMixin):
 
 
 def infer_independent(
-    y: Union[int, float, numpy.ndarray],
     *,
     likelihood: Callable,
+    y: Union[int, float, numpy.ndarray],
     lower: float,
     upper: float,
     steps: int = 300,
