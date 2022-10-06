@@ -11,7 +11,7 @@ import logging
 import os
 import typing
 import warnings
-from typing import Union
+from typing import Callable, Union
 
 import numpy
 import scipy
@@ -19,7 +19,7 @@ import scipy
 from . import utils
 from .utils import pm
 
-__version__ = "6.6.0"
+__version__ = "6.6.1"
 _log = logging.getLogger("calibr8")
 
 
@@ -689,6 +689,105 @@ class CalibrationModel(DistributionMixin):
         return obj
 
 
+def infer_independent(
+    *,
+    likelihood: Callable,
+    y: Union[int, float, numpy.ndarray],
+    lower: float,
+    upper: float,
+    steps: int = 300,
+    ci_prob: float = 1,
+) -> ContinuousUnivariateInference:
+    """Infer the posterior distribution of the independent variable given the observations of the dependent variable.
+    The calculation is done numerically by integrating the likelihood in a certain interval [upper,lower].
+    This is identical to the posterior with a Uniform (lower,upper) prior.
+
+    Parameters
+    ----------
+    likelihood
+        A function that returns a non-logarithmic (!) likelihood that should be integrated.
+        The signature of this function matches the `CalibrationModel.likelihood`.
+    y : int, float, array
+        One or more observations at the same x.
+    lower : float
+        Lower limit for uniform distribution of prior.
+    upper : float
+        Upper limit for uniform distribution of prior.
+    steps : int
+        Steps between lower and upper or steps between the percentiles (default 300).
+    ci_prob : float
+        Probability level for ETI and HDI credible intervals.
+        If 1 (default), the complete interval [upper,lower] will be returned,
+        else the PDFs will be trimmed to the according probability interval;
+        float must be in the interval (0,1]
+
+    Returns
+    -------
+    posterior : ContinuousUnivariateInference
+        Result of the numeric posterior calculation.
+    """
+    y = numpy.atleast_1d(y)
+
+    likelihood_integral, _ = scipy.integrate.quad(
+        func=lambda x: likelihood(x=x, y=y),
+        # by restricting the integral into the interval [a,b], the resulting PDF is
+        # identical to the posterior with a Uniform(a, b) prior.
+        # 1. prior probability is constant in [a,b]
+        # 2. prior probability is 0 outside of [a,b]
+        # > numerical integral is only computed in [a,b], but because of 1. and 2., it's
+        #   identical to the integral over [-∞,+∞]
+        a=lower,
+        b=upper,
+    )
+
+    # high resolution x-coordinates for integration
+    # the first integration is just to find the peak
+    x_integrate = numpy.linspace(lower, upper, 10_000)
+    area = scipy.integrate.cumtrapz(likelihood(x=x_integrate, y=y, scan_x=True), x_integrate, initial=0)
+    cdf = area / area[-1]
+
+    # now we find a high-resolution CDF for (1-shrink) of the probability mass
+    shrink = 0.00001
+    xfrom, xto = _get_eti(x_integrate, cdf, 1 - shrink)
+    x_integrate = numpy.linspace(xfrom, xto, 100_000)
+    area = scipy.integrate.cumtrapz(likelihood(x=x_integrate, y=y, scan_x=True), x_integrate, initial=0)
+    cdf = (area / area[-1]) * (1 - shrink) + shrink / 2
+
+    # TODO: create a smart x-vector from the CDF with varying stepsize
+
+    if ci_prob != 1:
+        if not isinstance(ci_prob, (int, float)) or not (0 < ci_prob <= 1):
+            raise ValueError(f"Unexpected `ci_prob` value of {ci_prob}. Expected float in interval (0, 1].")
+
+        # determine the interval bounds from the high-resolution CDF
+        eti_lower, eti_upper = _get_eti(x_integrate, cdf, ci_prob)
+        hdi_lower, hdi_upper = _get_hdi(x_integrate, cdf, ci_prob, eti_lower, eti_upper, history=None)
+
+        eti_x = numpy.linspace(eti_lower, eti_upper, steps)
+        hdi_x = numpy.linspace(hdi_lower, hdi_upper, steps)
+        eti_pdf = likelihood(x=eti_x, y=y, scan_x=True) / likelihood_integral
+        hdi_pdf = likelihood(x=hdi_x, y=y, scan_x=True) / likelihood_integral
+        eti_prob = _interval_prob(x_integrate, cdf, eti_lower, eti_upper)
+        hdi_prob = _interval_prob(x_integrate, cdf, hdi_lower, hdi_upper)
+    else:
+        x = numpy.linspace(lower, upper, steps)
+        eti_x = hdi_x = x
+        eti_pdf = hdi_pdf = likelihood(x=x, y=y, scan_x=True) / likelihood_integral
+        eti_prob = hdi_prob = 1
+
+    median = x_integrate[numpy.argmin(numpy.abs(cdf - 0.5))]
+
+    return ContinuousUnivariateInference(
+        median,
+        eti_x=eti_x,
+        eti_pdf=eti_pdf,
+        eti_prob=eti_prob,
+        hdi_x=hdi_x,
+        hdi_pdf=hdi_pdf,
+        hdi_prob=hdi_prob,
+    )
+
+
 class ContinuousUnivariateModel(CalibrationModel):
     def __init__(self, independent_key: str, dependent_key: str, *, theta_names: typing.Tuple[str]):
         super().__init__(independent_key, dependent_key, theta_names=theta_names, ndim=1)
@@ -727,71 +826,13 @@ class ContinuousUnivariateModel(CalibrationModel):
         posterior : ContinuousUnivariateInference
             Result of the numeric posterior calculation.
         """
-        y = numpy.atleast_1d(y)
-
-        likelihood_integral, _ = scipy.integrate.quad(
-            func=lambda x: self.likelihood(x=x, y=y),
-            # by restricting the integral into the interval [a,b], the resulting PDF is
-            # identical to the posterior with a Uniform(a, b) prior.
-            # 1. prior probability is constant in [a,b]
-            # 2. prior probability is 0 outside of [a,b]
-            # > numerical integral is only computed in [a,b], but because of 1. and 2., it's
-            #   identical to the integral over [-∞,+∞]
-            a=lower,
-            b=upper,
-        )
-
-        # high resolution x-coordinates for integration
-        # the first integration is just to find the peak
-        x_integrate = numpy.linspace(lower, upper, 10_000)
-        area = scipy.integrate.cumtrapz(
-            self.likelihood(x=x_integrate, y=y, scan_x=True), x_integrate, initial=0
-        )
-        cdf = area / area[-1]
-
-        # now we find a high-resolution CDF for (1-shrink) of the probability mass
-        shrink = 0.00001
-        xfrom, xto = _get_eti(x_integrate, cdf, 1 - shrink)
-        x_integrate = numpy.linspace(xfrom, xto, 100_000)
-        area = scipy.integrate.cumtrapz(
-            self.likelihood(x=x_integrate, y=y, scan_x=True), x_integrate, initial=0
-        )
-        cdf = (area / area[-1]) * (1 - shrink) + shrink / 2
-
-        # TODO: create a smart x-vector from the CDF with varying stepsize
-
-        if ci_prob != 1:
-            if not isinstance(ci_prob, (int, float)) or not (0 < ci_prob <= 1):
-                raise ValueError(
-                    f"Unexpected `ci_prob` value of {ci_prob}. Expected float in interval (0, 1]."
-                )
-
-            # determine the interval bounds from the high-resolution CDF
-            eti_lower, eti_upper = _get_eti(x_integrate, cdf, ci_prob)
-            hdi_lower, hdi_upper = _get_hdi(x_integrate, cdf, ci_prob, eti_lower, eti_upper, history=None)
-
-            eti_x = numpy.linspace(eti_lower, eti_upper, steps)
-            hdi_x = numpy.linspace(hdi_lower, hdi_upper, steps)
-            eti_pdf = self.likelihood(x=eti_x, y=y, scan_x=True) / likelihood_integral
-            hdi_pdf = self.likelihood(x=hdi_x, y=y, scan_x=True) / likelihood_integral
-            eti_prob = _interval_prob(x_integrate, cdf, eti_lower, eti_upper)
-            hdi_prob = _interval_prob(x_integrate, cdf, hdi_lower, hdi_upper)
-        else:
-            x = numpy.linspace(lower, upper, steps)
-            eti_x = hdi_x = x
-            eti_pdf = hdi_pdf = self.likelihood(x=x, y=y, scan_x=True) / likelihood_integral
-            eti_prob = hdi_prob = 1
-
-        median = x_integrate[numpy.argmin(numpy.abs(cdf - 0.5))]
-
-        return ContinuousUnivariateInference(
-            median,
-            eti_x=eti_x,
-            eti_pdf=eti_pdf,
-            eti_prob=eti_prob,
-            hdi_x=hdi_x,
-            hdi_pdf=hdi_pdf,
-            hdi_prob=hdi_prob,
+        return infer_independent(
+            likelihood=self.likelihood,
+            y=y,
+            lower=lower,
+            upper=upper,
+            steps=steps,
+            ci_prob=ci_prob,
         )
 
 
