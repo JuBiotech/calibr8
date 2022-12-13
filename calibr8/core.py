@@ -528,13 +528,11 @@ class CalibrationModel(DistributionMixin):
             else:
                 rv = self.pymc_dist.dist(**self.to_pymc(*params), **dist_kwargs or {})
             # The API to get log-likelihood tensors differs between PyMC versions
-            if pm.__version__[0] == "3":
-                if isinstance(rv, pm.model.ObservedRV):
-                    return rv.logpt.sum()
-                elif isinstance(rv, pm.Distribution):
-                    return rv.logp(y).sum()
+            if pm.__version__[0] == "4":
+                y_tensor = y.astype(rv.type.dtype)
+                return pm.joint_logp(rv, y, sum=True)
             else:
-                return pm.joint_logpt(rv, y, sum=True)
+                raise NotImplementedError(f"Unsupported PyMC version: {pm.__version__}")
         else:
             logp = None
             if hasattr(self.scipy_dist, "logpdf"):
