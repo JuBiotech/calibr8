@@ -44,7 +44,7 @@ from .core import (
     xlog_logistic,
     ylog_logistic,
 )
-from .optimization import fit_pygmo, fit_scipy, fit_scipy_global
+from .optimization import fit_scipy, fit_scipy_global
 from .utils import (
     HAS_PYMC,
     HAS_TENSORS,

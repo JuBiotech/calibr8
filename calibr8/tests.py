@@ -27,13 +27,6 @@ try:
 except ModuleNotFoundError:
     HAS_PYMC = False
 
-try:
-    import pygmo
-
-    HAS_PYGMO = True
-except ModuleNotFoundError:
-    HAS_PYGMO = False
-
 
 dir_testfiles = pathlib.Path(pathlib.Path(__file__).absolute().parent, "testfiles")
 
@@ -1229,13 +1222,12 @@ class TestOptimization:
     def test_fit_checks_guess_and_bounds_count(self):
         theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
         common = dict(model=em, independent=x, dependent=y)
-        for fit in (calibr8.fit_scipy, calibr8.fit_pygmo):
-            # wrong guess
-            with pytest.raises(ValueError):
-                fit(**common, theta_guess=numpy.ones(14), theta_bounds=[(-5, 5)] * len(theta))
-            # wrong bounds
-            with pytest.raises(ValueError):
-                fit(**common, theta_guess=numpy.ones_like(theta), theta_bounds=[(-5, 5)] * 14)
+        # wrong guess
+        with pytest.raises(ValueError):
+            calibr8.fit_scipy(**common, theta_guess=numpy.ones(14), theta_bounds=[(-5, 5)] * len(theta))
+        # wrong bounds
+        with pytest.raises(ValueError):
+            calibr8.fit_scipy(**common, theta_guess=numpy.ones_like(theta), theta_bounds=[(-5, 5)] * 14)
         return
 
     def test_fit_scipy(self, caplog):
@@ -1266,45 +1258,6 @@ class TestOptimization:
                 dependent=y,
                 theta_guess=numpy.ones_like(theta),
                 theta_bounds=[(-5, 5)] * len(theta_mu) + [(0.02, 1), (1, 20)],
-            )
-        assert "2 elements" in caplog.text
-        # inf/nan should only be ignored for fitting
-        numpy.testing.assert_array_equal(em.cal_independent, x)
-        numpy.testing.assert_array_equal(em.cal_dependent, y)
-        pass
-
-    @pytest.mark.xfail(
-        reason="PyGMO and PyMC have dependencies (cloudpickle/dill) that are currently incompatible. See https://github.com/uqfoundation/dill/issues/383"
-    )
-    @pytest.mark.skipif(not HAS_PYGMO, reason="requires PyGMO")
-    def test_fit_pygmo(self, caplog):
-        numpy.random.seed(1234)
-        theta_mu, theta_scale, theta, em, x, y = self._get_test_model()
-        theta_fit, history = calibr8.fit_pygmo(
-            em,
-            independent=x,
-            dependent=y,
-            theta_bounds=[(-5, 5)] * len(theta_mu) + [(0.02, 1), (1, 20)],
-            evolutions=5,
-        )
-        for actual, desired, atol in zip(theta_fit, theta, [0.10, 0.05, 0.2, 2]):
-            numpy.testing.assert_allclose(actual, desired, atol=atol)
-        assert isinstance(history, list)
-        numpy.testing.assert_array_equal(em.theta_fitted, theta_fit)
-        assert em.theta_bounds is not None
-        assert em.theta_guess is None
-        numpy.testing.assert_array_equal(em.cal_independent, x)
-        numpy.testing.assert_array_equal(em.cal_dependent, y)
-
-        with caplog.at_level(logging.WARNING):
-            x[0] = -numpy.inf
-            y[-1] = float("nan")
-            calibr8.fit_pygmo(
-                em,
-                independent=x,
-                dependent=y,
-                theta_bounds=[(-5, 5)] * len(theta_mu) + [(0.02, 1), (1, 20)],
-                evolutions=5,
             )
         assert "2 elements" in caplog.text
         # inf/nan should only be ignored for fitting
