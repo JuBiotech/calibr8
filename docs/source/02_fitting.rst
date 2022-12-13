@@ -48,8 +48,8 @@ If you can't get the `scipy.optimize.minimize`-based optimization to work, you c
 one of the "big guns":
 
 * You can set up your own optimization using the `loglikelihood <calibr8_core.html#calibr8.core.CalibrationModel.loglikelihood>`__ method.
-* Or you could run MCMC sampling by creating a PyMC3 model of your calibration model.
-  For this you can simply pass a list of PyMC3 random variables (priors) as the ``theta`` argument
+* Or you could run MCMC sampling by creating a PyMC model of your calibration model.
+  For this you can simply pass a list of PyMC random variables (priors) as the ``theta`` argument
   of the `loglikelihood <calibr8_core.html#calibr8.core.CalibrationModel.loglikelihood>`__ method.
 
 Good luck!

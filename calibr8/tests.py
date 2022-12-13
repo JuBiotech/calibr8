@@ -15,13 +15,13 @@ import calibr8.utils
 
 try:
     try:
-        import pymc3 as pm
-        import theano as backend
-        import theano.tensor as at
+        import pytensor as backend
+        import pytensor.tensor as at
     except ModuleNotFoundError:
         import aesara as backend
         import aesara.tensor as at
-        import pymc as pm
+    import pymc as pm
+
     config = backend.config
     HAS_PYMC = True
 except ModuleNotFoundError:
@@ -492,12 +492,11 @@ class TestContinuousUnivariateModel:
         assert L.ndim == 0
 
         # PyMC v4 returns the RV, but for .eval() we need the RV-value-variable
-        if pm.__version__[0] != "3":
-            x_hat = pmodel.rvs_to_values[x_hat]
+        x_vv = pmodel.rvs_to_values[x_hat]
 
         # compare the two loglikelihood computation methods
         x_test = numpy.random.normal(x_true, scale=0.1)
-        actual = L.eval({x_hat: x_test})
+        actual = L.eval({x_vv: x_test})
         expected = cmodel.loglikelihood(x=x_test, y=y_obs)
         assert numpy.ndim(expected) == 0
         assert numpy.ndim(actual) == 0
@@ -979,10 +978,10 @@ class TestSymbolicModelFunctions:
             y = function(x, theta)
             assert isinstance(y, at.TensorVariable)
 
-            # compile Theano/Aesara function
+            # compile PyTensor function
             f = backend.function([x], [y])
 
-            # check equivalence of numpy and Theano/Aesara backend computation
+            # check equivalence of numpy and PyTensor backend computation
             x_test = [1, 2, 4]
             numpy.testing.assert_almost_equal(f(x_test)[0], function(x_test, theta))
         return

@@ -37,7 +37,7 @@ For example, a user-implemented model may subclass the `calibr8.LogNormalNoise` 
 ```python
 class LogNormalNoise(DistributionMixin):
     """Log-Normal noise, predicted in logarithmic mean and standard deviation.
-    ⚠ This corresponds to the NumPy/Aesara/PyMC parametrization!
+    ⚠ This corresponds to the NumPy/PyTensor/PyMC parametrization!
     """
     scipy_dist = scipy.stats.lognorm
     pymc_dist = pm.Lognormal if HAS_PYMC else None
