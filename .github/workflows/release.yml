@@ -24,20 +24,11 @@ jobs:
     - name: Test with pytest
       run: |
         pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
-    - name: Install PyMC
+    - name: Install and test with PyMC v4
       run: |
-        pip install "pymc>=4.0.0"
-    - name: Test with PyMC
-      run: |
+        pip install "pymc==4.4.0"
         pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
-    - name: Install PyMC3 and uninstall PyMC
-      run: |
-        pip uninstall -y pymc
-        pip uninstall -y aesara
-        pip install "pymc3>=3.11.5,<4" "numpy<1.22"
-    - name: Test with PyMC3
-      run: |
-        pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
+    - name: Upload coverage
     - name: Build package
       run: |
         python setup.py sdist bdist_wheel
