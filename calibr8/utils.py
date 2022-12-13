@@ -29,17 +29,17 @@ class ImportWarner:
 
 
 try:
-    # Aesara
-    import aesara
-    from aesara.graph.basic import Variable
+    # PyTensor
+    import pytensor
+    from pytensor.graph.basic import Variable
 
     HAS_TENSORS = True
 except ModuleNotFoundError:
-    # Aesara is not available
+    # PyTensor is not available
     try:
-        # Theano-PyMC 1.1.2
-        import theano
-        from theano.graph.basic import Variable
+        # Aesara
+        import aesara
+        from aesara.graph.basic import Variable
 
         HAS_TENSORS = True
     except ModuleNotFoundError:
@@ -49,10 +49,8 @@ tensor_types = (Variable,) if HAS_TENSORS else ()
 
 
 try:
-    try:
-        import pymc3 as pm
-    except ModuleNotFoundError:
-        import pymc as pm
+    import pymc as pm
+
     HAS_PYMC = True
 except ModuleNotFoundError:
     HAS_PYMC = False

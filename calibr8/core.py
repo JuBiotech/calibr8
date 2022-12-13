@@ -515,7 +515,13 @@ class CalibrationModel(DistributionMixin):
 
         params = self.predict_dependent(x, theta=theta)
         if utils.istensor(x) or utils.istensor(theta):
-            if pm.Model.get_context(error_if_none=False) is not None:
+            try:
+                import pytensor.tensor as pt
+            except ModuleNotFoundError:
+                import aesara.tensor as pt
+
+            pmodel = pm.Model.get_context(error_if_none=False)
+            if pmodel is not None:
                 if replicate_id and dependent_key:
                     warnings.warn(
                         "The `replicate_id` and `dependent_key` parameters are deprecated. Use `name` instead.",
@@ -525,14 +531,17 @@ class CalibrationModel(DistributionMixin):
                 if not name:
                     raise ValueError("A `name` must be specified for the PyMC likelihood.")
                 rv = self.pymc_dist(name, **self.to_pymc(*params), observed=y, **dist_kwargs or {})
+                return pmodel.logp([rv], sum=True)
             else:
                 rv = self.pymc_dist.dist(**self.to_pymc(*params), **dist_kwargs or {})
-            # The API to get log-likelihood tensors differs between PyMC versions
-            if pm.__version__[0] == "4":
-                y_tensor = y.astype(rv.type.dtype)
-                return pm.joint_logp(rv, y, sum=True)
-            else:
-                raise NotImplementedError(f"Unsupported PyMC version: {pm.__version__}")
+                # The out-of-modelcontext API for log-likelihoods differs between PyMC v4 and v5
+                y_tensor = pt.as_tensor(y, dtype=rv.type.dtype)
+                if pm.__version__[0] == "4":
+                    return pm.joint_logp(rv, y, sum=True)
+                elif int(pm.__version__[0]) >= 5:
+                    return pm.logprob.joint_logprob({rv: y_tensor}, sum=True)
+                else:
+                    raise NotImplementedError(f"Unsupported PyMC version: {pm.__version__}")
         else:
             logp = None
             if hasattr(self.scipy_dist, "logpdf"):
