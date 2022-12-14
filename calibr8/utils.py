@@ -115,6 +115,35 @@ def istensor(input: object) -> bool:
     return False
 
 
+def _check_no_rvs(logp_terms):
+    """Raise if there are unexpected RandomVariables in the logp graph.
+
+    Only SimulatorRVs MinibatchIndexRVs are allowed.
+    Copied from `pymc.logprob`
+
+    Parameters
+    ----------
+    logp_terms : Sequence[TensorVariable]
+        Logprob variables.
+    """
+    try:
+        from pytensor.graph import ancestors
+        from pytensor.tensor.random.op import RandomVariable
+    except ModuleNotFoundError:
+        from aesara.graph import ancestors
+        from aesara.tensor.random.op import RandomVariable
+
+    unexpected_rv_nodes = [
+        node for node in ancestors(logp_terms) if (node.owner and isinstance(node.owner.op, RandomVariable))
+    ]
+    if unexpected_rv_nodes:
+        raise ValueError(
+            f"Random variables detected in the logp graph: {unexpected_rv_nodes}.\n"
+            "This can happen when DensityDist logp or Interval transform functions "
+            "reference nonlocal variables."
+        )
+
+
 def plot_norm_band(ax, independent, mu, scale):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a Normal distribution.
 

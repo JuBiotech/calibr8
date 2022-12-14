@@ -534,14 +534,10 @@ class CalibrationModel(DistributionMixin):
                 return pmodel.logp([rv], sum=True)
             else:
                 rv = self.pymc_dist.dist(**self.to_pymc(*params), **dist_kwargs or {})
-                # The out-of-modelcontext API for log-likelihoods differs between PyMC v4 and v5
-                y_tensor = pt.as_tensor(y, dtype=rv.type.dtype)
-                if pm.__version__[0] == "4":
-                    return pm.joint_logp(rv, y, sum=True)
-                elif int(pm.__version__[0]) >= 5:
-                    return pm.logprob.joint_logprob({rv: y_tensor}, sum=True)
-                else:
-                    raise NotImplementedError(f"Unsupported PyMC version: {pm.__version__}")
+                L = pm.logp(rv, y).sum()
+                # Check that there are no random variables in the graph leading to the logp
+                utils._check_no_rvs([L])
+                return L
         else:
             logp = None
             if hasattr(self.scipy_dist, "logpdf"):
