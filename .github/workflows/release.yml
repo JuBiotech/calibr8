@@ -16,7 +16,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4.3.1
       with:
-        python-version: 3.7
+        python-version: 3.9
     - name: Install dependencies
       run: |
         pip install -e .
@@ -32,7 +32,6 @@ jobs:
       run: |
         pip install "pymc==5.0.0"
         pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
-    - name: Upload coverage
     - name: Build package
       run: |
         python setup.py sdist bdist_wheel
