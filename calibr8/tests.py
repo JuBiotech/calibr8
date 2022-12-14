@@ -460,6 +460,11 @@ class TestContinuousUnivariateModel:
         x_true = numpy.array([1, 2, 3, 4, 5])
         y_obs = cmodel.predict_dependent(x_true)[0]
 
+        # Make sure that one can't logp graphs that depend on a random variable
+        with pytest.raises(ValueError, match="Random variables detected"):
+            xRV = pm.Normal.dist()
+            cmodel.loglikelihood(x=xRV, y=y_obs, name="L_A01_A")
+
         x_hat = at.vector()
         x_hat.tag.test_value = x_true
         L = cmodel.loglikelihood(x=x_hat, y=y_obs, name="L_A01_A")
