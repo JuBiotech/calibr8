@@ -13,6 +13,8 @@ from matplotlib import pyplot
 import calibr8
 import calibr8.utils
 
+HAS_TENSORS = False
+HAS_PYMC = False
 try:
     try:
         import pytensor as backend
@@ -20,13 +22,13 @@ try:
     except ModuleNotFoundError:
         import aesara as backend
         import aesara.tensor as at
+    HAS_TENSORS = True
     import pymc as pm
 
     config = backend.config
     HAS_PYMC = True
 except ModuleNotFoundError:
-    HAS_PYMC = False
-
+    pass
 
 dir_testfiles = pathlib.Path(pathlib.Path(__file__).absolute().parent, "testfiles")
 
@@ -1031,8 +1033,8 @@ class TestUtils:
             == "2018-12-01T09:27:30Z"
         )
 
-    @pytest.mark.skipif(HAS_PYMC, reason="run only if PyMC is not installed")
-    def test_istensor_without_pymc(self):
+    @pytest.mark.skipif(HAS_TENSORS, reason="run only if PyTensor is not installed")
+    def test_istensor_without_pytensor(self):
         test_dict = {"a": 1, "b": [1, 2, 3], "c": numpy.array([(1, 2), (3, 4)])}
         assert not (calibr8.istensor(test_dict))
         assert not (calibr8.istensor(1.2))
@@ -1040,8 +1042,8 @@ class TestUtils:
         assert not (calibr8.istensor([1, 2, 3]))
         assert not (calibr8.istensor("hello"))
 
-    @pytest.mark.skipif(not HAS_PYMC, reason="requires PyMC")
-    def test_istensor_with_pymc(self):
+    @pytest.mark.skipif(not HAS_TENSORS, reason="requires PyTensor")
+    def test_istensor_with_pytensor(self):
         test_dict = {"a": 1, "b": [1, 2, 3], "c": numpy.array([(1, 2), (3, 4)])}
         assert not (calibr8.istensor(test_dict))
         assert not (calibr8.istensor(1.2))
