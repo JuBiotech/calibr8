@@ -16,12 +16,9 @@ import calibr8.utils
 HAS_TENSORS = False
 HAS_PYMC = False
 try:
-    try:
-        import pytensor as backend
-        import pytensor.tensor as at
-    except ModuleNotFoundError:
-        import aesara as backend
-        import aesara.tensor as at
+    import pytensor as backend
+    import pytensor.tensor as at
+
     HAS_TENSORS = True
     import pymc as pm
 

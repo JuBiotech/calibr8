@@ -19,7 +19,7 @@ import scipy
 from . import utils
 from .utils import pm
 
-__version__ = "7.0.0"
+__version__ = "7.1.0"
 _log = logging.getLogger("calibr8")
 
 
@@ -515,10 +515,7 @@ class CalibrationModel(DistributionMixin):
 
         params = self.predict_dependent(x, theta=theta)
         if utils.istensor(x) or utils.istensor(theta):
-            try:
-                import pytensor.tensor as pt
-            except ModuleNotFoundError:
-                import aesara.tensor as pt
+            import pytensor.tensor as pt
 
             pmodel = pm.Model.get_context(error_if_none=False)
             if pmodel is not None:
