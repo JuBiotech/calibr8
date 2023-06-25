@@ -35,15 +35,7 @@ try:
 
     HAS_TENSORS = True
 except ModuleNotFoundError:
-    # PyTensor is not available
-    try:
-        # Aesara
-        import aesara
-        from aesara.graph.basic import Variable
-
-        HAS_TENSORS = True
-    except ModuleNotFoundError:
-        HAS_TENSORS = False
+    HAS_TENSORS = False
 
 tensor_types = (Variable,) if HAS_TENSORS else ()
 
@@ -126,12 +118,8 @@ def _check_no_rvs(logp_terms):
     logp_terms : Sequence[TensorVariable]
         Logprob variables.
     """
-    try:
-        from pytensor.graph import ancestors
-        from pytensor.tensor.random.op import RandomVariable
-    except ModuleNotFoundError:
-        from aesara.graph import ancestors
-        from aesara.tensor.random.op import RandomVariable
+    from pytensor.graph import ancestors
+    from pytensor.tensor.random.op import RandomVariable
 
     unexpected_rv_nodes = [
         node for node in ancestors(logp_terms) if (node.owner and isinstance(node.owner.op, RandomVariable))
