@@ -4,6 +4,7 @@ likelihood estimation of calibration model parameters.
 """
 import logging
 import typing
+from typing import Any, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy
 import scipy.optimize
@@ -83,9 +84,9 @@ def fit_scipy(
     *,
     independent: numpy.ndarray,
     dependent: numpy.ndarray,
-    theta_guess: list,
-    theta_bounds: list,
-    minimize_kwargs: dict = None,
+    theta_guess: Union[Sequence[float], numpy.ndarray],
+    theta_bounds: Sequence[Tuple[float, float]],
+    minimize_kwargs: Optional[Mapping[str, Any]] = None,
 ):
     """Function to fit the calibration model with observed data.
 
@@ -143,7 +144,7 @@ def fit_scipy(
         _log.warning(f"Fit of {type(model).__name__} has failed:")
         _log.warning(fit)
     model.theta_bounds = theta_bounds
-    model.theta_guess = theta_guess
+    model.theta_guess = tuple(theta_guess)
     model.theta_fitted = fit.x
     model.cal_independent = numpy.array(independent)
     model.cal_dependent = numpy.array(dependent)
@@ -156,9 +157,9 @@ def fit_scipy_global(
     independent: numpy.ndarray,
     dependent: numpy.ndarray,
     theta_bounds: list,
-    method: str = None,
+    method: Optional[str] = None,
     maxiter: int = 5000,
-    minimizer_kwargs: dict = None,
+    minimizer_kwargs: Optional[Mapping[str, Any]] = None,
 ):
     """Function to fit the calibration model with observed data using global optimization.
 

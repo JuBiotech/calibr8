@@ -11,13 +11,14 @@ import logging
 import os
 import typing
 import warnings
-from typing import Callable, Union
+from pathlib import Path
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import numpy
 import scipy
 
 from . import utils
-from .utils import pm
+from .utils import DistributionType, pm
 
 __version__ = "7.1.0"
 _log = logging.getLogger("calibr8")
@@ -152,8 +153,8 @@ class ContinuousUnivariateInference(ContinuousInference):
     def __repr__(self) -> str:
         result = (
             str(type(self))
-            + f"\n    ETI ({numpy.round(self.eti_prob, 3) * 100:.1f} %): [{numpy.round(self.eti_lower, 4)}, {numpy.round(self.eti_upper, 4)}] Δ={round(self.eti_width, 4)}"
-            + f"\n    HDI ({numpy.round(self.hdi_prob, 3) * 100:.1f} %): [{numpy.round(self.hdi_lower, 4)}, {numpy.round(self.hdi_upper, 4)}] Δ={round(self.hdi_width, 4)}"
+            + f"\n    ETI ({numpy.round(self.eti_prob, 3) * 100:.1f} %): [{numpy.round(self.eti_lower, 4)}, {numpy.round(self.eti_upper, 4)}] Δ={numpy.round(self.eti_width, 4)}"
+            + f"\n    HDI ({numpy.round(self.hdi_prob, 3) * 100:.1f} %): [{numpy.round(self.hdi_lower, 4)}, {numpy.round(self.hdi_upper, 4)}] Δ={numpy.round(self.hdi_width, 4)}"
         )
         return result
 
@@ -282,8 +283,8 @@ class DistributionMixin:
     a PyMC distribution and its parameters.
     """
 
-    scipy_dist = None
-    pymc_dist = None
+    scipy_dist: Optional[Union[scipy.stats.rv_continuous, scipy.stats.rv_discrete]] = None
+    pymc_dist: DistributionType = None
 
     def to_scipy(*args) -> dict:
         raise NotImplementedError("This model does not implement a mapping to SciPy distribution parameters.")
@@ -292,7 +293,7 @@ class DistributionMixin:
         raise NotImplementedError("This model does not implement a mapping to PyMC distribution parameters.")
 
 
-def _inherits_noisemodel(cls):
+def _inherits_noisemodel(cls: type):
     """Determines if cls is a sub-type of DistributionMixin that's not DistributionMixin or a calibration model."""
     for m in cls.__mro__:
         if (
@@ -312,7 +313,7 @@ class CalibrationModel(DistributionMixin):
         independent_key: str,
         dependent_key: str,
         *,
-        theta_names: typing.Tuple[str],
+        theta_names: Sequence[str],
         ndim: int,
     ):
         """Creates a CalibrationModel object.
@@ -323,7 +324,7 @@ class CalibrationModel(DistributionMixin):
             name of the independent variable
         dependent_key : str
             name of the dependent variable
-        theta_names : optional, tuple of str
+        theta_names
             names of the model parameters
         ndim : int
             Number of independent dimensions in the model.
@@ -346,29 +347,46 @@ class CalibrationModel(DistributionMixin):
         if (len(args) - 1 > n_defaults) or (n_kwonlyargs > n_kwonlydefaults):
             raise TypeError("The constructor must not have any required (kw)arguments.")
 
-        # underlying private attributes
-        self.__theta_timestamp = None
-        self.__theta_fitted = None
+        # underlying private attributes that are wrapped by properties
+        # to provide docstrings and guarantee the advertised return types
+        self.__theta_names: Tuple[str, ...] = tuple(theta_names)
+        self.__theta_timestamp: Optional[datetime.datetime] = None
+        self.__theta_fitted: Optional[Tuple[float, ...]] = None
+        self.__theta_guess: Optional[Tuple[float, ...]] = None
 
-        # public attributes/properties
-        self.ndim = ndim
-        self.independent_key = independent_key
-        self.dependent_key = dependent_key
-        self.theta_names = theta_names
-        self.theta_bounds = None
-        self.theta_guess = None
-        self.theta_fitted = None
-        self.cal_independent: numpy.ndarray = None
-        self.cal_dependent: numpy.ndarray = None
+        # public attributes
+        self.ndim: int = ndim
+        self.independent_key: str = independent_key
+        self.dependent_key: str = dependent_key
+        self.theta_bounds: Optional[Sequence[Tuple[float, float]]] = None
+        self.cal_independent: Optional[numpy.ndarray] = None
+        self.cal_dependent: Optional[numpy.ndarray] = None
         super().__init__()
 
     @property
-    def theta_fitted(self) -> typing.Optional[typing.Tuple[float]]:
+    def theta_names(self) -> Tuple[str, ...]:
+        """Names of model parameters in a fixed order."""
+        return self.__theta_names
+
+    @property
+    def theta_guess(self) -> Optional[Tuple[float, ...]]:
+        """Initial guess that was used to fit the model."""
+        return self.__theta_guess
+
+    @theta_guess.setter
+    def theta_guess(self, value: Optional[Union[Sequence[float], numpy.ndarray]]):
+        if value is None:
+            self.__theta_guess = None
+        else:
+            self.__theta_guess = tuple(value)
+
+    @property
+    def theta_fitted(self) -> Optional[Tuple[float, ...]]:
         """The parameter vector that describes the fitted model."""
         return self.__theta_fitted
 
     @theta_fitted.setter
-    def theta_fitted(self, value: typing.Optional[typing.Sequence[float]]):
+    def theta_fitted(self, value: Optional[Sequence[float]]):
         if value is not None:
             if numpy.shape(value) != numpy.shape(self.theta_names):
                 raise ValueError(
@@ -384,7 +402,7 @@ class CalibrationModel(DistributionMixin):
             self.__theta_timestamp = None
 
     @property
-    def theta_timestamp(self) -> typing.Optional[datetime.datetime]:
+    def theta_timestamp(self) -> Optional[datetime.datetime]:
         """The timestamp when `theta_fitted` was set."""
         return self.__theta_timestamp
 
@@ -462,9 +480,9 @@ class CalibrationModel(DistributionMixin):
         *,
         y,
         x,
-        name: str = None,
-        replicate_id: str = None,
-        dependent_key: str = None,
+        name: Optional[str] = None,
+        replicate_id: Optional[str] = None,
+        dependent_key: Optional[str] = None,
         theta=None,
         **dist_kwargs,
     ):
@@ -515,6 +533,8 @@ class CalibrationModel(DistributionMixin):
 
         params = self.predict_dependent(x, theta=theta)
         if utils.istensor(x) or utils.istensor(theta):
+            if self.pymc_dist is None:
+                raise NotImplementedError(f"The `.pymc_dist` on {type(self)} is not defined.")
             import pytensor.tensor as pt
 
             pmodel = pm.Model.get_context(error_if_none=False)
@@ -536,13 +556,15 @@ class CalibrationModel(DistributionMixin):
                 utils._check_no_rvs([L])
                 return L
         else:
+            if self.scipy_dist is None:
+                raise NotImplementedError(f"The `.scipy_dist` on {type(self)} is not defined.")
             logp = None
             if hasattr(self.scipy_dist, "logpdf"):
                 logp = self.scipy_dist.logpdf
             elif hasattr(self.scipy_dist, "logpmf"):
                 logp = self.scipy_dist.logpmf
             else:
-                raise NotImplementedError("No logpdf or logpmf methods found on {self.scipy_dist}.")
+                raise NotImplementedError(f"No logpdf or logpmf methods found on {self.scipy_dist}.")
             return logp(y, **self.to_scipy(*params)).sum(axis=-1)
 
     def likelihood(self, *, y, x, theta=None, scan_x: bool = False):
@@ -606,7 +628,7 @@ class CalibrationModel(DistributionMixin):
 
         return objective
 
-    def save(self, filepath: os.PathLike):
+    def save(self, filepath: Union[Path, os.PathLike]):
         """Save key properties of the calibration model to a JSON file.
 
         Parameters
@@ -617,9 +639,9 @@ class CalibrationModel(DistributionMixin):
         data = dict(
             calibr8_version=__version__,
             model_type=".".join([self.__module__, self.__class__.__qualname__]),
-            theta_names=tuple(self.theta_names),
-            theta_bounds=tuple(self.theta_bounds),
-            theta_guess=tuple(self.theta_guess) if self.theta_guess is not None else None,
+            theta_names=self.theta_names,
+            theta_bounds=self.theta_bounds,
+            theta_guess=self.theta_guess,
             theta_fitted=self.theta_fitted,
             theta_timestamp=utils.format_datetime(self.theta_timestamp),
             independent_key=self.independent_key,
@@ -632,7 +654,7 @@ class CalibrationModel(DistributionMixin):
         return
 
     @classmethod
-    def load(cls, filepath: os.PathLike):
+    def load(cls, filepath: Union[Path, os.PathLike]):
         """Instantiates a model from a JSON file of key properties.
 
         Parameters
@@ -668,16 +690,17 @@ class CalibrationModel(DistributionMixin):
             raise utils.CompatibilityException(
                 f"The model type from the JSON file ({json_type}) does not match this class ({cls_type})."
             )
-        obj = cls()
+        obj = cls()  # type: ignore
 
         # assign essential attributes
         obj.independent_key = data["independent_key"]
         obj.dependent_key = data["dependent_key"]
-        obj.theta_names = data["theta_names"]
+        obj.__theta_names = tuple(data["theta_names"])
 
         # assign additional attributes (check keys for backwards compatibility)
-        obj.theta_bounds = tuple(map(tuple, data["theta_bounds"])) if "theta_bounds" in data else None
-        obj.theta_guess = (
+        if "theta_bounds" in data:
+            obj.theta_bounds = tuple((lb, ub) for lb, ub in data["theta_bounds"])
+        obj.__theta_guess = (
             tuple(data["theta_guess"])
             if "theta_guess" in data and data.get("theta_guess") is not None
             else None
@@ -789,7 +812,7 @@ def infer_independent(
 
 
 class ContinuousUnivariateModel(CalibrationModel):
-    def __init__(self, independent_key: str, dependent_key: str, *, theta_names: typing.Tuple[str]):
+    def __init__(self, independent_key: str, dependent_key: str, *, theta_names: Sequence[str]):
         super().__init__(independent_key, dependent_key, theta_names=theta_names, ndim=1)
 
     def infer_independent(
@@ -837,15 +860,16 @@ class ContinuousUnivariateModel(CalibrationModel):
 
 
 class ContinuousMultivariateModel(CalibrationModel):
-    def __init__(
-        self, independent_key: str, dependent_key: str, *, theta_names: typing.Tuple[str], ndim: int
-    ):
+    def __init__(self, independent_key: str, dependent_key: str, *, theta_names: Sequence[str], ndim: int):
         super().__init__(independent_key, dependent_key, theta_names=theta_names, ndim=ndim)
 
     def infer_independent(
         self, y: Union[int, float, numpy.ndarray], *, lower, upper
     ) -> ContinuousMultivariateInference:
-        return super().infer_independent(y, lower=lower, upper=upper)
+        raise NotImplementedError(
+            "ContinuousMultivariateModel does not implement an .infer_independent() method."
+            " Consult the documentation to learn how to perform inference with a PyMC model."
+        )
 
 
 def logistic(x, theta):
