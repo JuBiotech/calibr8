@@ -187,9 +187,37 @@ class TestNoiseModels:
         numpy.testing.assert_allclose(result_scipy, result_pymc)
         pass
 
+    @pytest.mark.parametrize("which", ["scipy", "pymc"])
+    def test_none_dists_errors(self, which):
+        if which == "pymc":
+            if not HAS_PYMC:
+                pytest.skip(reason="Requires PyMC")
+            theta = [pm.Normal.dist()]
+        else:
+            theta = [5]
+
+        class InvalidNoise(calibr8.DistributionMixin):
+            pass
+
+        class _TestInvalidNoiseDist(calibr8.ContinuousUnivariateModel, InvalidNoise):
+            def __init__(self):
+                super().__init__(independent_key="I", dependent_key="D", theta_names=["a"])
+
+            def predict_dependent(self, x, *, theta=None):
+                return theta[0] * 2
+
+        cm = _TestInvalidNoiseDist()
+        with pytest.raises(NotImplementedError, match=which + "_dist.*?not defined"):
+            cm.loglikelihood(
+                x=numpy.arange(3),
+                y=[1, 2, 3],
+                theta=theta,
+            )
+        pass
+
     def test_no_logpdmf_error(self):
         class InvalidNoise(calibr8.DistributionMixin):
-            scipy_dist = None
+            scipy_dist = object()
 
         class _TestInvalidNoiseDist(calibr8.ContinuousUnivariateModel, InvalidNoise):
             def __init__(self):

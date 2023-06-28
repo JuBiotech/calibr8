@@ -2,7 +2,7 @@
 This module implements reusable calibration models
 with Normal distributions for the dependent variable.
 """
-from typing import Optional, Tuple
+from typing import Optional, Sequence, Tuple
 
 from .. import core, utils
 from . import noise
@@ -16,7 +16,7 @@ class BasePolynomialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         dependent_key: str,
         mu_degree: int,
         sigma_degree: int = 0,
-        theta_names: Optional[Tuple[str]] = None,
+        theta_names: Optional[Sequence[str]] = None,
     ):
         """Template for a model with polynomial trend (mu) and sigma (as a function of mu)
         with a normally distributed observation noise.
@@ -107,7 +107,7 @@ class BaseAsymmetricLogisticN(core.ContinuousUnivariateModel, noise.NormalNoise)
         independent_key: str,
         dependent_key: str,
         sigma_degree: int = 0,
-        theta_names: Optional[Tuple[str]] = None,
+        theta_names: Optional[Sequence[str]] = None,
     ):
         """Template for a model with asymmetric logistic trend (mu) and polynomial sigma (as a function of mu).
 
@@ -187,7 +187,7 @@ class BaseLogIndependentAsymmetricLogisticN(core.ContinuousUnivariateModel, nois
         independent_key: str,
         dependent_key: str,
         sigma_degree: int = 0,
-        theta_names: Optional[Tuple[str]] = None,
+        theta_names: Optional[Sequence[str]] = None,
     ):
         """Template for a model with asymmetric logistic trend (mu) and polynomial sigma (as a function of mu).
 
@@ -268,7 +268,7 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         dependent_key: str,
         sigma_degree: int = 0,
         fixed_intercept: Optional[float] = None,
-        theta_names: Optional[Tuple[str]] = None,
+        theta_names: Optional[Sequence[str]] = None,
     ):
         """Template for a model with exponential trend (mu) and polynomial sigma (as a function of mu).
 
@@ -290,11 +290,12 @@ class BaseExponentialModelN(core.ContinuousUnivariateModel, noise.NormalNoise):
         self.sigma_degree = utils.check_scale_degree(sigma_degree)
         self.fixed_intercept = fixed_intercept
         if theta_names is None:
+            tnames: Tuple[str, ...]
             if fixed_intercept is not None:
-                theta_names = ("L", "k")
+                tnames = ("L", "k")
             else:
-                theta_names = ("I", "L", "k")
-            theta_names += tuple(f"sigma_{d}" for d in range(sigma_degree + 1))
+                tnames = ("I", "L", "k")
+            theta_names = tnames + tuple(f"sigma_{d}" for d in range(sigma_degree + 1))
         super().__init__(independent_key, dependent_key, theta_names=theta_names)
 
     def predict_dependent(self, x, *, theta=None):

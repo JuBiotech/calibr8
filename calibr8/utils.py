@@ -6,18 +6,19 @@ import datetime
 import typing
 import warnings
 from collections.abc import Iterable
-from typing import Optional, Sequence, Tuple
+from typing import Literal, Optional, Sequence, Tuple
 
 import matplotlib
 import numpy
 import scipy.stats
 from matplotlib import pyplot
+from typing_extensions import TypeAlias
 
 
 class ImportWarner:
     """Mock for an uninstalled package, raises `ImportError` when used."""
 
-    __all__ = []
+    __all__ = ()
 
     def __init__(self, module_name):
         self.module_name = module_name
@@ -43,8 +44,10 @@ tensor_types = (Variable,) if HAS_TENSORS else ()
 try:
     import pymc as pm
 
+    DistributionType: TypeAlias = Optional[pm.Distribution]
     HAS_PYMC = True
 except ModuleNotFoundError:
+    DistributionType: TypeAlias = Literal[None]  # type: ignore
     HAS_PYMC = False
     pm = ImportWarner("pymc")
 
@@ -100,10 +103,9 @@ def istensor(input: object) -> bool:
             if istensor(element):
                 return True
     elif isinstance(input, Iterable):
-        if len(input) > 1:
-            for element in input:
-                if istensor(element):
-                    return True
+        for element in input:
+            if istensor(element):
+                return True
     return False
 
 
