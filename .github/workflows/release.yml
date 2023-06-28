@@ -23,11 +23,11 @@ jobs:
         pip install flake8 pytest pytest-cov twine wheel
     - name: Test with pytest
       run: |
-        pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
+        pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8
     - name: Install and test with PyMC v5
       run: |
         pip install "pymc>=5.0.0"
-        pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8/tests.py
+        pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8
     - name: Build package
       run: |
         python setup.py sdist bdist_wheel
