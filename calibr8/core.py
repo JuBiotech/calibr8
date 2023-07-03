@@ -684,11 +684,10 @@ class CalibrationModel(DistributionMixin):
             pass
 
         # create model instance
-        cls_type = f"{cls.__module__}.{cls.__name__}"
         json_type = data["model_type"]
-        if cls_type.split(".")[-1] not in json_type:
+        if cls.__name__ not in json_type:
             raise utils.CompatibilityException(
-                f"The model type from the JSON file ({json_type}) does not match this class ({cls_type})."
+                f"The model type from the JSON file ({json_type}) does not match this class ({cls.__name__})."
             )
         obj = cls()  # type: ignore
 
