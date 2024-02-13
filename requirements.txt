@@ -1,4 +1,4 @@
 matplotlib
 numpy
-scipy
+scipy>1.6.0
 typing_extensions
