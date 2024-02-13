@@ -20,7 +20,7 @@ import scipy
 from . import utils
 from .utils import DistributionType, pm
 
-__version__ = "7.1.0"
+__version__ = "7.1.1"
 _log = logging.getLogger("calibr8")
 
 
