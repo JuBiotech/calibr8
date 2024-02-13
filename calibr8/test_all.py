@@ -689,8 +689,8 @@ class TestContinuousUnivariateModel:
         assert len(pst.hdi_x) == len(pst.hdi_pdf)
         assert tuple(pst.eti_x[[0, -1]]) == (0, 20)
         assert tuple(pst.hdi_x[[0, -1]]) == (0, 20)
-        assert numpy.isclose(scipy.integrate.cumtrapz(pst.eti_pdf, pst.eti_x)[-1], 1, atol=0.0001)
-        assert numpy.isclose(scipy.integrate.cumtrapz(pst.hdi_pdf, pst.hdi_x)[-1], 1, atol=0.0001)
+        assert numpy.isclose(scipy.integrate.cumulative_trapezoid(pst.eti_pdf, pst.eti_x)[-1], 1, atol=0.0001)
+        assert numpy.isclose(scipy.integrate.cumulative_trapezoid(pst.hdi_pdf, pst.hdi_x)[-1], 1, atol=0.0001)
         assert pst.eti_lower == pst.hdi_lower == 0
         assert pst.eti_upper == pst.hdi_upper == 20
         assert pst.eti_prob == 1
@@ -703,8 +703,12 @@ class TestContinuousUnivariateModel:
         assert len(pst.hdi_x) == len(pst.hdi_pdf)
         assert numpy.isclose(pst.eti_prob, 0.95, atol=0.0001)
         assert numpy.isclose(pst.hdi_prob, 0.95, atol=0.0001)
-        assert numpy.isclose(scipy.integrate.cumtrapz(pst.eti_pdf, pst.eti_x)[-1], 0.95, atol=0.0001)
-        assert numpy.isclose(scipy.integrate.cumtrapz(pst.hdi_pdf, pst.hdi_x)[-1], 0.95, atol=0.0001)
+        assert numpy.isclose(
+            scipy.integrate.cumulative_trapezoid(pst.eti_pdf, pst.eti_x)[-1], 0.95, atol=0.0001
+        )
+        assert numpy.isclose(
+            scipy.integrate.cumulative_trapezoid(pst.hdi_pdf, pst.hdi_x)[-1], 0.95, atol=0.0001
+        )
         assert pst.eti_lower == pst.eti_x[0]
         assert pst.eti_upper == pst.eti_x[-1]
         assert pst.hdi_lower == pst.hdi_x[0]

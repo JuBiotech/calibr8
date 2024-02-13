@@ -765,14 +765,18 @@ def infer_independent(
     # high resolution x-coordinates for integration
     # the first integration is just to find the peak
     x_integrate = numpy.linspace(lower, upper, 10_000)
-    area = scipy.integrate.cumtrapz(likelihood(x=x_integrate, y=y, scan_x=True), x_integrate, initial=0)
+    area = scipy.integrate.cumulative_trapezoid(
+        likelihood(x=x_integrate, y=y, scan_x=True), x_integrate, initial=0
+    )
     cdf = area / area[-1]
 
     # now we find a high-resolution CDF for (1-shrink) of the probability mass
     shrink = 0.00001
     xfrom, xto = _get_eti(x_integrate, cdf, 1 - shrink)
     x_integrate = numpy.linspace(xfrom, xto, 100_000)
-    area = scipy.integrate.cumtrapz(likelihood(x=x_integrate, y=y, scan_x=True), x_integrate, initial=0)
+    area = scipy.integrate.cumulative_trapezoid(
+        likelihood(x=x_integrate, y=y, scan_x=True), x_integrate, initial=0
+    )
     cdf = (area / area[-1]) * (1 - shrink) + shrink / 2
 
     # TODO: create a smart x-vector from the CDF with varying stepsize
