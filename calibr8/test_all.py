@@ -2,6 +2,7 @@ import collections
 import datetime
 import logging
 import pathlib
+import warnings
 
 import matplotlib
 import numpy
@@ -268,7 +269,7 @@ class TestBaseCalibrationModel:
             _InvalidModel()
 
         # Check that no warning is raised when the inheritance is correct
-        with pytest.warns(None) as record:
+        with warnings.catch_warnings(record=True) as record:
             _TestModel()
         assert len(record) == 0
 
