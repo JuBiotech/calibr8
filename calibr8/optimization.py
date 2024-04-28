@@ -3,8 +3,7 @@ The optimization module implements convenience functions for maximum
 likelihood estimation of calibration model parameters.
 """
 import logging
-import typing
-from typing import Any, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy
 import scipy.optimize
@@ -14,7 +13,11 @@ from . import core
 _log = logging.getLogger("calibr8.optimization")
 
 
-def _mask_and_warn_inf_or_nan(x: numpy.ndarray, y: numpy.ndarray, on: typing.Optional[str] = None):
+def _mask_and_warn_inf_or_nan(
+    x: Union[Sequence[float], numpy.ndarray],
+    y: Union[Sequence[float], numpy.ndarray],
+    on: Optional[Literal["x", "y"]] = None,
+) -> Tuple[numpy.ndarray, numpy.ndarray]:
     """Filters `x` and `y` such that only finite elements remain.
 
     Parameters
@@ -31,6 +34,8 @@ def _mask_and_warn_inf_or_nan(x: numpy.ndarray, y: numpy.ndarray, on: typing.Opt
     x : array
     y : array
     """
+    x = numpy.asarray(x)
+    y = numpy.asarray(y)
     xdims = numpy.ndim(x)
     if xdims == 1:
         mask_x = numpy.isfinite(x)
@@ -82,8 +87,8 @@ def _warn_hit_bounds(theta, bounds, theta_names) -> bool:
 def fit_scipy(
     model: core.CalibrationModel,
     *,
-    independent: numpy.ndarray,
-    dependent: numpy.ndarray,
+    independent: Union[Sequence[float], numpy.ndarray],
+    dependent: Union[Sequence[float], numpy.ndarray],
     theta_guess: Union[Sequence[float], numpy.ndarray],
     theta_bounds: Sequence[Tuple[float, float]],
     minimize_kwargs: Optional[Mapping[str, Any]] = None,
@@ -154,8 +159,8 @@ def fit_scipy(
 def fit_scipy_global(
     model: core.CalibrationModel,
     *,
-    independent: numpy.ndarray,
-    dependent: numpy.ndarray,
+    independent: Union[Sequence[float], numpy.ndarray],
+    dependent: Union[Sequence[float], numpy.ndarray],
     theta_bounds: list,
     method: Optional[str] = None,
     maxiter: int = 5000,
