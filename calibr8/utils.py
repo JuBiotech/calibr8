@@ -3,10 +3,9 @@ This module implements helper functions for a variety of tasks, including
 imports, timestamp parsing and plotting.
 """
 import datetime
-import typing
 import warnings
 from collections.abc import Iterable
-from typing import Literal, Optional, Sequence, Tuple
+from typing import List, Literal, Optional, Sequence, Tuple
 
 import matplotlib
 import numpy
@@ -52,7 +51,7 @@ except ModuleNotFoundError:
     pm = ImportWarner("pymc")
 
 
-def parse_datetime(s: typing.Optional[str]) -> typing.Optional[datetime.datetime]:
+def parse_datetime(s: Optional[str]) -> Optional[datetime.datetime]:
     """Parses a timezone-aware datetime formatted like 2020-08-05T13:37:00Z.
 
     Returns
@@ -65,7 +64,7 @@ def parse_datetime(s: typing.Optional[str]) -> typing.Optional[datetime.datetime
     return datetime.datetime.strptime(s.replace("Z", "+0000"), "%Y-%m-%dT%H:%M:%S%z")
 
 
-def format_datetime(dt: typing.Optional[datetime.datetime]) -> typing.Optional[str]:
+def format_datetime(dt: Optional[datetime.datetime]) -> Optional[str]:
     """Formats a datetime like 2020-08-05T13:37:00Z.
 
     Returns
@@ -176,7 +175,9 @@ def plot_norm_band(ax, independent, mu, scale):
     return artists
 
 
-def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optional[str] = None):
+def plot_t_band(
+    ax, independent, mu, scale, df, *, residual_type: Optional[Literal["absolute", "relative"]] = None
+):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a t-distribution.
 
     Parameters
@@ -241,7 +242,9 @@ def plot_t_band(ax, independent, mu, scale, df, *, residual_type: typing.Optiona
     return artists
 
 
-def plot_continuous_band(ax, independent, model, residual_type: typing.Optional[str] = None):
+def plot_continuous_band(
+    ax, independent, model, residual_type: Optional[Literal["absolute", "relative"]] = None
+):
     """Helper function for plotting the 68, 90 and 95 % likelihood-bands of a univariate distribution.
 
     Parameters
@@ -364,9 +367,9 @@ def plot_model(
     *,
     fig: Optional[matplotlib.figure.Figure] = None,
     axs: Optional[Sequence[matplotlib.axes.Axes]] = None,
-    residual_type="absolute",
+    residual_type: Literal["absolute", "relative"] = "absolute",
     band_xlim: Tuple[Optional[float], Optional[float]] = (None, None),
-):
+) -> Tuple[matplotlib.figure.Figure, List[matplotlib.axes.Axes]]:
     """Makes a plot of the model with its data.
 
     Parameters
@@ -416,6 +419,8 @@ def plot_model(
         axs.append(fig.add_subplot(gs1[0, 1], sharey=axs[0]))
         pyplot.setp(axs[1].get_yticklabels(), visible=False)
         axs.append(fig.add_subplot(gs2[0, 2]))
+    else:
+        axs = list(axs)
 
     # ======= Left =======
     # Untransformed, outer range

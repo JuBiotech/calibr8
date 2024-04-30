@@ -9,10 +9,9 @@ import inspect
 import json
 import logging
 import os
-import typing
 import warnings
 from pathlib import Path
-from typing import Callable, Optional, Sequence, Tuple, Union
+from typing import Callable, DefaultDict, List, Optional, Sequence, Tuple, Union
 
 import numpy
 import scipy
@@ -20,7 +19,7 @@ import scipy
 from . import utils
 from .utils import DistributionType, pm
 
-__version__ = "7.1.1"
+__version__ = "7.1.2"
 _log = logging.getLogger("calibr8")
 
 
@@ -170,7 +169,7 @@ def _interval_prob(x_cdf: numpy.ndarray, cdf: numpy.ndarray, a: float, b: float)
     return cdf[ib] - cdf[ia]
 
 
-def _get_eti(x_cdf: numpy.ndarray, cdf: numpy.ndarray, ci_prob: float) -> typing.Tuple[float, float]:
+def _get_eti(x_cdf: numpy.ndarray, cdf: numpy.ndarray, ci_prob: float) -> Tuple[float, float]:
     """Find the equal tailed interval (ETI) corresponding to a certain credible interval probability level.
 
     Parameters
@@ -203,8 +202,8 @@ def _get_hdi(
     guess_lower: float,
     guess_upper: float,
     *,
-    history: typing.Optional[typing.DefaultDict[str, typing.List]] = None,
-) -> typing.Tuple[float, float]:
+    history: Optional[DefaultDict[str, List]] = None,
+) -> Tuple[float, float]:
     """Find the highest density interval (HDI) corresponding to a certain credible interval probability level.
 
     Parameters
@@ -600,7 +599,7 @@ class CalibrationModel(DistributionMixin):
                 return numpy.exp([self.loglikelihood(y=y, x=xi, theta=theta) for xi in x])
         return numpy.exp(self.loglikelihood(y=y, x=x, theta=theta))
 
-    def objective(self, independent, dependent, minimize=True) -> typing.Callable:
+    def objective(self, independent, dependent, minimize=True) -> Callable:
         """Creates an objective function for fitting to data.
 
         Parameters
@@ -628,7 +627,7 @@ class CalibrationModel(DistributionMixin):
 
         return objective
 
-    def save(self, filepath: Union[Path, os.PathLike]):
+    def save(self, filepath: Union[str, Path, os.PathLike]):
         """Save key properties of the calibration model to a JSON file.
 
         Parameters
@@ -654,7 +653,7 @@ class CalibrationModel(DistributionMixin):
         return
 
     @classmethod
-    def load(cls, filepath: Union[Path, os.PathLike]):
+    def load(cls, filepath: Union[str, Path, os.PathLike]):
         """Instantiates a model from a JSON file of key properties.
 
         Parameters
