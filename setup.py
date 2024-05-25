@@ -62,9 +62,9 @@ setuptools.setup(
     classifiers=[
         "Programming Language :: Python",
         "Operating System :: OS Independent",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "License :: OSI Approved :: GNU Affero General Public License v3",
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering",
@@ -75,5 +75,5 @@ setuptools.setup(
         "calibr8": package_files(str(pathlib.Path(pathlib.Path(__file__).parent, "calibr8").absolute()))
     },
     include_package_data=True,
-    python_requires=">=3.6",
+    python_requires=">=3.10",
 )
