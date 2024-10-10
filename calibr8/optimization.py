@@ -76,10 +76,10 @@ def _warn_hit_bounds(theta, bounds, theta_names) -> bool:
     for (ip, p), (lb, ub) in zip(enumerate(theta), bounds):
         pname = f"{ip+1}" if not theta_names else theta_names[ip]
         if numpy.isclose(p, lb):
-            _log.warn(f"Parameter {pname} ({p}) is close to its lower bound ({lb}).")
+            _log.warning("Parameter %s (%f) is close to its lower bound (%f).", pname, p, lb)
             bound_hit = True
         if numpy.isclose(p, ub):
-            _log.warn(f"Parameter {pname} ({p}) is close to its upper bound ({ub}).")
+            _log.warning("Parameter %s (%f) is close to its upper bound (%f).", pname, p, ub)
             bound_hit = True
     return bound_hit
 
