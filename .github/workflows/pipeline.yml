@@ -35,7 +35,7 @@ jobs:
         pip install "pymc>=5.0.0"
         pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8
     - name: Upload coverage
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         file: ./coverage.xml
     - name: Test Wheel install and import
