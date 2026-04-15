@@ -2,6 +2,7 @@
 The optimization module implements convenience functions for maximum
 likelihood estimation of calibration model parameters.
 """
+
 import logging
 from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Union
 

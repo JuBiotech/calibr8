@@ -28,7 +28,7 @@ def package_files(directory):
     fp_typed = pathlib.Path(ROOT, __packagename__, "py.typed")
     fp_typed.touch()
     paths = [str(fp_typed.absolute())]
-    for (path, directories, filenames) in os.walk(directory):
+    for path, directories, filenames in os.walk(directory):
         for filename in filenames:
             paths.append(os.path.join("..", path, filename))
     return paths

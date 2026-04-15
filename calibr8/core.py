@@ -4,6 +4,7 @@ This module contains type definitions that generalize across all applications.
 Also, it implements a variety of modeling functions such as polynomials,
 or (asymmetric) logistic functions and their corresponding inverse functions.
 """
+
 import datetime
 import inspect
 import json

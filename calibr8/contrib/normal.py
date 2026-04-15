@@ -2,6 +2,7 @@
 This module implements reusable calibration models
 with Normal distributions for the dependent variable.
 """
+
 from typing import Optional, Sequence, Tuple
 
 from .. import core, utils
