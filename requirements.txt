@@ -1,4 +1,0 @@
-matplotlib
-numpy
-scipy>1.6.0
-typing_extensions
