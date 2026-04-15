@@ -482,8 +482,6 @@ class CalibrationModel(DistributionMixin):
         y,
         x,
         name: Optional[str] = None,
-        replicate_id: Optional[str] = None,
-        dependent_key: Optional[str] = None,
         theta=None,
         **dist_kwargs,
     ):
@@ -503,10 +501,6 @@ class CalibrationModel(DistributionMixin):
         name : str
             Name for the likelihood variable in a PyMC model (tensor mode).
             Previously this was `f'{replicate_id}.{dependent_key}'`.
-        replicate_id : optional, str
-            Deprecated; pass the `name` kwarg instead.
-        dependent_key : optional, str
-            Deprecated; pass the `name` kwarg instead.
         theta : optional, array-like
             Parameters for the calibration model to use instead of `theta_fitted`.
             The vector must have the correct length, but can have numeric and or symbolic entries.
@@ -540,12 +534,6 @@ class CalibrationModel(DistributionMixin):
 
             pmodel = pm.Model.get_context(error_if_none=False)
             if pmodel is not None:
-                if replicate_id and dependent_key:
-                    warnings.warn(
-                        "The `replicate_id` and `dependent_key` parameters are deprecated. Use `name` instead.",
-                        DeprecationWarning,
-                    )
-                    name = f"{replicate_id}.{dependent_key}"
                 if not name:
                     raise ValueError("A `name` must be specified for the PyMC likelihood.")
                 rv = self.pymc_dist(name, **self.to_pymc(*params), observed=y, **dist_kwargs or {})

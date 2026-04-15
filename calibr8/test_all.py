@@ -474,9 +474,6 @@ class TestContinuousUnivariateModel:
             x_hat = pm.Uniform("x_hat", shape=5)
             with pytest.raises(ValueError, match="`name` must be specified"):
                 cmodel.loglikelihood(x=x_hat, y=y_obs)
-
-            with pytest.warns(DeprecationWarning, match="Use `name` instead"):
-                cmodel.loglikelihood(x=x_hat, y=y_obs, replicate_id="A01", dependent_key="A")
         pass
 
     @pytest.mark.skipif(not HAS_PYMC, reason="requires PyMC")
