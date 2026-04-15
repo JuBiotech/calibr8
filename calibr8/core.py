@@ -6,6 +6,7 @@ or (asymmetric) logistic functions and their corresponding inverse functions.
 """
 
 import datetime
+import importlib.metadata
 import inspect
 import json
 import logging
@@ -20,7 +21,7 @@ import scipy
 from . import utils
 from .utils import DistributionType, pm
 
-__version__ = "7.2.0"
+__version__ = importlib.metadata.version(__package__ or __name__)
 _log = logging.getLogger("calibr8")
 
 

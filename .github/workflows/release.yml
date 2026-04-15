@@ -16,11 +16,11 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: "3.11"
+        python-version: "3.13"
     - name: Install dependencies
       run: |
         pip install -e .
-        pip install flake8 pytest pytest-cov twine wheel
+        pip install flake8 pytest pytest-cov twine build
     - name: Test with pytest
       run: |
         pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8
@@ -30,7 +30,7 @@ jobs:
         pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8
     - name: Build package
       run: |
-        python setup.py sdist bdist_wheel
+        python -m build
     - name: Check version number match
       run: |
         echo "GITHUB_REF: ${GITHUB_REF}"

@@ -1,8 +1,45 @@
-# inspired by https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
-
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "calibr8"
+version = "7.2.0"
+description = "Toolbox for non-linear calibration modeling."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "AGPL-3.0-or-later"
+authors = [
+    {name = "Michael Osthege", email = "m.osthege@fz-juelich.de"},
+    {name = "Laura Helleckes", email = "l.helleckes@fz-juelich.de"},
+]
+classifiers = [
+    "Programming Language :: Python",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "scipy",
+    "typing_extensions",
+]
+
+[project.urls]
+Homepage = "https://github.com/jubiotech/calibr8"
+Documentation = "https://calibr8.readthedocs.io/en/latest/"
+Download = "https://pypi.org/project/calibr8/"
+
+[tool.setuptools]
+package-dir = {"calibr8" = "calibr8"}
+
+[tool.setuptools.package-data]
+"calibr8" = ["py.typed"]
 
 [tool.black]
 line-length = 110

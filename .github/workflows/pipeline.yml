@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
     - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
@@ -20,7 +20,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -e .
-        pip install flake8 pytest pytest-cov codecov wheel
+        pip install flake8 pytest pytest-cov codecov build
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -29,18 +29,18 @@ jobs:
         flake8 . --count --exit-zero --statistics
     - name: Test with pytest
       run: |
-        pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8
+        pytest -v --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8
     - name: Install and test with PyMC v5
       run: |
         pip install "pymc>=5.0.0"
-        pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8
+        pytest -v --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8
     - name: Upload coverage
       uses: codecov/codecov-action@v6
       with:
         file: ./coverage.xml
     - name: Test Wheel install and import
       run: |
-        python setup.py bdist_wheel
+        python -m build
         cd dist
         pip install calibr8*.whl
         python -c "import calibr8; print(calibr8.__version__)"
