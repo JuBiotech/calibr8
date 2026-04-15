@@ -2,6 +2,7 @@
 This module implements reusable calibration models
 with Students-t distributions for the dependent variable.
 """
+
 import typing
 import warnings
 from typing import Optional, Sequence, Tuple
