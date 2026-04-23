@@ -30,7 +30,7 @@ API of all calibration models.
             1,    # slope
             0.2,  # standard deviation
         ],
-        theta_guess=[
+        theta_bounds=[
             (-1, 1),       # intercept
             (0, 3),        # slope
             (0.001, 0.5),  # standard deviation (must be >= 0)
