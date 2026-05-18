@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "calibr8"
-version = "7.2.0"
+version = "7.3.0"
 description = "Toolbox for non-linear calibration modeling."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -16,7 +16,6 @@ authors = [
 classifiers = [
     "Programming Language :: Python",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",

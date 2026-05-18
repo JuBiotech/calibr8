@@ -26,7 +26,7 @@ jobs:
         pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8
     - name: Install and test with PyMC v5
       run: |
-        pip install "pymc>=5.0.0"
+        pip install "pymc>=6.0.0"
         pytest --cov=./calibr8 --cov-append --cov-report xml --cov-report term-missing calibr8
     - name: Build package
       run: |
