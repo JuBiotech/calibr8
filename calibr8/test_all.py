@@ -1006,18 +1006,17 @@ class TestModelFunctions:
 class TestSymbolicModelFunctions:
     def _check_numpy_backend_equivalence(self, function, theta):
         # make sure that test value computation is turned off (PyMC likes to turn it on)
-        with config.change_flags(compute_test_value="off"):
-            # create computation graph
-            x = at.vector("x", dtype=config.floatX)
-            y = function(x, theta)
-            assert isinstance(y, at.TensorVariable)
+        # create computation graph
+        x = at.vector("x", dtype=config.floatX)
+        y = function(x, theta)
+        assert isinstance(y, at.TensorVariable)
 
-            # compile PyTensor function
-            f = backend.function([x], [y])
+        # compile PyTensor function
+        f = backend.function([x], [y])
 
-            # check equivalence of numpy and PyTensor backend computation
-            x_test = [1, 2, 4]
-            numpy.testing.assert_almost_equal(f(x_test)[0], function(x_test, theta))
+        # check equivalence of numpy and PyTensor backend computation
+        x_test = [1, 2, 4]
+        numpy.testing.assert_almost_equal(f(x_test)[0], function(x_test, theta))
         return
 
     def test_logistic(self):
